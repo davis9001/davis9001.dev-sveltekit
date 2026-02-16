@@ -60,6 +60,7 @@ describe('CMS Utils', () => {
 				settings: JSON.stringify({ hasDrafts: true }),
 				icon: 'article',
 				sort_order: 0,
+				is_system: 0,
 				created_at: '2024-01-01T00:00:00Z',
 				updated_at: '2024-01-01T00:00:00Z'
 			};

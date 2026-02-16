@@ -42,6 +42,22 @@
 	// SEO section visibility
 	let showSeoFields = false;
 
+	function getSortedFields() {
+		if (!contentType?.fields) return [];
+		return [...contentType.fields].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+	}
+
+	$: sortedFields = getSortedFields();
+
+	function toggleMultiselectValue(fieldName: string, value: string) {
+		const current: string[] = formFields[fieldName] || [];
+		if (current.includes(value)) {
+			formFields[fieldName] = current.filter((v: string) => v !== value);
+		} else {
+			formFields[fieldName] = [...current, value];
+		}
+	}
+
 	function getDefaultFields(): Record<string, any> {
 		const defaults: Record<string, any> = {};
 		if (contentType?.fields) {
@@ -521,13 +537,12 @@
 {#if showCreateModal || showEditModal}
 	<div
 		class="modal-overlay"
-		on:click={closeModals}
+		on:click|self={closeModals}
 		on:keydown={(e) => e.key === 'Escape' && closeModals()}
 		role="presentation"
 	>
 		<div
 			class="modal"
-			on:click|stopPropagation
 			role="dialog"
 			aria-modal="true"
 			aria-label="{showCreateModal ? 'Create' : 'Edit'} {contentType.name.replace(/s$/, '')}"
@@ -582,7 +597,7 @@
 				{#if contentType.fields?.length}
 					<div class="form-section">
 						<h3>Content Fields</h3>
-						{#each contentType.fields.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)) as field}
+						{#each sortedFields as field}
 							<div class="form-group">
 								<label for="field-{field.name}">
 									{field.label}
@@ -660,14 +675,7 @@
 												<input
 													type="checkbox"
 													checked={formFields[field.name]?.includes(opt.value)}
-													on:change={() => {
-														const current = formFields[field.name] || [];
-														if (current.includes(opt.value)) {
-															formFields[field.name] = current.filter((v) => v !== opt.value);
-														} else {
-															formFields[field.name] = [...current, opt.value];
-														}
-													}}
+													on:change={() => toggleMultiselectValue(field.name, opt.value)}
 												/>
 												<span>{opt.label}</span>
 											</label>
@@ -809,17 +817,11 @@
 {#if showDeleteConfirm && deletingItem}
 	<div
 		class="modal-overlay"
-		on:click={closeModals}
+		on:click|self={closeModals}
 		on:keydown={(e) => e.key === 'Escape' && closeModals()}
 		role="presentation"
 	>
-		<div
-			class="modal modal-sm"
-			on:click|stopPropagation
-			role="dialog"
-			aria-modal="true"
-			aria-label="Confirm deletion"
-		>
+		<div class="modal modal-sm" role="dialog" aria-modal="true" aria-label="Confirm deletion">
 			<div class="modal-header">
 				<h2>Delete {contentType.name.replace(/s$/, '')}</h2>
 				<button class="btn-close" on:click={closeModals} aria-label="Close">&times;</button>
@@ -1325,8 +1327,7 @@
 		outline: none;
 	}
 
-	.form-group input.error,
-	.form-group textarea.error {
+	.form-group input.error {
 		border-color: var(--color-danger, #dc3545);
 	}
 

@@ -623,7 +623,6 @@
 		margin-bottom: var(--spacing-md);
 	}
 
-	.key-field label,
 	.key-field .label {
 		display: block;
 		font-size: 0.875rem;
