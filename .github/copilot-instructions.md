@@ -25,7 +25,7 @@ When using the Copilot Coding Agent (remote):
 
 - Never start a feature or bug fix without writing tests first
 - Write failing tests, then implement code to make them pass
-- Maintain 90%+ code coverage across all modules
+- Maintain 95%+ code coverage across all modules — coverage must NEVER drop below 95%
 - Tests are not optional—they are part of the definition of "done"
 
 ## 🏗️ Architecture Principles
@@ -86,8 +86,10 @@ describe('Feature Name', () => {
 
 ### Coverage Requirements
 
-- **Minimum 90% coverage** on all modules
+- **Minimum 95% coverage** on all modules — this is a hard floor, never allow it to drop below 95%
 - 100% coverage on critical paths (auth, payments, data mutations)
+- **Before finishing any task**, run `npm run test:coverage` and verify coverage has not decreased
+- If your changes would reduce coverage below 95%, you MUST add additional tests before considering the task complete
 - Every new feature must include:
   - Unit tests for business logic
   - Integration tests for API endpoints
@@ -513,7 +515,7 @@ Types: `feat`, `fix`, `test`, `refactor`, `docs`, `style`, `chore`
 
 - [ ] Tests written first (TDD)
 - [ ] All tests passing
-- [ ] Coverage ≥ 90%
+- [ ] Coverage ≥ 95% (hard minimum — never allow regression below this)
 - [ ] TypeScript checks pass
 - [ ] Local dev environment works
 - [ ] Code reviewed

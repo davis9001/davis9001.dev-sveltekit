@@ -21,3 +21,21 @@ Migration files in `migrations/` are immutable once applied. Cloudflare D1 track
 - Drop tables without explicit user approval
 
 See `migrations/README.md` for the full migration guide.
+
+## Code Coverage - MANDATORY RULES
+
+**Code coverage must NEVER drop below 95%. This is a hard floor.**
+
+- Before completing any task, run `npm run test:coverage` and confirm overall coverage is ≥ 95%
+- If your changes reduce coverage below 95%, you MUST write additional tests before finishing
+- 100% coverage is required on critical paths (auth, payments, data mutations)
+- Every new feature, bug fix, or refactor must include tests sufficient to maintain this threshold
+- Do NOT skip tests to save time — untested code is incomplete code
+
+### Verification command:
+
+```bash
+npm run test:coverage
+```
+
+Check the summary output. If any category (Statements, Branches, Functions, Lines) falls below 95%, add tests until the threshold is met.
