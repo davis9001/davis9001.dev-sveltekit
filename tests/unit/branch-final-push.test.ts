@@ -47,7 +47,7 @@ describe('Chat Models - generic error in outer catch', () => {
 
 describe('GitHub Callback - non-redirect error branches', () => {
 	let originalFetch: typeof globalThis.fetch;
-	let consoleSpy: ReturnType<typeof vi.spyOn>;
+	let consoleSpy: any;
 
 	beforeEach(() => {
 		vi.resetModules();
@@ -105,7 +105,7 @@ describe('GitHub Callback - non-redirect error branches', () => {
 
 describe('Discord Callback - non-redirect error branches', () => {
 	let originalFetch: typeof globalThis.fetch;
-	let consoleSpy: ReturnType<typeof vi.spyOn>;
+	let consoleSpy: any;
 
 	beforeEach(() => {
 		vi.resetModules();
@@ -161,7 +161,7 @@ describe('Discord Callback - non-redirect error branches', () => {
 
 describe('API Setup - generic error branches', () => {
 	let originalFetch: typeof globalThis.fetch;
-	let consoleSpy: ReturnType<typeof vi.spyOn>;
+	let consoleSpy: any;
 
 	beforeEach(() => {
 		vi.resetModules();
@@ -423,18 +423,13 @@ describe('AI Keys Models - generic error in catch', () => {
 
 	it('should throw 500 when non-status error occurs', async () => {
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-		const { POST } = await import('../../src/routes/api/admin/ai-keys/models/+server.js');
+		const { GET } = await import('../../src/routes/api/admin/ai-keys/models/+server.js');
 
 		try {
-			await POST({
+			await GET({
 				locals: { user: { id: '1', isOwner: true } },
 				platform: { env: { KV: null } },
-				request: {
-					json: async () => ({
-						provider: 'openai',
-						apiKey: 'sk-xxx'
-					})
-				}
+				url: new URL('http://localhost/api/admin/ai-keys/models')
 			} as any);
 			expect.fail('Should have thrown');
 		} catch (err: any) {
@@ -518,10 +513,10 @@ describe('Admin CMS [type] page - remaining branches', () => {
 			fetch: mockFetch,
 			params: { type: 'blog' },
 			url: new URL('http://localhost/admin/cms/blog')
-		});
+		} as any);
 
-		expect(result.items).toEqual([]);
-		expect(result.totalItems).toBe(0);
+		expect((result as any).items).toEqual([]);
+		expect((result as any).totalItems).toBe(0);
 	});
 
 	it('should handle tags fetch throwing an exception', async () => {
@@ -552,9 +547,9 @@ describe('Admin CMS [type] page - remaining branches', () => {
 			fetch: mockFetch,
 			params: { type: 'blog' },
 			url: new URL('http://localhost/admin/cms/blog')
-		});
+		} as any);
 
-		expect(result.tags).toEqual([]);
+		expect((result as any).tags).toEqual([]);
 	});
 });
 

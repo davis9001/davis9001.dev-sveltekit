@@ -182,11 +182,11 @@ describe('[contentType] page server load', () => {
 		// listContentItems: items
 		mockDB._allQueue.push({ results: [mockContentItemRow] });
 
-		const result = await load({
+		const result = (await load({
 			params: { contentType: 'blog' },
 			platform: { env: { DB: mockDB } },
 			url: new URL('http://localhost/blog')
-		} as any);
+		} as any)) as any;
 
 		expect(result.contentType).toBeTruthy();
 		expect(result.contentType.slug).toBe('blog');
@@ -207,11 +207,11 @@ describe('[contentType] page server load', () => {
 		// listContentItems: items
 		mockDB._allQueue.push({ results: [] });
 
-		const result = await load({
+		const result = (await load({
 			params: { contentType: 'blog' },
 			platform: { env: { DB: mockDB } },
 			url: new URL('http://localhost/blog?search=test&tag=js&page=2')
-		} as any);
+		} as any)) as any;
 
 		expect(result.items).toEqual([]);
 	});
@@ -351,10 +351,10 @@ describe('[contentType]/[slug] page server load', () => {
 		// getItemTags: tags (hasTags is true in settings)
 		mockDB._allQueue.push({ results: [mockTagRow] });
 
-		const result = await load({
+		const result = (await load({
 			params: { contentType: 'blog', slug: 'hello-world' },
 			platform: { env: { DB: mockDB } }
-		} as any);
+		} as any)) as any;
 
 		expect(result.contentType).toBeTruthy();
 		expect(result.item).toBeTruthy();
@@ -377,10 +377,10 @@ describe('[contentType]/[slug] page server load', () => {
 		// getContentItemBySlug
 		mockDB._firstQueue.push(mockContentItemRow);
 
-		const result = await load({
+		const result = (await load({
 			params: { contentType: 'blog', slug: 'hello-world' },
 			platform: { env: { DB: mockDB } }
-		} as any);
+		} as any)) as any;
 
 		expect(result.tags).toEqual([]);
 	});

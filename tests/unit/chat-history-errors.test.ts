@@ -51,7 +51,7 @@ describe('Chat History Store - Error Paths', () => {
 		chatHistoryStore.initializeForUser('user-with-bad-data');
 
 		const { get } = await import('svelte/store');
-		const state = get(chatHistoryStore);
+		const state = get(chatHistoryStore) as any;
 		// Should fall back to initial state
 		expect(state.conversations).toEqual([]);
 		expect(consoleSpy).toHaveBeenCalledWith(
@@ -75,7 +75,7 @@ describe('Chat History Store - Error Paths', () => {
 		chatHistoryStore.initializeForUser('user-error');
 
 		const { get } = await import('svelte/store');
-		const state = get(chatHistoryStore);
+		const state = get(chatHistoryStore) as any;
 		expect(state.conversations).toEqual([]);
 
 		getItemSpy.mockRestore();
