@@ -5,6 +5,12 @@
 	import SocialLinks from '$lib/components/SocialLinks.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
+	import { formatBlogDate } from '$lib/utils/blog';
+	import type { PageData } from './$types';
+
+	export let data: PageData;
+
+	$: recentPosts = data.recentPosts || [];
 
 	let asciiCharacters: string[] = [];
 	
@@ -105,7 +111,23 @@
 							Updates (Blog)
 						</a>
 					</h3>
-					<p class="text-sm opacity-60">Coming soon...</p>
+					<ul class="text-base sm:text-xl list-none p-0 m-0">
+						{#each recentPosts as post}
+							<li class="text-left p-2">
+								<a href="/updates/{post.slug}" class="text-accent">
+									<em class="opacity-50">
+										{formatBlogDate(post.publishedAt)}
+									</em>
+									- {post.title}
+								</a>
+							</li>
+						{/each}
+					</ul>
+					{#if recentPosts.length >= 5}
+						<p class="text-left p-2">
+							<a href="/updates" class="text-secondary">See the rest &rarr;</a>
+						</p>
+					{/if}
 				</div>
 			</div>
 

@@ -116,6 +116,20 @@
 			</button>
 
 			<div class="nav-links" class:open={mobileMenuOpen}>
+				<a
+					href="/updates"
+					class:active={$page.url.pathname.startsWith('/updates')}
+					on:click={closeMobileMenu}
+				>
+					Blog
+				</a>
+				<a
+					href="/portfolio"
+					class:active={$page.url.pathname.startsWith('/portfolio')}
+					on:click={closeMobileMenu}
+				>
+					Portfolio
+				</a>
 				{#if user}
 					{#if user.isOwner || user.isAdmin}
 						<a
