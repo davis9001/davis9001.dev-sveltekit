@@ -56,7 +56,7 @@
 	<slot />
 {:else}
 	<div class="app">
-		<Navigation user={data.user} onCommandPaletteClick={toggleCommandPalette} />
+		<Navigation user={data.user} hasAuthConfig={data.hasAuthConfig} onCommandPaletteClick={toggleCommandPalette} />
 
 		<main>
 			<slot />

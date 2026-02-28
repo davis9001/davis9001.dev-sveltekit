@@ -34,7 +34,7 @@ const authHandler: Handle = async ({ event, resolve }) => {
 						'SELECT is_admin FROM users WHERE id = ?'
 					)
 						.bind(sessionData.id)
-						.first<{ is_admin: number }>();
+						.first<{ is_admin: number; }>();
 
 					if (userRecord) {
 						sessionData.isAdmin = userRecord.is_admin === 1;

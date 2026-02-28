@@ -5,6 +5,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * TDD: Tests for root layout data loading
  */
 
+// Helper to create a mock platform with optional env overrides
+function mockPlatform(envOverrides: Record<string, unknown> = {}): App.Platform {
+	return { env: { KV: { get: async () => null }, ...envOverrides } } as unknown as App.Platform;
+}
+
 describe('Layout Server Load', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -27,11 +32,13 @@ describe('Layout Server Load', () => {
 			const { load } = await import('../../src/routes/+layout.server');
 			const result = (await load({
 				locals: { user: mockUser },
-				fetch: mockFetch
-			} as any)) as { user: typeof mockUser | null; hasAIProviders: boolean };
+				fetch: mockFetch,
+				platform: mockPlatform()
+			} as any)) as { user: typeof mockUser | null; hasAIProviders: boolean; hasAuthConfig: boolean; };
 
 			expect(result.user).toEqual(mockUser);
 			expect(result.hasAIProviders).toBe(true);
+			expect(result.hasAuthConfig).toBe(false);
 			expect(mockFetch).toHaveBeenCalledWith('/api/admin/ai-keys/status');
 		});
 
@@ -44,11 +51,13 @@ describe('Layout Server Load', () => {
 			const { load } = await import('../../src/routes/+layout.server');
 			const result = (await load({
 				locals: {},
-				fetch: mockFetch
-			} as any)) as { user: null; hasAIProviders: boolean };
+				fetch: mockFetch,
+				platform: mockPlatform()
+			} as any)) as { user: null; hasAIProviders: boolean; hasAuthConfig: boolean; };
 
 			expect(result.user).toBeNull();
 			expect(result.hasAIProviders).toBe(false);
+			expect(result.hasAuthConfig).toBe(false);
 		});
 
 		it('should handle AI provider check failure gracefully', async () => {
@@ -60,8 +69,9 @@ describe('Layout Server Load', () => {
 			const { load } = await import('../../src/routes/+layout.server');
 			const result = (await load({
 				locals: { user: { id: 'user-123' } },
-				fetch: mockFetch
-			} as any)) as { hasAIProviders: boolean };
+				fetch: mockFetch,
+				platform: mockPlatform()
+			} as any)) as { hasAIProviders: boolean; };
 
 			expect(result.hasAIProviders).toBe(false);
 		});
@@ -72,10 +82,55 @@ describe('Layout Server Load', () => {
 			const { load } = await import('../../src/routes/+layout.server');
 			const result = (await load({
 				locals: { user: { id: 'user-123' } },
-				fetch: mockFetch
-			} as any)) as { hasAIProviders: boolean };
+				fetch: mockFetch,
+				platform: mockPlatform()
+			} as any)) as { hasAIProviders: boolean; };
 
 			expect(result.hasAIProviders).toBe(false);
+		});
+
+		it('should return hasAuthConfig true when GitHub env vars are set', async () => {
+			const mockFetch = vi.fn().mockResolvedValue({
+				ok: true,
+				json: vi.fn().mockResolvedValue({ hasProviders: false })
+			});
+
+			const { load } = await import('../../src/routes/+layout.server');
+			const result = (await load({
+				locals: {},
+				fetch: mockFetch,
+				platform: mockPlatform({
+					GITHUB_CLIENT_ID: 'gid',
+					GITHUB_CLIENT_SECRET: 'gsecret'
+				})
+			} as any)) as { hasAuthConfig: boolean; };
+
+			expect(result.hasAuthConfig).toBe(true);
+		});
+
+		it('should return hasAuthConfig true when KV has auth config', async () => {
+			const mockFetch = vi.fn().mockResolvedValue({
+				ok: true,
+				json: vi.fn().mockResolvedValue({ hasProviders: false })
+			});
+
+			const { load } = await import('../../src/routes/+layout.server');
+			const result = (await load({
+				locals: {},
+				fetch: mockFetch,
+				platform: mockPlatform({
+					KV: {
+						get: async (key: string) => {
+							if (key === 'auth_config:github') {
+								return JSON.stringify({ clientId: 'id', clientSecret: 'secret' });
+							}
+							return null;
+						}
+					}
+				})
+			} as any)) as { hasAuthConfig: boolean; };
+
+			expect(result.hasAuthConfig).toBe(true);
 		});
 	});
 });

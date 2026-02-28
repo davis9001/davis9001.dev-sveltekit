@@ -12,12 +12,12 @@ const SITE_URL = 'https://davis9001.dev';
 
 // Static public routes
 const staticRoutes = [
-	'/',
-	'/portfolio',
-	'/updates',
-	'/documentation',
-	'/privacy',
-	'/terms'
+  '/',
+  '/portfolio',
+  '/updates',
+  '/documentation',
+  '/privacy',
+  '/terms'
 ];
 
 // Import all blog post markdown files to extract slugs
@@ -27,31 +27,31 @@ const blogModules = import.meta.glob('/src/updates/*.md', { query: '?raw', impor
 const projectModules = import.meta.glob('/src/projects/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 function extractSlugs(modules: Record<string, string>): string[] {
-	return Object.keys(modules).map((path) => {
-		const filename = path.split('/').pop() || '';
-		return filename.replace(/\.md$/, '');
-	});
+  return Object.keys(modules).map((path) => {
+    const filename = path.split('/').pop() || '';
+    return filename.replace(/\.md$/, '');
+  });
 }
 
 export const GET: RequestHandler = async () => {
-	const blogSlugs = extractSlugs(blogModules);
-	const projectSlugs = extractSlugs(projectModules);
+  const blogSlugs = extractSlugs(blogModules);
+  const projectSlugs = extractSlugs(projectModules);
 
-	const urls = [
-		...staticRoutes.map((route) => `${SITE_URL}${route}`),
-		...blogSlugs.map((slug) => `${SITE_URL}/updates/${slug}`),
-		...projectSlugs.map((slug) => `${SITE_URL}/portfolio/project/${slug}`)
-	];
+  const urls = [
+    ...staticRoutes.map((route) => `${SITE_URL}${route}`),
+    ...blogSlugs.map((slug) => `${SITE_URL}/updates/${slug}`),
+    ...projectSlugs.map((slug) => `${SITE_URL}/portfolio/project/${slug}`)
+  ];
 
-	const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((url) => `  <url>\n    <loc>${url}</loc>\n  </url>`).join('\n')}
 </urlset>`;
 
-	return new Response(sitemap, {
-		headers: {
-			'Content-Type': 'application/xml',
-			'Cache-Control': 'max-age=3600'
-		}
-	});
+  return new Response(sitemap, {
+    headers: {
+      'Content-Type': 'application/xml',
+      'Cache-Control': 'max-age=3600'
+    }
+  });
 };

@@ -30,6 +30,7 @@ declare global {
 				SPOTIFY_CLIENT_ID?: string;
 				SPOTIFY_CLIENT_SECRET?: string;
 				SPOTIFY_REFRESH_TOKEN?: string;
+				DISCORD_WEBHOOK_URL?: string;
 			};
 			context: {
 				waitUntil(promise: Promise<any>): void;

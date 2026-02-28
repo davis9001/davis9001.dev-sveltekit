@@ -16,6 +16,8 @@
 		isOwner: boolean;
 		isAdmin?: boolean;
 	} | null = null;
+	/** Whether any auth provider (GitHub / Discord) is configured */
+	export let hasAuthConfig: boolean = false;
 
 	function toggleMobileMenu() {
 		mobileMenuOpen = !mobileMenuOpen;
@@ -204,13 +206,15 @@
 						{/if}
 					</div>
 				{:else}
-					<a
-						href="/auth/login"
-						class:active={$page.url.pathname.startsWith('/auth')}
-						on:click={closeMobileMenu}
-					>
-						Sign In
-					</a>
+					{#if hasAuthConfig}
+						<a
+							href="/auth/login"
+							class:active={$page.url.pathname.startsWith('/auth')}
+							on:click={closeMobileMenu}
+						>
+							Sign In
+						</a>
+					{/if}
 					<ThemeSwitcher variant="inline" simpleToggle={true} />
 				{/if}
 			</div>
