@@ -59,7 +59,7 @@ describe('Admin Layout Server Load', () => {
 				locals: { user: mockUser }
 			} as any);
 
-			expect((result as { user: typeof mockUser }).user).toEqual(mockUser);
+			expect((result as { user: typeof mockUser; }).user).toEqual(mockUser);
 		});
 	});
 });
@@ -138,7 +138,7 @@ describe('Admin Dashboard Page Server Load', () => {
 			const { load } = await import('../../src/routes/admin/+page.server');
 			const result = (await load({
 				platform: mockPlatform
-			} as any)) as { setupInfo: { hasOAuthConfig: boolean } };
+			} as any)) as { setupInfo: { hasOAuthConfig: boolean; }; };
 
 			expect(result.setupInfo.hasOAuthConfig).toBe(false);
 		});
@@ -159,10 +159,154 @@ describe('Admin Dashboard Page Server Load', () => {
 			const { load } = await import('../../src/routes/admin/+page.server');
 			const result = (await load({
 				platform: mockPlatform
-			} as any)) as { setupInfo: { hasOAuthConfig: boolean; adminId: string | null } };
+			} as any)) as { setupInfo: { hasOAuthConfig: boolean; adminId: string | null; }; };
 
 			expect(result.setupInfo.hasOAuthConfig).toBe(false);
 			expect(result.setupInfo.adminId).toBe('12345');
+		});
+
+		it('should fall back to env vars for OAuth config when KV has no auth config', async () => {
+			const mockPlatform = {
+				env: {
+					KV: {
+						get: vi
+							.fn()
+							.mockResolvedValueOnce(null) // No auth_config:github in KV
+							.mockResolvedValueOnce(null) // No github_owner_id in KV
+							.mockResolvedValueOnce(null) // No github_owner_username in KV
+							.mockResolvedValueOnce(null) // No reset_route_disabled in KV
+					},
+					GITHUB_CLIENT_ID: 'env-client-id',
+					GITHUB_CLIENT_SECRET: 'env-client-secret',
+					GITHUB_OWNER_ID: 'env-owner-id',
+					GITHUB_OWNER_USERNAME: 'env-owner-username'
+				}
+			};
+
+			const { load } = await import('../../src/routes/admin/+page.server');
+			const result = (await load({
+				platform: mockPlatform
+			} as any)) as {
+				setupInfo: {
+					hasOAuthConfig: boolean;
+					oauthProvider: string | null;
+					oauthClientId: string | null;
+					adminId: string | null;
+					adminUsername: string | null;
+				};
+			};
+
+			expect(result.setupInfo.hasOAuthConfig).toBe(true);
+			expect(result.setupInfo.oauthProvider).toBe('github');
+			expect(result.setupInfo.oauthClientId).toBe('env-client-id');
+			expect(result.setupInfo.adminId).toBe('env-owner-id');
+			expect(result.setupInfo.adminUsername).toBe('env-owner-username');
+		});
+
+		it('should fall back to env vars for admin ID when KV has no owner', async () => {
+			const mockPlatform = {
+				env: {
+					KV: {
+						get: vi
+							.fn()
+							.mockResolvedValueOnce(JSON.stringify({ provider: 'github', clientId: 'kv-client' })) // auth config from KV
+							.mockResolvedValueOnce(null) // No github_owner_id in KV
+							.mockResolvedValueOnce(null) // No github_owner_username
+							.mockResolvedValueOnce(null) // No reset_route_disabled
+					},
+					GITHUB_OWNER_ID: 'env-owner-id',
+					GITHUB_OWNER_USERNAME: 'env-owner-username'
+				}
+			};
+
+			const { load } = await import('../../src/routes/admin/+page.server');
+			const result = (await load({
+				platform: mockPlatform
+			} as any)) as { setupInfo: { hasOAuthConfig: boolean; adminId: string | null; adminUsername: string | null; oauthClientId: string | null; }; };
+
+			expect(result.setupInfo.hasOAuthConfig).toBe(true);
+			expect(result.setupInfo.oauthClientId).toBe('kv-client');
+			expect(result.setupInfo.adminId).toBe('env-owner-id');
+			expect(result.setupInfo.adminUsername).toBe('env-owner-username');
+		});
+
+		it('should prefer KV values over env vars', async () => {
+			const mockPlatform = {
+				env: {
+					KV: {
+						get: vi
+							.fn()
+							.mockResolvedValueOnce(JSON.stringify({ provider: 'github', clientId: 'kv-client' }))
+							.mockResolvedValueOnce('kv-owner-id')
+							.mockResolvedValueOnce('kv-owner-name')
+							.mockResolvedValueOnce(null)
+					},
+					GITHUB_CLIENT_ID: 'env-client-id',
+					GITHUB_CLIENT_SECRET: 'env-client-secret',
+					GITHUB_OWNER_ID: 'env-owner-id'
+				}
+			};
+
+			const { load } = await import('../../src/routes/admin/+page.server');
+			const result = (await load({
+				platform: mockPlatform
+			} as any)) as { setupInfo: { oauthClientId: string | null; adminId: string | null; }; };
+
+			// KV values should win
+			expect(result.setupInfo.oauthClientId).toBe('kv-client');
+			expect(result.setupInfo.adminId).toBe('kv-owner-id');
+		});
+
+		it('should fall back to env vars when KV errors and env vars are available', async () => {
+			const mockPlatform = {
+				env: {
+					KV: {
+						get: vi.fn().mockRejectedValue(new Error('KV Error'))
+					},
+					GITHUB_CLIENT_ID: 'env-client-id',
+					GITHUB_CLIENT_SECRET: 'env-client-secret',
+					GITHUB_OWNER_ID: 'env-owner-id'
+				}
+			};
+
+			const { load } = await import('../../src/routes/admin/+page.server');
+			const result = (await load({
+				platform: mockPlatform
+			} as any)) as {
+				setupInfo: {
+					hasOAuthConfig: boolean;
+					oauthProvider: string | null;
+					adminId: string | null;
+				};
+			};
+
+			expect(result.setupInfo.hasOAuthConfig).toBe(true);
+			expect(result.setupInfo.oauthProvider).toBe('github');
+			expect(result.setupInfo.adminId).toBe('env-owner-id');
+		});
+
+		it('should fall back to env var for admin username when KV has no username', async () => {
+			const mockPlatform = {
+				env: {
+					KV: {
+						get: vi
+							.fn()
+							.mockResolvedValueOnce(null) // No auth_config:github in KV
+							.mockResolvedValueOnce(null) // No github_owner_id in KV
+							.mockResolvedValueOnce(null) // No github_owner_username in KV
+							.mockResolvedValueOnce(null) // No reset_route_disabled in KV
+					},
+					GITHUB_OWNER_ID: 'env-owner-id',
+					GITHUB_OWNER_USERNAME: 'env-owner-username'
+				}
+			};
+
+			const { load } = await import('../../src/routes/admin/+page.server');
+			const result = (await load({
+				platform: mockPlatform
+			} as any)) as { setupInfo: { adminUsername: string | null; }; };
+
+			expect(result.setupInfo.adminUsername).toBe('env-owner-username');
 		});
 	});
 });

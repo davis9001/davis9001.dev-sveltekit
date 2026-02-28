@@ -88,6 +88,91 @@ describe('Setup API', () => {
 			expect(result.hasAdmin).toBe(false);
 			expect(result.setupLocked).toBe(false);
 		});
+
+		it('should fall back to env vars when KV has no config', async () => {
+			const mockPlatform = {
+				env: {
+					KV: {
+						get: vi
+							.fn()
+							.mockResolvedValueOnce(null) // auth_config:github
+							.mockResolvedValueOnce(null) // github_owner_id
+							.mockResolvedValueOnce(null) // admin_first_login_completed
+					},
+					GITHUB_CLIENT_ID: 'env-client-id',
+					GITHUB_CLIENT_SECRET: 'env-client-secret',
+					GITHUB_OWNER_ID: 'env-owner-id'
+				}
+			};
+
+			const { GET } = await import('../../src/routes/api/setup/+server');
+			const response = await GET({
+				platform: mockPlatform
+			} as any);
+
+			const result = await response.json();
+			expect(result.hasConfig).toBe(true);
+			expect(result.hasAdmin).toBe(true);
+		});
+
+		it('should fall back to env vars when KV is not available', async () => {
+			const { GET } = await import('../../src/routes/api/setup/+server');
+			const response = await GET({
+				platform: {
+					env: {
+						GITHUB_CLIENT_ID: 'env-client-id',
+						GITHUB_CLIENT_SECRET: 'env-client-secret',
+						GITHUB_OWNER_ID: 'env-owner-id'
+					}
+				}
+			} as any);
+
+			const result = await response.json();
+			expect(result.hasConfig).toBe(true);
+			expect(result.hasAdmin).toBe(true);
+		});
+
+		it('should prefer KV values over env vars in setup check', async () => {
+			const mockPlatform = {
+				env: {
+					KV: {
+						get: vi
+							.fn()
+							.mockResolvedValueOnce(JSON.stringify({ clientId: 'kv-client' }))
+							.mockResolvedValueOnce('kv-owner-id')
+							.mockResolvedValueOnce(null) // admin_first_login_completed
+					},
+					GITHUB_CLIENT_ID: 'env-client-id',
+					GITHUB_CLIENT_SECRET: 'env-client-secret',
+					GITHUB_OWNER_ID: 'env-owner-id'
+				}
+			};
+
+			const { GET } = await import('../../src/routes/api/setup/+server');
+			const response = await GET({
+				platform: mockPlatform
+			} as any);
+
+			const result = await response.json();
+			expect(result.hasConfig).toBe(true);
+			expect(result.hasAdmin).toBe(true);
+		});
+
+		it('should not detect config with only partial env vars', async () => {
+			const { GET } = await import('../../src/routes/api/setup/+server');
+			const response = await GET({
+				platform: {
+					env: {
+						GITHUB_CLIENT_ID: 'env-client-id'
+						// Missing GITHUB_CLIENT_SECRET
+					}
+				}
+			} as any);
+
+			const result = await response.json();
+			expect(result.hasConfig).toBe(false);
+			expect(result.hasAdmin).toBe(false);
+		});
 	});
 
 	describe('POST /api/setup', () => {

@@ -4,23 +4,29 @@ import type { RequestHandler } from './$types';
 // GET - Check if OAuth configuration exists
 export const GET: RequestHandler = async ({ platform }) => {
 	try {
-		if (!platform?.env?.KV) {
-			return json({
-				hasConfig: false,
-				hasAdmin: false
-			});
+		let hasConfig = false;
+		let hasAdmin = false;
+		let setupLocked = false;
+
+		if (platform?.env?.KV) {
+			// Check KV first
+			const authConfigStr = await platform.env.KV.get('auth_config:github');
+			hasConfig = !!authConfigStr;
+
+			const ownerId = await platform.env.KV.get('github_owner_id');
+			hasAdmin = !!ownerId;
+
+			setupLocked = !!(await platform.env.KV.get('admin_first_login_completed'));
 		}
 
-		// Check if auth config exists
-		const authConfigStr = await platform.env.KV.get('auth_config:github');
-		const hasConfig = !!authConfigStr;
+		// Fall back to environment variables if KV doesn't have the values
+		if (!hasConfig && platform?.env?.GITHUB_CLIENT_ID && platform?.env?.GITHUB_CLIENT_SECRET) {
+			hasConfig = true;
+		}
 
-		// Check if admin is set
-		const ownerId = await platform.env.KV.get('github_owner_id');
-		const hasAdmin = !!ownerId;
-
-		// Check if setup is locked (admin has logged in at least once)
-		const setupLocked = !!(await platform.env.KV.get('admin_first_login_completed'));
+		if (!hasAdmin && platform?.env?.GITHUB_OWNER_ID) {
+			hasAdmin = true;
+		}
 
 		return json({
 			hasConfig,

@@ -25,10 +25,12 @@ declare global {
 				GITHUB_CLIENT_ID?: string;
 				GITHUB_CLIENT_SECRET?: string;
 				GITHUB_OWNER_ID?: string;
+				GITHUB_OWNER_USERNAME?: string;
 				DISCORD_CLIENT_ID?: string;
 				DISCORD_CLIENT_SECRET?: string;
 				SPOTIFY_CLIENT_ID?: string;
 				SPOTIFY_CLIENT_SECRET?: string;
+				SPOTIFY_REDIRECT_URI?: string;
 				SPOTIFY_REFRESH_TOKEN?: string;
 				DISCORD_WEBHOOK_URL?: string;
 			};

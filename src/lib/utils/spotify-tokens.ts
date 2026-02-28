@@ -123,3 +123,48 @@ export async function getValidAccessToken(
   console.error('No valid Spotify tokens found');
   return null;
 }
+
+/**
+ * Exchange an authorization code for access and refresh tokens.
+ * Used during the OAuth callback flow.
+ */
+export async function exchangeCodeForTokens(
+  kv: KVNamespace,
+  code: string,
+  clientId: string,
+  clientSecret: string,
+  redirectUri: string
+): Promise<boolean> {
+  try {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: redirectUri
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Failed to exchange code for tokens:', errorText);
+      return false;
+    }
+
+    const data = await response.json();
+    await storeTokens(kv, {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresAt: Date.now() + data.expires_in * 1000
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error exchanging code for tokens:', error);
+    return false;
+  }
+}
