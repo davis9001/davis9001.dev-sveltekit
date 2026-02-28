@@ -74,7 +74,7 @@ Now when you save GitHub OAuth credentials via `/setup`, they'll be stored in yo
 
 ### 4. Verify It's Working
 
-1. Go to `http://localhost:4277/setup`
+1. Go to `http://localhost:4220/setup`
 2. Enter your GitHub OAuth credentials
 3. Check the console - you should see: `✓ Saved auth config to KV`
 4. Try logging in with GitHub - it should work!

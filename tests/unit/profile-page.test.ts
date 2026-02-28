@@ -25,7 +25,7 @@ describe('Profile Page', () => {
 		it('should redirect to login if user is not authenticated', async () => {
 			const mockEvent = {
 				locals: {},
-				url: new URL('http://localhost:4277/profile'),
+				url: new URL('http://localhost:4220/profile'),
 				platform: {}
 			};
 
@@ -56,7 +56,7 @@ describe('Profile Page', () => {
 				locals: {
 					user: mockUser
 				},
-				url: new URL('http://localhost:4277/profile'),
+				url: new URL('http://localhost:4220/profile'),
 				platform: {}
 			};
 
@@ -86,7 +86,7 @@ describe('Profile Page', () => {
 				locals: {
 					user: mockUser
 				},
-				url: new URL('http://localhost:4277/profile'),
+				url: new URL('http://localhost:4220/profile'),
 				platform: {}
 			};
 
@@ -118,7 +118,7 @@ describe('Profile Page', () => {
 				},
 				hasAIProviders: false,
 				connectedAccounts: [],
-			configuredProviders: { github: false, discord: false }
+				configuredProviders: { github: false, discord: false }
 			};
 
 			const { container, getByText } = render(ProfilePage.default, {
@@ -148,7 +148,7 @@ describe('Profile Page', () => {
 				},
 				hasAIProviders: false,
 				connectedAccounts: [],
-			configuredProviders: { github: false, discord: false }
+				configuredProviders: { github: false, discord: false }
 			};
 
 			const { container } = render(ProfilePage.default, {
@@ -173,7 +173,7 @@ describe('Profile Page', () => {
 				},
 				hasAIProviders: false,
 				connectedAccounts: [],
-			configuredProviders: { github: false, discord: false }
+				configuredProviders: { github: false, discord: false }
 			};
 
 			const { container } = render(ProfilePage.default, {
@@ -200,7 +200,7 @@ describe('Profile Page', () => {
 				},
 				hasAIProviders: false,
 				connectedAccounts: [],
-			configuredProviders: { github: false, discord: false }
+				configuredProviders: { github: false, discord: false }
 			};
 
 			const { getByText } = render(ProfilePage.default, {
@@ -224,7 +224,7 @@ describe('Profile Page', () => {
 				},
 				hasAIProviders: false,
 				connectedAccounts: [],
-			configuredProviders: { github: false, discord: false }
+				configuredProviders: { github: false, discord: false }
 			};
 
 			const { getByText } = render(ProfilePage.default, {
@@ -247,7 +247,7 @@ describe('Profile Page', () => {
 				},
 				hasAIProviders: false,
 				connectedAccounts: [],
-			configuredProviders: { github: false, discord: false }
+				configuredProviders: { github: false, discord: false }
 			};
 
 			const { container } = render(ProfilePage.default, {

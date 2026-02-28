@@ -1,11 +1,13 @@
 {
-	"name": "nebulakit",
-	"version": "0.0.1",
+	"name": "davis9001.dev",
+	"version": "1.0.0",
 	"private": true,
+	"description": "Personal portfolio and dev showcase for Davis Monaghan",
+	"author": "Davis Monaghan <monaghan.david@gmail.com>",
 	"scripts": {
-		"dev": "vite dev --host 0.0.0.0 --port 4277",
+		"dev": "vite dev --host 0.0.0.0 --port 4220",
 		"build": "vite build",
-		"preview": "vite preview --host 0.0.0.0 --port 4277",
+		"preview": "vite preview --host 0.0.0.0 --port 4220",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"deploy": "npm run build && wrangler pages deploy .svelte-kit/cloudflare",
@@ -46,7 +48,8 @@
 	},
 	"dependencies": {
 		"@auth/core": "^0.35.0",
-		"@auth/sveltekit": "^1.5.0"
+		"@auth/sveltekit": "^1.5.0",
+		"marked": "^17.0.3"
 	},
 	"type": "module"
 }

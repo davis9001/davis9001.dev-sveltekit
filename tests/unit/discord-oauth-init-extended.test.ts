@@ -8,7 +8,7 @@ describe('Discord OAuth Init - Extended Branch Coverage', () => {
 
 	describe('GET /api/auth/discord', () => {
 		it('should fallback to KV when env var not set and handle KV errors', async () => {
-			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
 			const mockEvent = {
 				platform: {
@@ -19,7 +19,7 @@ describe('Discord OAuth Init - Extended Branch Coverage', () => {
 						}
 					}
 				},
-				url: new URL('http://localhost:4277/api/auth/discord')
+				url: new URL('http://localhost:4220/api/auth/discord')
 			};
 
 			const { GET } = await import('../../src/routes/api/auth/discord/+server');
@@ -52,7 +52,7 @@ describe('Discord OAuth Init - Extended Branch Coverage', () => {
 						}
 					}
 				},
-				url: new URL('http://localhost:4277/api/auth/discord'),
+				url: new URL('http://localhost:4220/api/auth/discord'),
 				cookies: {
 					set: vi.fn()
 				}

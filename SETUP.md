@@ -57,7 +57,7 @@ Start the development server:
 npm run dev
 ```
 
-The app will be available at `http://localhost:4277`
+The app will be available at `http://localhost:4220`
 
 ## Building
 

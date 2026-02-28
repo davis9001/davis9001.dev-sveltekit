@@ -35,7 +35,7 @@ npm install
 npm run dev
 ```
 
-Visit `http://localhost:4277` to verify everything works.
+Visit `http://localhost:4220` to verify everything works.
 
 ## 🧪 Testing Requirements
 

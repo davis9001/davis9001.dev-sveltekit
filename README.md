@@ -43,7 +43,7 @@ npm run build
 npm run deploy
 ```
 
-Visit `http://localhost:4277` to see your app!
+Visit `http://localhost:4220` to see your app!
 
 ## 🧪 Testing (TDD Required!)
 

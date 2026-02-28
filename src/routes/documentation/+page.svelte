@@ -114,7 +114,7 @@ npm run build
 npm run deploy</code
 				></pre>
 			<p>
-				Visit <code>http://localhost:4277</code> to see your app!
+				Visit <code>http://localhost:4220</code> to see your app!
 			</p>
 		</section>
 

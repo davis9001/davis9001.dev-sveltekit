@@ -447,3 +447,73 @@ mark {
 	padding: 0.125rem 0.25rem;
 	border-radius: var(--radius-sm);
 }
+
+/* davis9001 custom theme extensions */
+.ascii-character {
+	opacity: 0;
+}
+.ascii-character.highlighted {
+	opacity: 1;
+	animation: ascii-character-fade-in-out 3s infinite alternate;
+}
+.ascii-character.highlighted-secondary {
+	opacity: 0.1;
+}
+.ascii-character.highlighted-special {
+	opacity: 1;
+	color: hsl(var(--color-accent, 135 73% 49%));
+	animation: fast-twinkle 1s infinite alternate;
+}
+.ascii-character.highlighted-extra-special {
+	opacity: 1;
+	color: hsl(var(--color-special, 0 84% 60%));
+	animation: fast-twinkle 0.05s infinite alternate;
+}
+
+@keyframes ascii-character-fade-in-out {
+	from, to { opacity: 0; }
+	50% { opacity: 1; }
+}
+
+@keyframes fast-twinkle {
+	0% { opacity: 0.8; transform: scale(1); }
+	2% { opacity: 0.6; transform: scale(1.05); }
+	4% { opacity: 1; transform: scale(1); }
+	6% { opacity: 0.8; transform: scale(1.05); }
+	8% { opacity: 0; transform: scale(0.2); }
+	9% { opacity: 0.2; transform: scale(1); }
+	10% { opacity: 0.2; transform: scale(1); }
+	20% { opacity: 0.6; transform: scale(1.05); }
+	40% { opacity: 1; transform: scale(1); }
+	60% { opacity: 0.2; transform: scale(1.05); }
+	100% { opacity: 0.2; transform: scale(1.05); }
+}
+
+/* davis9001 color scheme overrides */
+:root {
+	--color-accent: 135, 73%, 49%;
+	--color-special: 0, 84%, 60%;
+	--color-foreground: hsl(34, 73%, 10%);
+	--color-secondary: hsl(34, 96%, 52%);
+	--color-link-blue: hsl(220, 80%, 50%);
+}
+
+html.dark, [data-theme='dark'] {
+	--color-foreground: hsl(34, 73%, 90%);
+	--color-secondary: hsl(34, 96%, 48%);
+	--color-special: 0, 72%, 51%;
+}
+
+.text-accent { color: hsl(var(--color-accent)); }
+.text-secondary { color: var(--color-secondary); }
+.text-special { color: hsl(var(--color-special)); }
+.text-foreground { color: var(--color-foreground); }
+.text-foreground\\/70 { color: hsl(from var(--color-foreground) h s l / 0.7); }
+.text-foreground\\/50 { color: hsl(from var(--color-foreground) h s l / 0.5); }
+.text-foreground\\/55 { color: hsl(from var(--color-foreground) h s l / 0.55); }
+.bg-background { background-color: var(--color-background); }
+.bg-background\\/70 { background-color: hsl(from var(--color-background) h s l / 0.7); }
+.bg-primary\\/5 { background-color: hsl(from var(--color-primary) h s l / 0.05); }
+.bg-primary\\/10 { background-color: hsl(from var(--color-primary) h s l / 0.1); }
+.bg-primary\\/100 { background-color: hsl(from var(--color-primary) h s l / 1); }
+
