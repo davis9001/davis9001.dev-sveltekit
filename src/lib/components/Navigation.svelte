@@ -48,8 +48,8 @@
 	<div class="container">
 		<div class="nav-content">
 			<a href="/" class="logo" on:click={closeMobileMenu}>
-				<span class="logo-icon">✨</span>
-				<span class="logo-text">NebulaKit</span>
+				<img src="/logo-green-Icon-250.webp" alt="davis9001 logo" class="logo-icon" />
+				<span class="logo-text">davis9001</span>
 			</a>
 
 			<div class="nav-actions">
@@ -238,7 +238,9 @@
 	}
 
 	.logo-icon {
-		font-size: 1.5rem;
+		width: 28px;
+		height: 28px;
+		object-fit: contain;
 	}
 
 	.nav-actions {
