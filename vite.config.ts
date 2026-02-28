@@ -22,6 +22,7 @@ export default defineConfig({
 				'.svelte-kit/',
 				'build/',
 				'scripts/',
+				'static/',
 				// Svelte components contain UI logic that's hard to unit test branches
 				// These are tested via E2E tests for user interaction flows
 				'**/*.svelte',

@@ -1,8 +1,9 @@
 ![alt text](image.png)
 
-# ✨ NebulaKit
+# davis9001.dev
 
-> A cosmic-grade SvelteKit starter template powered by Cloudflare's full stack
+> Personal portfolio and dev showcase for Davis Monaghan
+> Built with SvelteKit + Cloudflare (NebulaKit template)
 
 [![Built with SvelteKit](https://img.shields.io/badge/Built%20with-SvelteKit-FF3E00?style=flat&logo=svelte)](https://kit.svelte.dev/)
 [![Powered by Cloudflare](https://img.shields.io/badge/Powered%20by-Cloudflare-F38020?style=flat&logo=cloudflare)](https://www.cloudflare.com/)
@@ -43,7 +44,7 @@ npm run build
 npm run deploy
 ```
 
-Visit `http://localhost:4220` to see your app!
+Visit `http://localhost:4242` to see your app!
 
 ## 🧪 Testing (TDD Required!)
 

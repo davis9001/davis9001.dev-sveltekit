@@ -9,116 +9,34 @@ describe('Footer', () => {
 		expect(footer).toBeInTheDocument();
 	});
 
-	it('should display the NebulaKit brand', () => {
-		render(Footer);
-		expect(screen.getByText('NebulaKit')).toBeInTheDocument();
-	});
-
-	it('should display the tagline', () => {
-		render(Footer);
-		expect(screen.getByText(/cosmic-grade sveltekit starter/i)).toBeInTheDocument();
-	});
-
-	it('should have navigation links section', () => {
-		render(Footer);
-		expect(screen.getByRole('heading', { name: /navigation/i })).toBeInTheDocument();
-	});
-
-	it('should have resources links section', () => {
-		render(Footer);
-		expect(screen.getByRole('heading', { name: /resources/i })).toBeInTheDocument();
-	});
-
-	it('should have legal links section', () => {
-		render(Footer);
-		expect(screen.getByRole('heading', { name: /legal/i })).toBeInTheDocument();
-	});
-
-	it('should contain home link', () => {
-		render(Footer);
-		const homeLink = screen.getByRole('link', { name: /^home$/i });
-		expect(homeLink).toHaveAttribute('href', '/');
-	});
-
-	it('should contain chat link', () => {
-		render(Footer);
-		const chatLink = screen.getByRole('link', { name: /^chat$/i });
-		expect(chatLink).toHaveAttribute('href', '/chat');
-	});
-
-	it('should contain sign in link', () => {
-		render(Footer);
-		const loginLink = screen.getByRole('link', { name: /sign in/i });
-		expect(loginLink).toHaveAttribute('href', '/auth/login');
-	});
-
-	it('should contain sign up link', () => {
-		render(Footer);
-		const signupLink = screen.getByRole('link', { name: /sign up/i });
-		expect(signupLink).toHaveAttribute('href', '/auth/signup');
-	});
-
-	it('should contain documentation link pointing to /documentation', () => {
-		render(Footer);
-		const docsLink = screen.getByRole('link', { name: /documentation/i });
-		expect(docsLink).toHaveAttribute('href', '/documentation');
-	});
-
-	it('should contain GitHub link in resources', () => {
-		render(Footer);
-		const githubLinks = screen.getAllByRole('link', { name: /github/i });
-		// At least one should be the text link in resources
-		const resourcesLink = githubLinks.find((link) =>
-			link.textContent?.toLowerCase().includes('github')
-		);
-		expect(resourcesLink).toHaveAttribute('href', 'https://github.com/starspacegroup/NebulaKit');
-	});
-
-	it('should contain privacy policy link', () => {
-		render(Footer);
-		const privacyLink = screen.getByRole('link', { name: /privacy/i });
-		expect(privacyLink).toHaveAttribute('href', '/privacy');
-	});
-
-	it('should contain terms of service link', () => {
-		render(Footer);
-		const termsLink = screen.getByRole('link', { name: /terms/i });
-		expect(termsLink).toHaveAttribute('href', '/terms');
-	});
-
 	it('should display copyright with current year', () => {
 		render(Footer);
 		const currentYear = new Date().getFullYear();
 		expect(screen.getByText(new RegExp(`© ${currentYear}`, 'i'))).toBeInTheDocument();
 	});
 
-	it('should display created by *Space link', () => {
+	it('should display davis9001.dev in copyright', () => {
 		render(Footer);
-		const spaceLink = screen.getByRole('link', { name: /\*space/i });
-		expect(spaceLink).toHaveAttribute('href', 'https://starspace.group');
-		expect(spaceLink).toHaveAttribute('target', '_blank');
-		expect(spaceLink).toHaveAttribute('rel', 'noopener noreferrer');
+		expect(screen.getByText(/davis9001\.dev/)).toBeInTheDocument();
 	});
 
-	it('should have proper accessibility structure with navigation landmark', () => {
+	it('should display all rights reserved', () => {
 		render(Footer);
-		const nav = document.querySelector('footer nav');
-		expect(nav).toBeInTheDocument();
-		expect(nav).toHaveAttribute('aria-label', 'Footer navigation');
+		expect(screen.getByText(/all rights reserved/i)).toBeInTheDocument();
 	});
 
-	it('should have GitHub external link open in new tab', () => {
+	it('should have centered text styling', () => {
 		render(Footer);
-		const githubLinks = screen.getAllByRole('link', { name: /github/i });
-		const resourcesLink = githubLinks.find((link) =>
-			link.textContent?.toLowerCase().includes('github')
-		);
-		expect(resourcesLink).toHaveAttribute('target', '_blank');
-		expect(resourcesLink).toHaveAttribute('rel', 'noopener noreferrer');
+		const paragraph = document.querySelector('footer p');
+		expect(paragraph).toBeInTheDocument();
+		expect(paragraph).toHaveClass('text-center');
 	});
 
-	it('should render Cloudflare badge', () => {
+	it('should have container with flex layout', () => {
 		render(Footer);
-		expect(screen.getByText('Powered by Cloudflare')).toBeInTheDocument();
+		const container = document.querySelector('footer div');
+		expect(container).toBeInTheDocument();
+		expect(container).toHaveClass('container');
+		expect(container).toHaveClass('flex');
 	});
 });

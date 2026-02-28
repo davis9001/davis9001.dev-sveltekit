@@ -27,13 +27,16 @@ declare global {
 				GITHUB_OWNER_ID?: string;
 				DISCORD_CLIENT_ID?: string;
 				DISCORD_CLIENT_SECRET?: string;
+				SPOTIFY_CLIENT_ID?: string;
+				SPOTIFY_CLIENT_SECRET?: string;
+				SPOTIFY_REFRESH_TOKEN?: string;
 			};
 			context: {
 				waitUntil(promise: Promise<any>): void;
 			};
-			caches: CacheStorage & { default: Cache };
+			caches: CacheStorage & { default: Cache; };
 		}
 	}
 }
 
-export {};
+export { };

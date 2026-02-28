@@ -22,6 +22,9 @@
 		$page.url.pathname.startsWith('/admin') ||
 		$page.url.pathname.startsWith('/setup');
 
+	// Home page has its own full-screen layout (no nav, no footer)
+	$: isHomePage = $page.url.pathname === '/';
+
 	// Subscribe to theme changes and apply to DOM
 	if (browser) {
 		resolvedTheme.subscribe((theme) => {
@@ -46,19 +49,23 @@
 	});
 </script>
 
-<div class="app">
-	<Navigation user={data.user} onCommandPaletteClick={toggleCommandPalette} />
+{#if isHomePage}
+	<slot />
+{:else}
+	<div class="app">
+		<Navigation user={data.user} onCommandPaletteClick={toggleCommandPalette} />
 
-	<main>
-		<slot />
-	</main>
+		<main>
+			<slot />
+		</main>
 
-	{#if !hideFooter}
-		<Footer />
-	{/if}
+		{#if !hideFooter}
+			<Footer />
+		{/if}
+	</div>
+{/if}
 
-	<CommandPalette bind:show={$showCommandPalette} hasAIProviders={data.hasAIProviders} />
-</div>
+<CommandPalette bind:show={$showCommandPalette} hasAIProviders={data.hasAIProviders} />
 
 <style>
 	.app {

@@ -131,16 +131,16 @@
 	$: activeDays = activityData.filter(d => d.count > 0).length;
 
 	onMount(() => {
-		// Check dark mode
+		// Check dark mode via data-theme attribute
 		const checkDark = () => {
-			isDark = document.documentElement.classList.contains('dark');
+			isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 		};
 		checkDark();
 		
 		const observer = new MutationObserver(checkDark);
 		observer.observe(document.documentElement, { 
 			attributes: true, 
-			attributeFilter: ['class'] 
+			attributeFilter: ['data-theme'] 
 		});
 
 		// Initial fetch

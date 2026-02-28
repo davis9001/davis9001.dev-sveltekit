@@ -229,6 +229,36 @@ describe('[contentType] page server load', () => {
 			expect(err.status).toBe(500);
 		}
 	});
+
+	it('should use default settings when content type settings are empty', async () => {
+		const { load } = await import('../../src/routes/[contentType]/+page.server.js');
+		const mockDB = createMockDB();
+
+		const emptySettingsRow = {
+			...mockContentTypeRow,
+			settings: '{}' // no listPageSize, defaultSort, or defaultSortDirection
+		};
+
+		// syncContentTypes
+		mockDB._allQueue.push({ results: [emptySettingsRow] });
+		// isContentTypeSlug
+		mockDB._firstQueue.push({ id: 'ct-1' });
+		// getContentTypeBySlug
+		mockDB._firstQueue.push(emptySettingsRow);
+		// listContentItems: count
+		mockDB._firstQueue.push({ count: 0 });
+		// listContentItems: items
+		mockDB._allQueue.push({ results: [] });
+
+		const result = (await load({
+			params: { contentType: 'blog' },
+			platform: { env: { DB: mockDB } },
+			url: new URL('http://localhost/blog')
+		} as any)) as any;
+
+		expect(result.contentType).toBeTruthy();
+		expect(result.items).toEqual([]);
+	});
 });
 
 // ─── [contentType]/[slug]/+page.server.ts ─────────────────────────────────────

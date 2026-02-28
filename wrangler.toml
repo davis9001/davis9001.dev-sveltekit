@@ -1,13 +1,13 @@
-name = "nebulakit"
+name = "davis9001-dev"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = ".svelte-kit/cloudflare"
 
 # D1 Database
-# Create with: wrangler d1 create nebulakit-db
+# Create with: wrangler d1 create davis9001-dev-db
 # Then replace the database_id below with the actual ID
 [[d1_databases]]
 binding = "DB"
-database_name = "nebulakit-db"
+database_name = "davis9001-dev-db"
 database_id = "bd776be3-9823-4763-abb1-c18b40931456"
 migrations_dir = "./migrations"
 
@@ -19,10 +19,10 @@ binding = "KV"
 id = "12a6576334dd4e16bf1e08d5cc1fac4a"
 preview_id = "e9b0a93432b1406786dc7b9b334da90d"
 # R2 Bucket
-# Create with: wrangler r2 bucket create nebulakit-files
+# Create with: wrangler r2 bucket create davis9001-dev-files
 [[r2_buckets]]
 binding = "BUCKET"
-bucket_name = "nebulakit-files"
+bucket_name = "davis9001-dev-files"
 
 # Queue (disabled - enable Queues at https://dash.cloudflare.com before uncommenting)
 # [[queues.producers]]

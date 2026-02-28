@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import GitHubActivityGrid from '$lib/components/GitHubActivityGrid.svelte';
+	import SpotifyWidget from '$lib/components/SpotifyWidget.svelte';
 	import SocialLinks from '$lib/components/SocialLinks.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 
 	let asciiCharacters: string[] = [];
 	
@@ -27,6 +29,11 @@
 </svelte:head>
 
 <main class="relative min-h-screen flex items-center justify-center px-2 sm:px-4 py-4 text-foreground text-center bg-primary/5 dark:bg-primary/100">
+	<!-- Theme Toggle (top-right) -->
+	<div class="fixed top-0 right-0 m-4 z-50">
+		<ThemeSwitcher variant="inline" simpleToggle={true} />
+	</div>
+
 	<!-- Background Image -->
 	<div
 		class="fixed inset-0 z-30 bg-cover bg-center bg-no-repeat"
@@ -103,10 +110,7 @@
 			</div>
 
 			<div class="w-full">
-				<div class="p-6 bg-gradient-to-br from-primary/5 via-background/50 to-accent/5 dark:from-primary/10 dark:via-background/70 dark:to-accent/10 rounded-2xl backdrop-blur-sm border border-foreground/5 shadow-lg">
-					<h3 class="text-xl sm:text-2xl font-black mb-4">Spotify Widget</h3>
-					<p class="text-sm opacity-60">Coming soon...</p>
-				</div>
+				<SpotifyWidget />
 			</div>
 		</div>
 

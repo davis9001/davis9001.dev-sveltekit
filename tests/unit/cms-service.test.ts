@@ -534,4 +534,49 @@ describe('CMS Service', () => {
 			expect(tags[0].name).toBe('JS');
 		});
 	});
+
+	describe('null results handling', () => {
+		it('should handle syncContentTypes when db.all returns no results property', async () => {
+			const { syncContentTypes } = await import('../../src/lib/services/cms.js');
+
+			// Return object without results (simulates D1 edge case)
+			mockDB.all.mockResolvedValue({});
+			mockDB.batch.mockResolvedValue([{ success: true }]);
+
+			await syncContentTypes(mockDB);
+
+			// Should still work using || [] fallback
+			expect(mockDB.batch).toHaveBeenCalled();
+		});
+
+		it('should handle getContentTypes when db.all returns no results property', async () => {
+			const { getContentTypes } = await import('../../src/lib/services/cms.js');
+
+			mockDB.all.mockResolvedValue({});
+
+			const types = await getContentTypes(mockDB);
+			expect(types).toEqual([]);
+		});
+
+		it('should handle listContentItems when db.all returns no results', async () => {
+			const { listContentItems } = await import('../../src/lib/services/cms.js');
+
+			// count query
+			mockDB.first.mockResolvedValueOnce({ count: 0 });
+			// items query returns no results property
+			mockDB.all.mockResolvedValue({});
+
+			const result = await listContentItems(mockDB, 'ct-1', { status: 'published', page: 1, pageSize: 10 });
+			expect(result.items).toEqual([]);
+		});
+
+		it('should handle getItemTags when db.all returns no results', async () => {
+			const { getItemTags } = await import('../../src/lib/services/cms.js');
+
+			mockDB.all.mockResolvedValue({});
+
+			const tags = await getItemTags(mockDB, 'ci-1');
+			expect(tags).toEqual([]);
+		});
+	});
 });
