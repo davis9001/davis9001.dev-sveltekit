@@ -5,6 +5,7 @@
   Uses the content type's itemTemplate setting for layout selection.
 -->
 <script lang="ts">
+	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -27,20 +28,14 @@
 	}
 </script>
 
-<svelte:head>
-	<title>{item.seoTitle || item.title} - NebulaKit</title>
-	{#if item.seoDescription}
-		<meta name="description" content={item.seoDescription} />
-	{/if}
-	{#if item.seoImage}
-		<meta property="og:image" content={item.seoImage} />
-	{/if}
-	<meta property="og:title" content={item.seoTitle || item.title} />
-	<meta property="og:type" content="article" />
-	{#if item.publishedAt}
-		<meta property="article:published_time" content={item.publishedAt} />
-	{/if}
-</svelte:head>
+<SEO
+	title={item.seoTitle || item.title}
+	description={item.seoDescription || `${item.title} on davis9001.dev.`}
+	path="{getRoutePrefix()}/{item.slug}"
+	type="article"
+	imageUrl={item.seoImage || 'https://davis9001.dev/cover.png'}
+	publishedAt={item.publishedAt || ''}
+/>
 
 <div class="cms-item-page">
 	<!-- Back link -->

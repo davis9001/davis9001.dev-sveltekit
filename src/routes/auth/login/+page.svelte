@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -65,9 +66,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Sign In - NebulaKit</title>
-</svelte:head>
+<SEO
+	title="Sign In"
+	description="Sign in to davis9001.dev."
+	path="/auth/login"
+/>
 
 <div class="auth-page">
 	<div class="auth-container">

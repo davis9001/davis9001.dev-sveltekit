@@ -1,4 +1,6 @@
 <script lang="ts">
+	import SEO from '$lib/components/SEO.svelte';
+
 	let name = '';
 	let email = '';
 	let password = '';
@@ -28,9 +30,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Sign Up - NebulaKit</title>
-</svelte:head>
+<SEO
+	title="Sign Up"
+	description="Create an account on davis9001.dev."
+	path="/auth/signup"
+/>
 
 <div class="auth-page">
 	<div class="auth-container">

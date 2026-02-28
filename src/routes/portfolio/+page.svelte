@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { safeFilename } from '$lib/utils/portfolio';
+	import SEO from '$lib/components/SEO.svelte';
 
 	export let data: PageData;
 
@@ -13,10 +14,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Portfolio Projects - davis9001</title>
-	<meta name="description" content="Portfolio of projects by Davis Monaghan" />
-</svelte:head>
+<SEO
+	title="Portfolio Projects"
+	description="Portfolio of projects by David Monaghan — web apps, games, and developer tools."
+	path="/portfolio"
+/>
 
 <div class="portfolio-page">
 	<div class="portfolio-container">

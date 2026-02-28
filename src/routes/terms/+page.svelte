@@ -1,12 +1,15 @@
 <script lang="ts">
+	import SEO from '$lib/components/SEO.svelte';
+
 	const currentYear = new Date().getFullYear();
 	const lastUpdated = 'January 1, 2026';
 </script>
 
-<svelte:head>
-	<title>Terms of Service - NebulaKit</title>
-	<meta name="description" content="Terms of Service for NebulaKit" />
-</svelte:head>
+<SEO
+	title="Terms of Service"
+	description="Terms of service for davis9001.dev."
+	path="/terms"
+/>
 
 <main class="legal-page">
 	<div class="legal-container">

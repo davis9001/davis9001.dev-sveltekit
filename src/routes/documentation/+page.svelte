@@ -1,14 +1,12 @@
 <script lang="ts">
-	// No runtime state needed
+	import SEO from '$lib/components/SEO.svelte';
 </script>
 
-<svelte:head>
-	<title>Documentation - NebulaKit</title>
-	<meta
-		name="description"
-		content="NebulaKit documentation - Learn how to build with the cosmic-grade SvelteKit starter powered by Cloudflare"
-	/>
-</svelte:head>
+<SEO
+	title="Documentation"
+	description="NebulaKit documentation — learn how to build with the cosmic-grade SvelteKit starter powered by Cloudflare."
+	path="/documentation"
+/>
 
 <main class="docs-page">
 	<div class="docs-container">

@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /setup/
+Disallow: /reset/
+
+Sitemap: https://davis9001.dev/sitemap.xml

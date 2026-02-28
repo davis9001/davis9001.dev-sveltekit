@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -333,9 +334,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>AI Provider Keys - Admin - NebulaKit</title>
-</svelte:head>
+<SEO
+	title="AI Provider Keys - Admin"
+	description="Manage AI provider API keys."
+	path="/admin/ai-keys"
+/>
 
 <div class="ai-keys-page">
 	<header class="page-header">

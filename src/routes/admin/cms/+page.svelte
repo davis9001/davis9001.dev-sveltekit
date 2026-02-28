@@ -6,6 +6,7 @@
   System content types (from registry) can be edited but not deleted.
 -->
 <script lang="ts">
+	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -332,9 +333,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>CMS - NebulaKit Admin</title>
-</svelte:head>
+<SEO
+	title="CMS Admin"
+	description="Content management system admin dashboard."
+	path="/admin/cms"
+/>
 
 <div class="cms-dashboard">
 	<div class="cms-dashboard-header">

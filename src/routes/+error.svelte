@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import SEO from '$lib/components/SEO.svelte';
 
 	// Error messages and icons for different status codes
 	const errorInfo: Record<number, { title: string; message: string; icon: string }> = {
@@ -54,9 +55,10 @@
 	};
 </script>
 
-<svelte:head>
-	<title>{status} - {info.title} | NebulaKit</title>
-</svelte:head>
+<SEO
+	title="{status} - {info.title}"
+	description={info.message}
+/>
 
 <div class="error-page">
 	<!-- Animated cosmic background -->

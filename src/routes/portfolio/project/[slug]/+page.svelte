@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import { marked } from 'marked';
 	import { safeFilename } from '$lib/utils/portfolio';
+	import SEO from '$lib/components/SEO.svelte';
 
 	export let data: PageData;
 
@@ -14,10 +15,12 @@
 	}
 </script>
 
-<svelte:head>
-	<title>{project.meta.title} - davis9001</title>
-	<meta name="description" content={project.meta.summary} />
-</svelte:head>
+<SEO
+	title={project.meta.title}
+	description={project.meta.summary || `${project.meta.title} — a project by David Monaghan.`}
+	path="/portfolio/project/{project.slug}"
+	imageUrl={project.meta.url ? `https://davis9001.dev/portfolio-screenshot/${safeFilename(project.meta.url)}` : 'https://davis9001.dev/cover.png'}
+/>
 
 <div class="project-page">
 	<div class="project-container">

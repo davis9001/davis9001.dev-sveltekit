@@ -1,12 +1,15 @@
 <script lang="ts">
+	import SEO from '$lib/components/SEO.svelte';
+
 	const currentYear = new Date().getFullYear();
 	const lastUpdated = 'January 1, 2026';
 </script>
 
-<svelte:head>
-	<title>Privacy Policy - NebulaKit</title>
-	<meta name="description" content="Privacy Policy for NebulaKit" />
-</svelte:head>
+<SEO
+	title="Privacy Policy"
+	description="Privacy policy for davis9001.dev."
+	path="/privacy"
+/>
 
 <main class="legal-page">
 	<div class="legal-container">

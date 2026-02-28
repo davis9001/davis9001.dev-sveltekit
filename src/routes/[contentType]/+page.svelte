@@ -5,6 +5,7 @@
   Uses the content type's listTemplate setting for layout selection.
 -->
 <script lang="ts">
+	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -28,12 +29,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>{contentType.name} - NebulaKit</title>
-	{#if contentType.description}
-		<meta name="description" content={contentType.description} />
-	{/if}
-</svelte:head>
+<SEO
+	title={contentType.name}
+	description={contentType.description || `${contentType.name} on davis9001.dev.`}
+	path={getRoutePrefix()}
+/>
 
 <div class="cms-list-page">
 	<header class="cms-list-header">

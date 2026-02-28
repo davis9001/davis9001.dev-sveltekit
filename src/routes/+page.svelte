@@ -6,6 +6,7 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import { formatBlogDate } from '$lib/utils/blog';
+	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -29,10 +30,11 @@
 	});
 </script>
 
-<svelte:head>
-	<title>davis9001 - David Monaghan</title>
-	<meta name="description" content="Personal portfolio and dev showcase for Davis Monaghan" />
-</svelte:head>
+<SEO
+	title="Home"
+	description="The personal website of David Monaghan aka davis9001."
+	path="/"
+/>
 
 <main class="relative min-h-screen flex items-center justify-center px-2 sm:px-4 py-4 text-foreground text-center bg-primary/5 dark:bg-primary/100">
 	<!-- Theme Toggle (top-right) -->

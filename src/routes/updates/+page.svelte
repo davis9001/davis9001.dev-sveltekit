@@ -5,6 +5,7 @@
 -->
 <script lang="ts">
 	import { formatBlogDate } from '$lib/utils/blog';
+	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -12,10 +13,11 @@
 	$: posts = data.posts || [];
 </script>
 
-<svelte:head>
-	<title>Updates - davis9001</title>
-	<meta name="description" content="Blog posts, updates, and articles by Davis Monaghan" />
-</svelte:head>
+<SEO
+	title="Updates"
+	description="Blog posts, updates, and articles by David Monaghan."
+	path="/updates"
+/>
 
 <div class="updates-page">
 	<header class="updates-header">

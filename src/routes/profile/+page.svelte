@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -84,9 +85,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Profile - NebulaKit</title>
-</svelte:head>
+<SEO
+	title="Profile"
+	description="Your profile on davis9001.dev."
+	path="/profile"
+/>
 
 <div class="profile-container">
 	<div class="profile-card">

@@ -8,6 +8,7 @@
 	import { page } from '$app/stores';
 	import ShareButtons from '$lib/components/ShareButtons.svelte';
 	import { formatBlogDate, getReadingTime } from '$lib/utils/blog';
+	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -16,17 +17,13 @@
 	$: readingTime = getReadingTime(post.content);
 </script>
 
-<svelte:head>
-	<title>{post.title} - davis9001</title>
-	{#if post.summary}
-		<meta name="description" content={post.summary} />
-	{/if}
-	<meta property="og:title" content={post.title} />
-	<meta property="og:type" content="article" />
-	{#if post.publishedAt}
-		<meta property="article:published_time" content={post.publishedAt} />
-	{/if}
-</svelte:head>
+<SEO
+	title={post.title}
+	description={post.summary || 'A blog post by David Monaghan.'}
+	path="/updates/{post.slug}"
+	type="article"
+	publishedAt={post.publishedAt || ''}
+/>
 
 <div class="post-page">
 	<div class="post-nav">

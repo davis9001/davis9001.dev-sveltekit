@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ChatInterface from '$lib/components/ChatInterface.svelte';
 	import ChatSidebar from '$lib/components/ChatSidebar.svelte';
+	import SEO from '$lib/components/SEO.svelte';
 	import { chatHistoryStore } from '$lib/stores/chatHistory';
 	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
@@ -21,9 +22,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>AI Chat - NebulaKit</title>
-</svelte:head>
+<SEO
+	title="AI Chat"
+	description="Chat with AI assistants on davis9001.dev."
+	path="/chat"
+/>
 
 <div class="chat-page-container">
 	<ChatSidebar isOpen={isSidebarOpen} />

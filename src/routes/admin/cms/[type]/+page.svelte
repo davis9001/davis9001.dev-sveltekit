@@ -5,6 +5,7 @@
   create/edit modals, and delete confirmation.
 -->
 <script lang="ts">
+	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -329,9 +330,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>{contentType.name} - CMS Admin</title>
-</svelte:head>
+<SEO
+	title="{contentType.name} - CMS Admin"
+	description="Manage {contentType.name} content."
+	path="/admin/cms/{contentType.slug}"
+/>
 
 <div class="cms-manage">
 	<!-- Header -->

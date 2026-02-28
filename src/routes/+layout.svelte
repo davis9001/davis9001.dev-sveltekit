@@ -25,6 +25,9 @@
 	// Home page has its own full-screen layout (no nav, no footer)
 	$: isHomePage = $page.url.pathname === '/';
 
+	// Standalone full-screen pages (no nav, no footer)
+	$: isStandalonePage = $page.url.pathname === '/' || $page.url.pathname === '/lifeofastranger';
+
 	// Subscribe to theme changes and apply to DOM
 	if (browser) {
 		resolvedTheme.subscribe((theme) => {
@@ -49,7 +52,7 @@
 	});
 </script>
 
-{#if isHomePage}
+{#if isStandalonePage}
 	<slot />
 {:else}
 	<div class="app">

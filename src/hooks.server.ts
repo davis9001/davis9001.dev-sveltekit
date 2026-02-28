@@ -54,5 +54,23 @@ const authHandler: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
+// Security headers hook — mirrors the Deno Fresh securityHeaders plugin
+const securityHeadersHandler: Handle = async ({ event, resolve }) => {
+	// Skip API routes (they set their own headers)
+	if (event.url.pathname.startsWith('/api')) {
+		return resolve(event);
+	}
+
+	const response = await resolve(event);
+
+	response.headers.set('Strict-Transport-Security', 'max-age=63072000;');
+	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+	response.headers.set('X-Content-Type-Options', 'nosniff');
+	response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+	response.headers.set('X-XSS-Protection', '1; mode=block');
+
+	return response;
+};
+
 // Combine all hooks
-export const handle = sequence(authHandler);
+export const handle = sequence(authHandler, securityHeadersHandler);

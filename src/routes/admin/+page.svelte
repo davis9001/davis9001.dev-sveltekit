@@ -1,4 +1,5 @@
 <script lang="ts">
+	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -40,9 +41,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Admin - NebulaKit</title>
-</svelte:head>
+<SEO
+	title="Admin"
+	description="Admin dashboard for davis9001.dev."
+	path="/admin"
+/>
 
 <div class="admin-home">
 	<h1>Admin Dashboard</h1>

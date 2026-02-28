@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import SEO from '$lib/components/SEO.svelte';
 
 	let loading = false;
 	let error = '';
@@ -39,9 +40,11 @@
 	}
 </script>
 
-<svelte:head>
-	<title>Reset Configuration - NebulaKit</title>
-</svelte:head>
+<SEO
+	title="Reset Configuration"
+	description="Reset your davis9001.dev configuration."
+	path="/reset"
+/>
 
 <div class="container">
 	<div class="reset-card">
