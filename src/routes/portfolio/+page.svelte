@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { marked } from 'marked';
+	import { safeFilename } from '$lib/utils/portfolio';
 
 	export let data: PageData;
 
@@ -14,74 +14,193 @@
 </script>
 
 <svelte:head>
-	<title>Portfolio - davis9001</title>
+	<title>Portfolio Projects - davis9001</title>
 	<meta name="description" content="Portfolio of projects by Davis Monaghan" />
 </svelte:head>
 
-<div class="min-h-screen bg-background py-12 px-4">
-	<div class="max-w-6xl mx-auto">
-		<header class="mb-12">
-			<h1 class="text-4xl sm:text-5xl font-black text-foreground mb-4">Portfolio</h1>
-			<p class="text-xl text-foreground/70">A collection of projects I've built</p>
-			<a href="/" class="inline-block mt-4 text-accent hover:text-accent/80 transition-colors">
-				← Back to home
-			</a>
+<div class="portfolio-page">
+	<div class="portfolio-container">
+		<header class="portfolio-header">
+			<h1 class="portfolio-title">Portfolio Projects</h1>
+			<a href="/" class="back-link">← Back to home</a>
 		</header>
 
-		<div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+		<div class="projects-grid">
 			{#each projects as project}
-				<article class="bg-gradient-to-br from-primary/5 via-background/50 to-accent/5 dark:from-primary/10 dark:via-background/70 dark:to-accent/10 rounded-2xl p-6 backdrop-blur-sm border border-foreground/5 shadow-lg hover:shadow-xl transition-shadow">
-					<div class="mb-4">
-						{#if project.meta.url}
-							<h2 class="text-2xl font-bold mb-2">
-								<a 
-									href={project.meta.url} 
-									target="_blank" 
-									rel="noopener noreferrer"
-									class="text-accent hover:text-accent/80 transition-colors"
-								>
-									{project.meta.title}
-									<svg class="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-									</svg>
-								</a>
-							</h2>
-						{:else}
-							<h2 class="text-2xl font-bold mb-2 text-foreground">{project.meta.title}</h2>
-						{/if}
-
-						{#if project.meta.latestContribution}
-							<p class="text-xs text-foreground/50 mb-3">
-								Last updated: {formatDate(project.meta.latestContribution)}
-							</p>
-						{/if}
-
-						<p class="text-foreground/80 mb-4">{project.meta.summary}</p>
-					</div>
-
-					{#if project.meta.technologies && project.meta.technologies.length > 0}
-						<div class="flex flex-wrap gap-2 mb-4">
-							{#each project.meta.technologies as tech}
-								<span class="inline-block px-3 py-1 text-xs font-medium rounded-full bg-primary/20 text-primary">
-									{tech}
-								</span>
-							{/each}
-						</div>
+				<article class="project-card">
+					{#if project.meta.url}
+						<a href="/portfolio/project/{project.slug}" class="screenshot-link">
+							<img
+								src={safeFilename(project.meta.url)}
+								alt="Screenshot of {project.meta.title}"
+								class="screenshot-img"
+								loading="lazy"
+							/>
+							<h2 class="project-title">{project.meta.title}</h2>
+						</a>
+					{:else}
+						<h2 class="project-title">{project.meta.title}</h2>
 					{/if}
 
-					{#if project.content}
-						<div class="prose prose-sm dark:prose-invert max-w-none text-foreground/70">
-							{@html marked(project.content)}
-						</div>
+					{#if project.meta.url}
+						<a
+							href={project.meta.url}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="project-url"
+						>
+							{project.meta.url}
+						</a>
 					{/if}
+
+					{#if project.meta.latestContribution}
+						<p class="project-date">
+							Updated: {formatDate(project.meta.latestContribution)}
+						</p>
+					{/if}
+
+					<p class="project-summary">{project.meta.summary}</p>
 				</article>
 			{/each}
 		</div>
 
 		{#if projects.length === 0}
-			<div class="text-center py-12">
-				<p class="text-xl text-foreground/50">No projects found.</p>
+			<div class="empty-state">
+				<p>No projects found.</p>
 			</div>
 		{/if}
 	</div>
 </div>
+
+<style>
+	.portfolio-page {
+		min-height: 100vh;
+		background-color: var(--color-background);
+		padding: 3rem 1rem;
+	}
+
+	.portfolio-container {
+		max-width: 80rem;
+		margin: 0 auto;
+	}
+
+	.portfolio-header {
+		margin-bottom: 3rem;
+	}
+
+	.portfolio-title {
+		font-size: 2.5rem;
+		font-weight: 900;
+		color: var(--color-text);
+		margin-bottom: 1rem;
+	}
+
+	.back-link {
+		display: inline-block;
+		color: var(--color-primary);
+		text-decoration: none;
+		transition: opacity 150ms;
+	}
+
+	.back-link:hover {
+		opacity: 0.8;
+	}
+
+	.projects-grid {
+		display: grid;
+		gap: 2.5rem;
+		grid-template-columns: 1fr;
+	}
+
+	@media (min-width: 640px) {
+		.projects-grid {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.projects-grid {
+			grid-template-columns: repeat(3, 1fr);
+		}
+	}
+
+	.project-card {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.screenshot-link {
+		display: block;
+		border-radius: 0.5rem;
+		overflow: hidden;
+		margin-bottom: 0.75rem;
+		transition: opacity 150ms;
+	}
+
+	.screenshot-link:hover {
+		opacity: 0.85;
+	}
+
+	.screenshot-img {
+		width: 100%;
+		height: auto;
+		display: block;
+		aspect-ratio: 16 / 10;
+		object-fit: cover;
+	}
+
+	.project-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.project-title {
+		font-size: 1.5rem;
+		font-weight: 700;
+		margin: 0;
+	}
+
+	.project-title-link {
+		color: var(--color-primary);
+		text-decoration: none;
+		transition: opacity 150ms;
+	}
+
+	.project-title-link:hover {
+		opacity: 0.8;
+	}
+
+	.project-url {
+		font-size: 0.875rem;
+		color: var(--color-primary);
+		text-decoration: none;
+		opacity: 0.8;
+	}
+
+	.project-url:hover {
+		opacity: 1;
+		text-decoration: underline;
+	}
+
+	.project-date {
+		font-size: 0.875rem;
+		font-style: italic;
+		color: var(--color-text-secondary);
+		margin: 0.25rem 0;
+	}
+
+	.project-summary {
+		font-size: 0.95rem;
+		color: var(--color-text);
+		line-height: 1.6;
+		margin: 0.25rem 0 0;
+	}
+
+	.empty-state {
+		text-align: center;
+		padding: 3rem 0;
+		color: var(--color-text-secondary);
+		font-size: 1.25rem;
+	}
+</style>

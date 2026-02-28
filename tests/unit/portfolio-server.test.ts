@@ -309,4 +309,72 @@ Content`);
     // Should fall back to string when JSON parse fails
     expect(result.projects[0].meta.technologies).toBeDefined();
   });
+
+  it('should parse url field for screenshot derivation', async () => {
+    mockReaddir.mockResolvedValueOnce(['project.md'] as any);
+    mockReadFile.mockResolvedValueOnce(`---
+title: Project
+summary: Summary
+url: https://example.com
+technologies: ["TypeScript"]
+---
+Content`);
+
+    const result = await loadPortfolio();
+    expect(result.projects[0].meta.url).toBe('https://example.com');
+  });
+
+  it('should have undefined url when not provided', async () => {
+    mockReaddir.mockResolvedValueOnce(['project.md'] as any);
+    mockReadFile.mockResolvedValueOnce(`---
+title: Project
+summary: Summary
+technologies: []
+---
+Content`);
+
+    const result = await loadPortfolio();
+    expect(result.projects[0].meta.url).toBeUndefined();
+  });
+
+  it('should handle CRLF line endings', async () => {
+    mockReaddir.mockResolvedValueOnce(['project.md'] as any);
+    mockReadFile.mockResolvedValueOnce("---\r\ntitle: CRLF Project\r\nsummary: Windows line endings\r\ntechnologies: [\"TypeScript\"]\r\nlatestContribution: 2025-06-01\r\n---\r\nContent with CRLF");
+
+    const result = await loadPortfolio();
+    expect(result.projects[0].meta.title).toBe('CRLF Project');
+    expect(result.projects[0].meta.summary).toBe('Windows line endings');
+    expect(result.projects[0].meta.technologies).toEqual(['TypeScript']);
+    expect(result.projects[0].content).toContain('Content with CRLF');
+  });
+
+  it('should parse multi-line YAML arrays', async () => {
+    mockReaddir.mockResolvedValueOnce(['project.md'] as any);
+    mockReadFile.mockResolvedValueOnce(`---
+title: Multi Array
+summary: Has multi-line tech array
+technologies: [
+  "Deno",
+  "Deno Fresh",
+  "Tailwind",
+]
+latestContribution: 2025-03-01
+---
+Content`);
+
+    const result = await loadPortfolio();
+    expect(result.projects[0].meta.title).toBe('Multi Array');
+    expect(result.projects[0].meta.technologies).toEqual(['Deno', 'Deno Fresh', 'Tailwind']);
+    expect(result.projects[0].meta.latestContribution).toBe('2025-03-01');
+  });
+
+  it('should parse multi-line arrays with CRLF', async () => {
+    mockReaddir.mockResolvedValueOnce(['project.md'] as any);
+    mockReadFile.mockResolvedValueOnce("---\r\ntitle: CRLF Array\r\nsummary: Multi-line array with CRLF\r\ntechnologies: [\r\n  \"SvelteKit\",\r\n  \"Tailwind\",\r\n]\r\nlatestContribution: 2025-04-01\r\n---\r\nContent");
+
+    const result = await loadPortfolio();
+    expect(result.projects[0].meta.title).toBe('CRLF Array');
+    expect(result.projects[0].meta.technologies).toEqual(['SvelteKit', 'Tailwind']);
+    expect(result.projects[0].meta.latestContribution).toBe('2025-04-01');
+  });
 });

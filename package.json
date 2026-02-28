@@ -6,8 +6,9 @@
 	"author": "Davis Monaghan <monaghan.david@gmail.com>",
 	"scripts": {
 		"dev": "vite dev --host 0.0.0.0 --port 4242",
-		"build": "vite build",
+		"build": "npm run screenshots && vite build",
 		"preview": "vite preview --host 0.0.0.0 --port 4242",
+		"screenshots": "node scripts/update-portfolio-screenshots.cjs",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"deploy": "npm run build && wrangler pages deploy .svelte-kit/cloudflare",
@@ -44,7 +45,8 @@
 		"typescript": "^5.0.0",
 		"vite": "^5.0.3",
 		"vitest": "^1.0.4",
-		"wrangler": "^3.78.0"
+		"wrangler": "^3.78.0",
+		"capture-website": "^4.1.0"
 	},
 	"dependencies": {
 		"@auth/core": "^0.35.0",
