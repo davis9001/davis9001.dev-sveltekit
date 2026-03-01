@@ -113,18 +113,18 @@
 							Updates (Blog)
 						</a>
 					</h3>
-					<ul class="text-base sm:text-xl list-none p-0 m-0">
+					<div class="text-base sm:text-xl">
 						{#each recentPosts as post}
-							<li class="text-left p-2">
+							<div class="text-left p-2">
 								<a href="/updates/{post.slug}" class="text-accent">
 									<em class="opacity-50">
 										{formatBlogDate(post.publishedAt)}
 									</em>
 									- {post.title}
 								</a>
-							</li>
+							</div>
 						{/each}
-					</ul>
+					</div>
 					{#if recentPosts.length >= 5}
 						<p class="text-left p-2">
 							<a href="/updates" class="text-secondary">See the rest &rarr;</a>
