@@ -1,37 +1,30 @@
-import { readdir, readFile } from 'fs/promises';
-import { join } from 'path';
+/**
+ * Portfolio List Page - Server Load
+ *
+ * Loads all project markdown files from src/projects/ at build time.
+ * Uses import.meta.glob for Cloudflare Workers compatibility (no fs/promises).
+ */
 import type { PageServerLoad } from './$types';
 import { buildProject } from '$lib/utils/portfolio';
 import type { Project, ProjectMeta } from '$lib/utils/portfolio';
 
 export { type Project, type ProjectMeta };
 
+// Load all project markdown files at build time (Vite glob import)
+const modules = import.meta.glob('/src/projects/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+
 export const load: PageServerLoad = async () => {
-	const projectsDir = join(process.cwd(), 'src', 'projects');
+	const projects: Project[] = Object.entries(modules).map(([path, raw]) => {
+		const slug = path.replace('/src/projects/', '').replace('.md', '');
+		return buildProject(slug, raw);
+	});
 
-	try {
-		const files = await readdir(projectsDir);
-		const mdFiles = files.filter(f => f.endsWith('.md'));
+	// Sort by latest contribution date (newest first)
+	projects.sort((a, b) => {
+		if (!a.meta.latestContribution) return 1;
+		if (!b.meta.latestContribution) return -1;
+		return new Date(b.meta.latestContribution).getTime() - new Date(a.meta.latestContribution).getTime();
+	});
 
-		const projects: Project[] = await Promise.all(
-			mdFiles.map(async (file) => {
-				const slug = file.replace('.md', '');
-				const filePath = join(projectsDir, file);
-				const markdown = await readFile(filePath, 'utf-8');
-				return buildProject(slug, markdown);
-			})
-		);
-
-		// Sort by latest contribution date (newest first)
-		projects.sort((a, b) => {
-			if (!a.meta.latestContribution) return 1;
-			if (!b.meta.latestContribution) return -1;
-			return new Date(b.meta.latestContribution).getTime() - new Date(a.meta.latestContribution).getTime();
-		});
-
-		return { projects };
-	} catch (error) {
-		console.error('Error loading projects:', error);
-		return { projects: [] };
-	}
+	return { projects };
 };
