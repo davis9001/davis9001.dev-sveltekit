@@ -21,7 +21,7 @@
 		<section class="legal-section">
 			<h2>Acceptance of Terms</h2>
 			<p>
-				By accessing or using NebulaKit ("the Service"), you agree to be bound by these Terms of
+				By accessing or using davis9001.dev ("the Service"), you agree to be bound by these Terms of
 				Service. If you do not agree to these terms, please do not use the Service.
 			</p>
 			<p>
@@ -71,7 +71,7 @@
 				property laws.
 			</p>
 			<p>
-				NebulaKit is open-source software. The source code is available under the terms of its
+				davis9001.dev is open-source software. The source code is available under the terms of its
 				applicable license. Your use of the source code is subject to that license.
 			</p>
 		</section>
@@ -143,7 +143,7 @@
 			<h2>Contact Us</h2>
 			<p>
 				If you have any questions about these Terms of Service, please contact us through our <a
-					href="https://github.com/starspacegroup/NebulaKit"
+					href="https://github.com/starspacegroup/davis9001.dev-sveltekit"
 					target="_blank"
 					rel="noopener noreferrer">GitHub repository</a
 				>.

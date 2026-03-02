@@ -146,7 +146,7 @@ Start here:
 - Run agile loops even when you’re a team of one.
 
 If you want help implementing this workflow, check out
-[NebulaKit](https://nebulakit.starspace.group/)—it’s built to make this process
+[davis9001.dev](https://davis9001.dev)—it's built to make this process
 easier.
 
 Do that consistently, and you won’t just generate code—you’ll architect systems.

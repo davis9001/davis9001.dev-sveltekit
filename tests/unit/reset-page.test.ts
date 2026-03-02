@@ -5,9 +5,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * TDD: Testing the reset page server-side logic
  */
 
-// Mock SvelteKit redirect
+// Mock redirect
 const mockRedirect = vi.fn((status: number, location: string) => {
-	const err = new Error('Redirect') as Error & { status: number; location: string };
+	const err = new Error('Redirect') as Error & { status: number; location: string; };
 	err.status = status;
 	err.location = location;
 	throw err;

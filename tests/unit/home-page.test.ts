@@ -10,7 +10,7 @@ vi.mock('$app/navigation', () => ({
 	goto: vi.fn()
 }));
 
-// NOTE: These tests are skipped due to SvelteKit's page store issue in vitest.
+// NOTE: These tests are skipped due to the page store issue in vitest.
 // The page store cannot be subscribed to outside a Svelte component context.
 // See: https://svelte.dev/docs/kit/state-management#avoid-shared-state-on-the-server
 describe.skip('Home Page Hero', () => {
@@ -25,13 +25,13 @@ describe.skip('Home Page Hero', () => {
 
 	it('should render the main title', () => {
 		render(Page);
-		const title = screen.getByText('NebulaKit');
+		const title = screen.getByText('davis9001');
 		expect(title).toBeTruthy();
 	});
 
 	it('should render the subtitle with correct text', () => {
 		render(Page);
-		const subtitle = screen.getByText(/A full-stack SvelteKit \+ Cloudflare starter/i);
+		const subtitle = screen.getByText(/A full-stack Cloudflare starter/i);
 		expect(subtitle).toBeTruthy();
 	});
 

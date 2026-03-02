@@ -1,4 +1,4 @@
-# NebulaKit Setup Guide
+# davis9001.dev Setup Guide
 
 ## Prerequisites
 
@@ -13,10 +13,10 @@
 
 The easiest way to get started is to use the **"Use this template"** button on GitHub:
 
-1. Go to the [NebulaKit repository](https://github.com/starspacegroup/NebulaKit)
+1. Go to the [davis9001.dev repository](https://github.com/starspacegroup/davis9001.dev-sveltekit)
 2. Click the green **"Use this template"** button
 3. Choose one of:
-   - **Create a new repository** - Creates your own copy of NebulaKit in your GitHub account
+   - **Create a new repository** - Creates your own copy in your GitHub account
    - **Open in a codespace** - Instantly spin up a cloud development environment
 4. If you created a new repository, clone it:
 
@@ -30,8 +30,8 @@ cd YOUR_REPO_NAME
 Alternatively, clone the repository directly:
 
 ```bash
-git clone https://github.com/starspacegroup/NebulaKit.git
-cd NebulaKit
+git clone https://github.com/starspacegroup/davis9001.dev-sveltekit.git
+cd davis9001.dev-sveltekit
 ```
 
 ## Next Steps
@@ -44,9 +44,9 @@ npm install
 
 2. Configure Cloudflare bindings:
    - Copy `wrangler.toml` and update with your Cloudflare resource IDs
-   - Create D1 database: `wrangler d1 create nebulakit-db`
+   - Create D1 database: `wrangler d1 create davis9001-db`
    - Create KV namespace: `wrangler kv:namespace create "KV"`
-   - Create R2 bucket: `wrangler r2 bucket create nebulakit-files`
+   - Create R2 bucket: `wrangler r2 bucket create davis9001-files`
    - Set up Turnstile at https://dash.cloudflare.com/
 
 ## Development
@@ -149,7 +149,7 @@ For production, set these in Cloudflare Pages settings.
 ## Project Structure
 
 ```
-NebulaKit/
+davis9001.dev/
 ├── src/
 │   ├── lib/
 │   │   ├── components/     # Reusable UI components
@@ -157,7 +157,7 @@ NebulaKit/
 │   │   ├── server/         # Server-side utilities
 │   │   ├── types/          # TypeScript types
 │   │   └── utils/          # Utility functions
-│   ├── routes/             # SvelteKit routes
+│   ├── routes/             # Application routes
 │   │   ├── auth/          # Authentication pages
 │   │   ├── chat/          # Chat interface
 │   │   └── demo/          # Feature demos
@@ -166,7 +166,7 @@ NebulaKit/
 │   └── app.d.ts           # Type definitions
 ├── static/                 # Static assets
 ├── wrangler.toml          # Cloudflare configuration
-└── svelte.config.js       # SvelteKit configuration
+└── svelte.config.js       # Svelte configuration
 ```
 
 ## Next Steps

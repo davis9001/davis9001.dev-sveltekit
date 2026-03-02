@@ -4,7 +4,7 @@
  * Validates that the security headers middleware adds the correct
  * headers to non-API responses, matching the Deno Fresh securityHeaders plugin.
  *
- * Since SvelteKit's `sequence()` requires an internal request store that
+ * Since `sequence()` requires an internal request store that
  * isn't available in unit tests, we test the security headers logic directly.
  */
 import { describe, it, expect } from 'vitest';

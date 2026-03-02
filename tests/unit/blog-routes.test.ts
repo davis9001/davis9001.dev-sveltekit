@@ -45,7 +45,7 @@ const mockModules: Record<string, string> = {
   '/src/updates/third-test-post.md': samplePost3
 };
 
-// Mock SvelteKit error
+// Mock @sveltejs/kit error
 const mockError = vi.fn((status: number, message: string) => {
   const err = new Error(message) as Error & { status: number; };
   err.status = status;

@@ -3,12 +3,10 @@
 # davis9001.dev
 
 > Personal portfolio and dev showcase for Davis Monaghan
-> Built with SvelteKit + Cloudflare (NebulaKit template)
 
-[![Built with SvelteKit](https://img.shields.io/badge/Built%20with-SvelteKit-FF3E00?style=flat&logo=svelte)](https://kit.svelte.dev/)
 [![Powered by Cloudflare](https://img.shields.io/badge/Powered%20by-Cloudflare-F38020?style=flat&logo=cloudflare)](https://www.cloudflare.com/)
 
-NebulaKit is a production-ready SvelteKit template with everything you need to build modern web applications. It comes with Cloudflare Workers integration (D1, KV, R2, Queues, Turnstile), a complete theme system, command palette, LLM chat UI, full authentication, and polished drag-and-drop—all built in from day one.
+davis9001.dev is a production-ready web application built with everything you need for modern web applications. It comes with Cloudflare Workers integration (D1, KV, R2, Queues, Turnstile), a complete theme system, command palette, LLM chat UI, full authentication, and polished drag-and-drop—all built in from day one.
 
 ## 🌟 Features
 
@@ -48,7 +46,7 @@ Visit `http://localhost:4242` to see your app!
 
 ## 🧪 Testing (TDD Required!)
 
-NebulaKit follows **Test-Driven Development** with 90%+ code coverage requirements:
+davis9001.dev follows **Test-Driven Development** with 90%+ code coverage requirements:
 
 ```bash
 # Run all tests
@@ -80,14 +78,14 @@ npm run test:all
 ## 🏗️ Project Structure
 
 ```
-NebulaKit/
+davis9001.dev/
 ├── src/
 │   ├── lib/
 │   │   ├── components/     # Reusable UI components
 │   │   ├── stores/         # Svelte stores (theme, etc.)
 │   │   ├── server/         # Server-side utilities
 │   │   └── utils/          # Helper functions
-│   ├── routes/             # SvelteKit routes
+│   ├── routes/             # Application routes
 │   │   ├── auth/          # Authentication pages
 │   │   ├── chat/          # LLM chat interface
 │   │   └── demo/          # Feature demonstrations
@@ -99,7 +97,7 @@ NebulaKit/
 
 ## 🎨 Theming
 
-NebulaKit includes a comprehensive theme system with:
+davis9001.dev includes a comprehensive theme system with:
 
 - ✅ **WCAG AA compliant** colors (4.5:1 contrast minimum)
 - 🌓 Light and dark modes with automatic system detection
@@ -134,7 +132,7 @@ Built-in auth pages with support for:
 - Session management
 - Account linking
 
-Easily extend with [@auth/sveltekit](https://authjs.dev/) for more providers.
+Easily extend with [@auth](https://authjs.dev/) for more providers.
 
 ## 💬 Chat UI
 
@@ -192,7 +190,7 @@ The demo page includes a fully functional kanban board with:
 
 ## 📱 Mobile Support
 
-NebulaKit is mobile-first with:
+davis9001.dev is mobile-first with:
 
 - Responsive breakpoints (640px, 768px, 1024px, 1280px)
 - Touch-optimized interactions
@@ -201,7 +199,7 @@ NebulaKit is mobile-first with:
 
 ## 🛠️ Tech Stack
 
-- [SvelteKit](https://kit.svelte.dev/) - Web framework
+- [Svelte](https://svelte.dev/) - UI framework
 - [Cloudflare Workers](https://workers.cloudflare.com/) - Edge runtime
 - [TypeScript](https://www.typescriptlang.org/) - Type safety
 - [Vite](https://vitejs.dev/) - Build tool
@@ -226,4 +224,4 @@ See [.github/copilot-instructions.md](.github/copilot-instructions.md) for detai
 
 ## ⭐ Show Your Support
 
-If you find NebulaKit useful, please consider giving it a star on GitHub!
+If you find davis9001.dev useful, please consider giving it a star on GitHub!

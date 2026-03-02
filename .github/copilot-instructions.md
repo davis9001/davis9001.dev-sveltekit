@@ -1,4 +1,4 @@
-# GitHub Copilot Instructions for NebulaKit
+# GitHub Copilot Instructions for davis9001.dev
 
 ## 🖥️ Development Environment Assumptions
 
@@ -49,14 +49,14 @@ When using the Copilot Coding Agent (remote):
 - Avoid external packages for:
   - WYSIWYG editors (build custom)
   - User management (use built-in auth)
-  - SSO integrations (implement directly with Auth.js/SvelteKit)
+  - SSO integrations (implement directly with Auth.js)
   - UI components (extend internal component library)
   - Form validation (custom implementations)
   - State management (use Svelte stores)
 - Only add external packages when:
   - The functionality is extremely complex (e.g., cryptography)
   - It's a Cloudflare-native integration
-  - It's a core framework requirement (SvelteKit, Vite)
+  - It's a core framework requirement (Svelte, Vite)
   - The package is well-maintained, lightweight, and has no alternatives
 
 ## 🧪 Testing Standards
@@ -105,7 +105,7 @@ describe('Feature Name', () => {
    - Database queries (mocked)
 
 2. **Integration Tests** (`tests/integration/`)
-   - API endpoints with SvelteKit
+   - API endpoints
    - Database operations with test D1 instance
    - Service layer interactions
 
@@ -155,7 +155,7 @@ npm run dev
 ## 📁 Project Structure
 
 ```
-NebulaKit/
+davis9001.dev/
 ├── src/
 │   ├── lib/
 │   │   ├── components/      # Svelte components (with .test.ts files)
@@ -163,7 +163,7 @@ NebulaKit/
 │   │   ├── utils/           # Utility functions (with .test.ts files)
 │   │   ├── services/        # Business logic (with .test.ts files)
 │   │   └── types/           # TypeScript types
-│   ├── routes/              # SvelteKit routes (with .test.ts files)
+│   ├── routes/              # Application routes (with .test.ts files)
 │   └── app.html
 ├── tests/
 │   ├── unit/                # Unit tests
@@ -534,14 +534,14 @@ Types: `feat`, `fix`, `test`, `refactor`, `docs`, `style`, `chore`
 6. Include proper TypeScript types
 7. Consider edge runtime limitations
 8. Optimize for cold start performance
-9. Use SvelteKit and Svelte best practices
+9. Use Svelte best practices
 10. Ensure accessibility standards
 
 ## 📚 Key Resources
 
 - [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
 - [Cloudflare D1 Docs](https://developers.cloudflare.com/d1/)
-- [SvelteKit Docs](https://kit.svelte.dev/docs)
+- [Svelte Docs](https://svelte.dev/docs)
 - [Vitest Docs](https://vitest.dev/)
 - [Playwright Docs](https://playwright.dev/)
 

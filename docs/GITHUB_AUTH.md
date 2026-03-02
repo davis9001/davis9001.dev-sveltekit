@@ -2,7 +2,7 @@
 
 ## Overview
 
-NebulaKit now supports GitHub OAuth authentication. Once configured, users can sign in with their GitHub account, and the OAuth app owner will have access to the admin panel.
+davis9001.dev supports GitHub OAuth authentication. Once configured, users can sign in with their GitHub account, and the OAuth app owner will have access to the admin panel.
 
 ## Setup Process
 
@@ -13,7 +13,7 @@ NebulaKit now supports GitHub OAuth authentication. Once configured, users can s
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
 2. Click **"New OAuth App"**
 3. Fill in the application details:
-   - **Application name**: NebulaKit (or your preferred name)
+   - **Application name**: davis9001.dev (or your preferred name)
    - **Homepage URL**: `http://localhost:4242` (for development)
    - **Authorization callback URL**: `http://localhost:4242/api/auth/github/callback`
 4. Click **"Register application"**

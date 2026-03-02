@@ -2,7 +2,7 @@
 
 ## 🎨 Overview
 
-NebulaKit uses a comprehensive CSS custom properties (CSS variables) system for theming. **All colors, spacing, typography, and design tokens MUST use CSS variables** - never hardcode values.
+davis9001.dev uses a comprehensive CSS custom properties (CSS variables) system for theming. **All colors, spacing, typography, and design tokens MUST use CSS variables** - never hardcode values.
 
 ## 🚨 Critical Rules
 

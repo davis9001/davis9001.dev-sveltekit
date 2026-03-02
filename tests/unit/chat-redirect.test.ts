@@ -24,7 +24,7 @@ describe('Chat Page Redirect', () => {
 		// Dynamic import to load the server module
 		const module = await import('../../src/routes/chat/+page.server');
 
-		// Act & Assert - redirect() throws an error in SvelteKit
+		// Act & Assert - redirect() throws an error
 		try {
 			await module.load({
 				platform: mockPlatform,
@@ -60,7 +60,7 @@ describe('Chat Page Redirect', () => {
 		// Dynamic import to load the server module
 		const module = await import('../../src/routes/chat/+page.server');
 
-		// Act & Assert - redirect() throws an error in SvelteKit
+		// Act & Assert - redirect() throws an error
 		try {
 			await module.load({
 				platform: mockPlatform,
@@ -90,7 +90,7 @@ describe('Chat Page Redirect', () => {
 		// Dynamic import to load the server module
 		const module = await import('../../src/routes/chat/+page.server');
 
-		// Act & Assert - redirect() throws an error in SvelteKit
+		// Act & Assert - redirect() throws an error
 		try {
 			await module.load({
 				platform: mockPlatform,
@@ -148,7 +148,7 @@ describe('Chat Page Redirect', () => {
 
 		// Assert - Should not redirect, allowing access
 		expect(result).toHaveProperty('voiceAvailable');
-		expect(typeof (result as { voiceAvailable: boolean }).voiceAvailable).toBe('boolean');
+		expect(typeof (result as { voiceAvailable: boolean; }).voiceAvailable).toBe('boolean');
 	});
 
 	it('should redirect when all API keys are disabled', async () => {
@@ -195,7 +195,7 @@ describe('Chat Page Redirect', () => {
 		// Dynamic import to load the server module
 		const module = await import('../../src/routes/chat/+page.server');
 
-		// Act & Assert - redirect() throws an error in SvelteKit
+		// Act & Assert - redirect() throws an error
 		try {
 			await module.load({
 				platform: mockPlatform,

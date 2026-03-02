@@ -1,4 +1,4 @@
-# NebulaKit Development Quick Reference
+# davis9001.dev Development Quick Reference
 
 ## 🚀 Essential Commands
 
@@ -228,7 +228,7 @@ npm run test:e2e:ui
 
 ## 🌟 Resources
 
-- [SvelteKit Docs](https://kit.svelte.dev)
+- [Svelte Docs](https://svelte.dev)
 - [Cloudflare Workers](https://developers.cloudflare.com/workers)
 - [Vitest Docs](https://vitest.dev)
 - [Playwright Docs](https://playwright.dev)

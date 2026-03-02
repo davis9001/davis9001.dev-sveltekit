@@ -1,6 +1,6 @@
 # Test-Driven Development (TDD) Workflow
 
-This guide demonstrates the TDD workflow for NebulaKit development.
+This guide demonstrates the TDD workflow for davis9001.dev development.
 
 ## 🎯 The TDD Cycle
 

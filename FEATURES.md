@@ -1,4 +1,4 @@
-# NebulaKit Features
+# davis9001.dev Features
 
 ## 🚀 Cloudflare Full Stack Integration
 
@@ -114,10 +114,10 @@ const response = await fetch('/api/chat', {
 - Error handling
 
 ### Adding Providers
-Use [@auth/sveltekit](https://authjs.dev/getting-started/installation?framework=sveltekit) for OAuth providers:
+Use [Auth.js](https://authjs.dev/getting-started/installation) for OAuth providers:
 ```typescript
-import Google from '@auth/sveltekit/providers/google'
-import GitHub from '@auth/sveltekit/providers/github'
+import Google from '@auth/core/providers/google'
+import GitHub from '@auth/core/providers/github'
 ```
 
 ## 📱 Mobile-First Design
@@ -209,7 +209,7 @@ Multiple variants included:
 ## 🔒 Security
 
 ### Best Practices
-- CSRF protection (SvelteKit built-in)
+- CSRF protection (framework built-in)
 - XSS prevention
 - Content Security Policy ready
 - Secure session handling
@@ -231,7 +231,7 @@ Multiple variants included:
 
 ## 🎓 Learning Resources
 
-- [SvelteKit Documentation](https://kit.svelte.dev/)
+- [Svelte Documentation](https://svelte.dev/)
 - [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
 - [Auth.js Documentation](https://authjs.dev/)
 - [Svelte Tutorial](https://svelte.dev/tutorial)

@@ -8,13 +8,13 @@
 
 ## Getting Started
 
-[![Use this template](https://img.shields.io/badge/Use%20this%20template-238636?style=for-the-badge&logo=github&logoColor=white)](https://github.com/new?template_name=NebulaKit&template_owner=starspacegroup)
+[![Use this template](https://img.shields.io/badge/Use%20this%20template-238636?style=for-the-badge&logo=github&logoColor=white)](https://github.com/new?template_name=davis9001.dev-sveltekit&template_owner=starspacegroup)
 
-Click the button above to create your own repository from the NebulaKit template, then follow the setup instructions below.
+Click the button above to create your own repository from the template, then follow the setup instructions below.
 
 ---
 
-NebulaKit can work **without any pre-configured environment variables**. Instead of relying on `.env` files or manually set secrets, all configuration is done through a web-based setup flow and stored securely in Cloudflare KV.
+davis9001.dev can work **without any pre-configured environment variables**. Instead of relying on `.env` files or manually set secrets, all configuration is done through a web-based setup flow and stored securely in Cloudflare KV.
 
 ## When to Use Zero-Config
 
@@ -64,7 +64,7 @@ ADMIN_GITHUB_ID=zzz
 - Different secrets for each environment
 - Onboarding friction for new developers
 
-**NebulaKit's approach:**
+**davis9001.dev's approach:**
 
 - ✅ Zero secrets in code or environment
 - ✅ Web-based configuration at runtime
@@ -99,7 +99,7 @@ Once the designated admin user logs in for the first time, the setup page is per
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
 2. Click **"New OAuth App"**
 3. Fill in the form:
-   - **Application name:** NebulaKit (or your choice)
+   - **Application name:** davis9001.dev (or your choice)
    - **Homepage URL:** `https://your-app.pages.dev` (or `http://localhost:4220` for local dev)
    - **Authorization callback URL:** `https://your-app.pages.dev/api/auth/github/callback`
 4. Click **"Register application"**
@@ -215,7 +215,7 @@ if (resetDisabled === 'true') {
 1. **Apply database migrations:**
 
    ```bash
-   wrangler d1 execute nebulakit-db --local --file=migrations/schema.sql
+   wrangler d1 execute davis9001-db --local --file=migrations/schema.sql
    ```
 
 2. **Create KV namespaces** (for persistent local storage):

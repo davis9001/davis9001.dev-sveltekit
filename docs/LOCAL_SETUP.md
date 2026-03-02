@@ -1,4 +1,4 @@
-# Local Development Setup for NebulaKit
+# Local Development Setup for davis9001.dev
 
 ## Database Migrations
 
@@ -7,7 +7,7 @@
 Apply database migrations to create all required tables:
 
 ```bash
-wrangler d1 execute nebulakit-db --local --file=migrations/schema.sql
+wrangler d1 execute davis9001-db --local --file=migrations/schema.sql
 ```
 
 This creates:
@@ -20,7 +20,7 @@ This creates:
 Verify tables were created:
 
 ```bash
-wrangler d1 execute nebulakit-db --local --command="SELECT name FROM sqlite_master WHERE type='table';"
+wrangler d1 execute davis9001-db --local --command="SELECT name FROM sqlite_master WHERE type='table';"
 ```
 
 ## KV Namespace Setup
@@ -42,12 +42,12 @@ wrangler kv:namespace create "KV" --preview
 After running the commands above, you'll get output like:
 
 ```
-🌀 Creating namespace with title "nebulakit-KV"
+🌀 Creating namespace with title "davis9001-KV"
 ✨ Success!
 Add the following to your configuration file in your kv_namespaces array:
 { binding = "KV", id = "abc123..." }
 
-🌀 Creating namespace with title "nebulakit-KV_preview"
+🌀 Creating namespace with title "davis9001-KV_preview"
 ✨ Success!
 Add the following to your configuration file in your kv_namespaces array:
 { binding = "KV", preview_id = "xyz789..." }

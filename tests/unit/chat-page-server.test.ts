@@ -3,7 +3,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock SvelteKit redirect
+// Mock redirect
 vi.mock('@sveltejs/kit', () => ({
 	redirect: vi.fn((status: number, location: string) => {
 		const error = new Error(`Redirect to ${location}`) as Error & {
@@ -25,7 +25,7 @@ interface MockPlatform {
 }
 
 interface MockLocals {
-	user?: { id: string; isAdmin?: boolean; isOwner?: boolean } | null;
+	user?: { id: string; isAdmin?: boolean; isOwner?: boolean; } | null;
 }
 
 interface MockLoadEvent {
@@ -35,7 +35,7 @@ interface MockLoadEvent {
 
 describe('Chat Page Server - Extended Coverage', () => {
 	let mockKVGet: ReturnType<typeof vi.fn>;
-	let load: (event: MockLoadEvent) => Promise<{ voiceAvailable: boolean; userId: string }>;
+	let load: (event: MockLoadEvent) => Promise<{ voiceAvailable: boolean; userId: string; }>;
 
 	beforeEach(async () => {
 		vi.resetModules();
@@ -45,7 +45,7 @@ describe('Chat Page Server - Extended Coverage', () => {
 		const module = await import('../../src/routes/chat/+page.server');
 		load = module.load as (
 			event: MockLoadEvent
-		) => Promise<{ voiceAvailable: boolean; userId: string }>;
+		) => Promise<{ voiceAvailable: boolean; userId: string; }>;
 	});
 
 	describe('Authentication', () => {
@@ -225,7 +225,7 @@ describe('Chat Page Server - Extended Coverage', () => {
 	});
 
 	it('should handle voice availability when voice check throws error', async () => {
-		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
 		mockKVGet
 			// First call for checkEnabledProviders succeeds
@@ -322,7 +322,7 @@ describe('Chat Page Server - Extended Coverage', () => {
 	});
 
 	it('should handle checkEnabledProviders error and redirect regular user to /', async () => {
-		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
 		mockKVGet.mockRejectedValueOnce(new Error('Provider check error'));
 
@@ -343,7 +343,7 @@ describe('Chat Page Server - Extended Coverage', () => {
 	});
 
 	it('should handle checkEnabledProviders error and redirect admin to /admin', async () => {
-		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
 		mockKVGet.mockRejectedValueOnce(new Error('Provider check error'));
 

@@ -4,7 +4,7 @@
 import { redirect } from '@sveltejs/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock SvelteKit redirect
+// Mock redirect
 vi.mock('@sveltejs/kit', () => ({
 	redirect: vi.fn((status: number, location: string) => {
 		const error = new Error(`Redirect to ${location}`) as Error & {
@@ -26,7 +26,7 @@ interface MockPlatform {
 }
 
 interface MockLocals {
-	user?: { id: string; name: string } | null;
+	user?: { id: string; name: string; } | null;
 }
 
 interface MockLoadEvent {

@@ -5,10 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * TDD: Testing the admin endpoint to toggle reset route
  */
 
-// Mock SvelteKit
+// Mock @sveltejs/kit
 vi.mock('@sveltejs/kit', () => ({
 	error: (status: number, message: string) => {
-		const err = new Error(message) as Error & { status: number; body: { message: string } };
+		const err = new Error(message) as Error & { status: number; body: { message: string; }; };
 		err.status = status;
 		err.body = { message };
 		throw err;

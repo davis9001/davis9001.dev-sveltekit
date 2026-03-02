@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock SvelteKit modules
+// Mock $app modules
 vi.mock('$app/stores', () => {
 	return {
 		page: writable({
@@ -18,7 +18,7 @@ describe('Error Page', () => {
 	});
 
 	describe('Error Info Mapping', () => {
-		const errorInfo: Record<number, { title: string; message: string; icon: string }> = {
+		const errorInfo: Record<number, { title: string; message: string; icon: string; }> = {
 			400: {
 				title: 'Bad Request',
 				message: 'Something went wrong with your request. Please check and try again.',
@@ -131,15 +131,15 @@ describe('Error Page', () => {
 		it('should generate correct page title for known errors', () => {
 			const status = 404;
 			const title = 'Lost in Space';
-			const expectedTitle = `${status} - ${title} | NebulaKit`;
-			expect(expectedTitle).toBe('404 - Lost in Space | NebulaKit');
+			const expectedTitle = `${status} - ${title} | davis9001.dev`;
+			expect(expectedTitle).toBe('404 - Lost in Space | davis9001.dev');
 		});
 
 		it('should generate correct page title for server errors', () => {
 			const status = 500;
 			const title = 'Server Error';
-			const expectedTitle = `${status} - ${title} | NebulaKit`;
-			expect(expectedTitle).toBe('500 - Server Error | NebulaKit');
+			const expectedTitle = `${status} - ${title} | davis9001.dev`;
+			expect(expectedTitle).toBe('500 - Server Error | davis9001.dev');
 		});
 	});
 
@@ -160,7 +160,7 @@ describe('Error Page', () => {
 		});
 
 		it('should hide technical details when no error message', () => {
-			const error = null as { message?: string } | null;
+			const error = null as { message?: string; } | null;
 			const shouldShowDetails = error?.message && error.message !== 'Some message';
 			expect(shouldShowDetails).toBeFalsy();
 		});

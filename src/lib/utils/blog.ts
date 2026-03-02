@@ -189,7 +189,7 @@ export function getReadingTime(content: string): number {
  * Load all blog posts from the updates directory.
  * Uses import.meta.glob for build-time loading (Cloudflare Workers compatible).
  *
- * This function is meant to be called from SvelteKit load functions.
+ * This function is meant to be called from route load functions.
  * The actual glob import happens in the route's +page.server.ts.
  */
 export function processRawPosts(

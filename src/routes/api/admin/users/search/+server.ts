@@ -23,7 +23,7 @@ export const GET: RequestHandler = async ({ url, locals, fetch }) => {
 			{
 				headers: {
 					Accept: 'application/vnd.github.v3+json',
-					'User-Agent': 'NebulaKit'
+					'User-Agent': 'davis9001.dev'
 				}
 			}
 		);

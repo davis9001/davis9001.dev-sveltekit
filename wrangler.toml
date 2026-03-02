@@ -27,7 +27,7 @@ bucket_name = "davis9001-dev-files"
 # Queue (disabled - enable Queues at https://dash.cloudflare.com before uncommenting)
 # [[queues.producers]]
 # binding = "QUEUE"
-# queue = "nebulakit-queue"
+# queue = "davis9001-queue"
 
 # Note: queues.consumers is not supported by Cloudflare Pages
 # If you need queue consumers, use a separate Cloudflare Worker

@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types';
 
 // OpenAI model pricing per 1M tokens (as of December 2025)
 // Source: https://openai.com/api/pricing/
-const OPENAI_PRICING: Record<string, { input: number; output: number; cached?: number }> = {
+const OPENAI_PRICING: Record<string, { input: number; output: number; cached?: number; }> = {
 	// GPT-5.1 (flagship, latest)
 	'gpt-5.1': { input: 1.25, output: 10, cached: 0.125 },
 
@@ -90,7 +90,7 @@ const OPENAI_PRICING: Record<string, { input: number; output: number; cached?: n
 };
 
 // Realtime API audio pricing per minute
-const REALTIME_AUDIO_PRICING: Record<string, { input: number; output: number }> = {
+const REALTIME_AUDIO_PRICING: Record<string, { input: number; output: number; }> = {
 	'gpt-4o-realtime-preview': { input: 0.06, output: 0.24 },
 	'gpt-4o-realtime-preview-2024-12-17': { input: 0.06, output: 0.24 },
 	'gpt-4o-realtime-preview-2024-10-01': { input: 0.1, output: 0.2 },
@@ -294,7 +294,7 @@ export const GET: RequestHandler = async ({ platform, locals, url }) => {
 			fromApi: true
 		});
 	} catch (err) {
-		// Re-throw SvelteKit errors (they have status property)
+		// Re-throw HTTP errors (they have status property)
 		if (err && typeof err === 'object' && 'status' in err) {
 			throw err;
 		}

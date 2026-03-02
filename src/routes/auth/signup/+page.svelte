@@ -40,7 +40,7 @@
 	<div class="auth-container">
 		<div class="auth-header">
 			<h1>Create Account</h1>
-			<p>Start your journey with NebulaKit</p>
+			<p>Start your journey with davis9001.dev</p>
 		</div>
 		
 		<div class="sso-buttons">

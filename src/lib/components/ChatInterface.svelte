@@ -712,7 +712,7 @@
 </script>
 
 <svelte:head>
-	<title>AI Chat - NebulaKit</title>
+	<title>AI Chat - davis9001.dev</title>
 </svelte:head>
 
 <div class="chat-interface">

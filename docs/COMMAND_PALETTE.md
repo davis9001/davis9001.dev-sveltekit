@@ -1,6 +1,6 @@
 # Command Palette
 
-The Command Palette is a keyboard-first interface for quickly navigating and executing commands within NebulaKit.
+The Command Palette is a keyboard-first interface for quickly navigating and executing commands within davis9001.dev.
 
 ## Features
 

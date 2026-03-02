@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock SvelteKit modules
+// Mock @sveltejs/kit modules
 const mockJson = vi.fn((data) => ({ data, status: 200 }));
 const mockError = vi.fn((status, message) => {
 	const err = new Error(message) as any;

@@ -5,16 +5,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * TDD: Testing the account linking flow and connected accounts API
  */
 
-// Mock SvelteKit modules
+// Mock @sveltejs/kit modules
 const mockRedirect = vi.fn((status: number, location: string) => {
-	const err = new Error('Redirect') as Error & { status: number; location: string };
+	const err = new Error('Redirect') as Error & { status: number; location: string; };
 	err.status = status;
 	err.location = location;
 	throw err;
 });
 
 const mockError = vi.fn((status: number, message: string) => {
-	const err = new Error(message) as Error & { status: number };
+	const err = new Error(message) as Error & { status: number; };
 	err.status = status;
 	throw err;
 });
