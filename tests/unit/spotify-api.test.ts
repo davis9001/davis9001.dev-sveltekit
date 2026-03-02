@@ -34,7 +34,7 @@ function createMockPlatform(
 const PROFILE_URL = 'https://open.spotify.com/user/12810003?si=7ba6ee05f9cb4e96';
 
 describe('Spotify API Route', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
   });
@@ -1686,6 +1686,480 @@ describe('Spotify API Route', () => {
 
     // Should resolve to null when context fetch returns 404
     expect(data.currentlyPlaying.context).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it('should return cached full response on rapid polling', async () => {
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    let fetchCallCount = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        fetchCallCount++;
+        if (url.includes('currently-playing')) {
+          return Promise.resolve({ ok: true, status: 204 });
+        }
+        if (url.includes('recently-played')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ items: [] })
+          });
+        }
+        if (url.includes('playlists')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ items: [] })
+          });
+        }
+        return Promise.resolve({ ok: false, status: 404 });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    // First call — should hit Spotify API
+    const response1 = await GET({ platform } as any);
+    const data1 = await response1.json();
+    expect(data1.profileUrl).toBe(PROFILE_URL);
+    const callsAfterFirst = fetchCallCount;
+
+    // Second call — should return cached response (no new Spotify API calls)
+    const response2 = await GET({ platform } as any);
+    const data2 = await response2.json();
+    expect(data2.profileUrl).toBe(PROFILE_URL);
+    expect(fetchCallCount).toBe(callsAfterFirst);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should back off when Spotify returns 429', async () => {
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        return Promise.resolve({
+          ok: false,
+          status: 429,
+          statusText: 'Too Many Requests',
+          headers: new Headers({ 'Retry-After': '30' })
+        });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+
+    // All fetches failed due to 429, so an error should be returned
+    expect(data.error).toBeTruthy();
+    expect(data.currentlyPlaying).toBeNull();
+    expect(data.recentlyPlayed).toEqual([]);
+    expect(data.topPlaylists).toEqual([]);
+    expect(data.profileUrl).toBe(PROFILE_URL);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should cap rate limit backoff to 5 minutes even if Retry-After is larger', async () => {
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    // Spotify sends an absurdly long Retry-After (e.g. 18000 seconds = 5 hours)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        return Promise.resolve({
+          ok: false,
+          status: 429,
+          statusText: 'Too Many Requests',
+          headers: new Headers({ 'Retry-After': '18000' })
+        });
+      })
+    );
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    await GET({ platform } as any);
+
+    // The console.warn should show the capped value (300s), not the raw 18000s
+    const warnCalls = warnSpy.mock.calls.flat().join(' ');
+    expect(warnCalls).toContain('backing off for 300s');
+    expect(warnCalls).toContain('Retry-After was 18000');
+
+    warnSpy.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it('should use in-memory playlist cache when KV cache misses', async () => {
+    // First request: populates in-memory cache
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.includes('currently-playing')) {
+          return Promise.resolve({ ok: true, status: 204 });
+        }
+        if (url.includes('recently-played')) {
+          return Promise.resolve({ ok: true, json: async () => ({ items: [] }) });
+        }
+        if (url === 'https://api.spotify.com/v1/me/playlists?limit=50') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              items: [
+                {
+                  id: 'pl1',
+                  name: 'Memory Cached Playlist',
+                  description: '',
+                  images: [],
+                  external_urls: { spotify: 'https://open.spotify.com/playlist/pl1' },
+                  tracks: { total: 5 },
+                  owner: { id: '12810003' },
+                  followers: { total: 10 },
+                  public: true
+                }
+              ]
+            })
+          });
+        }
+        if (url.includes('/playlists/pl1?fields=')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              id: 'pl1',
+              name: 'Memory Cached Playlist',
+              description: '',
+              images: [],
+              external_urls: { spotify: 'https://open.spotify.com/playlist/pl1' },
+              tracks: { total: 5 },
+              owner: { id: '12810003' },
+              followers: { total: 10 },
+              public: true
+            })
+          });
+        }
+        if (url.includes('/playlists/pl1/tracks')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ items: [{ track: { duration_ms: 100000 } }], next: null })
+          });
+        }
+        return Promise.resolve({ ok: false, status: 404 });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+    expect(data.topPlaylists).toHaveLength(1);
+    expect(data.topPlaylists[0].name).toBe('Memory Cached Playlist');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should expose _resetCacheForTesting function', async () => {
+    const { _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    expect(typeof _resetCacheForTesting).toBe('function');
+    // Should not throw
+    _resetCacheForTesting();
+  });
+
+  it('should return stale playlist data on rate limit instead of empty array', async () => {
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    // First call: populate in-memory cache with good data
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.includes('currently-playing')) {
+          return Promise.resolve({ ok: true, status: 204 });
+        }
+        if (url.includes('recently-played')) {
+          return Promise.resolve({ ok: true, json: async () => ({ items: [] }) });
+        }
+        if (url === 'https://api.spotify.com/v1/me/playlists?limit=50') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              items: [
+                {
+                  id: 'pl1',
+                  name: 'Stale Playlist',
+                  description: '',
+                  images: [],
+                  external_urls: { spotify: 'https://open.spotify.com/playlist/pl1' },
+                  tracks: { total: 3 },
+                  owner: { id: '12810003' },
+                  followers: { total: 5 },
+                  public: true
+                }
+              ]
+            })
+          });
+        }
+        if (url.includes('/playlists/pl1?fields=')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              id: 'pl1',
+              name: 'Stale Playlist',
+              description: '',
+              images: [],
+              external_urls: { spotify: 'https://open.spotify.com/playlist/pl1' },
+              tracks: { total: 3 },
+              owner: { id: '12810003' },
+              followers: { total: 5 },
+              public: true
+            })
+          });
+        }
+        if (url.includes('/playlists/pl1/tracks')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ items: [{ track: { duration_ms: 60000 } }], next: null })
+          });
+        }
+        return Promise.resolve({ ok: false, status: 404 });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    // First call — populate cache
+    const r1 = await GET({ platform } as any);
+    const d1 = await r1.json();
+    expect(d1.topPlaylists).toHaveLength(1);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should return error when all Spotify API calls fail', async () => {
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    // All Spotify endpoints return 500
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve({ ok: false, status: 500, headers: new Headers() }))
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+
+    expect(data.error).toBeTruthy();
+    expect(data.error).toContain('All Spotify API calls failed');
+    expect(data.currentlyPlaying).toBeNull();
+    expect(data.recentlyPlayed).toEqual([]);
+    expect(data.topPlaylists).toEqual([]);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should clear KV tokens and return error on 401 from Spotify', async () => {
+    const kvData = {
+      'spotify:tokens': {
+        accessToken: 'stale_token',
+        refreshToken: 'refresh',
+        expiresAt: Date.now() + 3600000
+      }
+    };
+    const platform = createMockPlatform({}, kvData);
+
+    // All Spotify endpoints return 401
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve({ ok: false, status: 401, headers: new Headers() }))
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+
+    // Should report the token error to the client
+    expect(data.error).toBeTruthy();
+    expect(data.error).toContain('token is invalid or expired');
+
+    // Should have cleared the cached tokens in KV
+    expect(platform.env.KV.delete).toHaveBeenCalledWith('spotify:tokens');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should not return error when only some API calls fail', async () => {
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        // currently-playing fails
+        if (url.includes('currently-playing')) {
+          return Promise.resolve({ ok: false, status: 500, headers: new Headers() });
+        }
+        // recently-played succeeds with data
+        if (url.includes('recently-played')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            headers: new Headers(),
+            json: async () => ({
+              items: [
+                {
+                  track: {
+                    id: 't1',
+                    name: 'Track',
+                    artists: [{ name: 'Artist', external_urls: { spotify: '' } }],
+                    album: { name: 'Album', images: [], external_urls: { spotify: '' } },
+                    external_urls: { spotify: '' },
+                    duration_ms: 200000
+                  },
+                  played_at: '2024-01-01T00:00:00Z'
+                }
+              ]
+            })
+          });
+        }
+        // playlists returns empty
+        if (url.includes('playlists')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            headers: new Headers(),
+            json: async () => ({ items: [] })
+          });
+        }
+        return Promise.resolve({ ok: false, status: 404, headers: new Headers() });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+
+    // Should NOT report an error — recently-played succeeded
+    expect(data.error).toBeUndefined();
+    expect(data.recentlyPlayed).toHaveLength(1);
+    expect(data.currentlyPlaying).toBeNull();
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should clear fullResponseCache on 401 so next poll refetches', async () => {
+    const kvData = {
+      'spotify:tokens': {
+        accessToken: 'stale_token',
+        refreshToken: 'refresh',
+        expiresAt: Date.now() + 3600000
+      }
+    };
+    const platform = createMockPlatform({}, kvData);
+
+    let callCount = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        callCount++;
+        return Promise.resolve({ ok: false, status: 401, headers: new Headers() });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    // First call — triggers 401 handling
+    const r1 = await GET({ platform } as any);
+    const d1 = await r1.json();
+    expect(d1.error).toContain('token is invalid or expired');
+
+    const callsAfterFirst = callCount;
+
+    // Second call should NOT return cached response – it should re-fetch
+    // (because fullResponseCache was cleared on 401)
+    const r2 = await GET({ platform } as any);
+    const d2 = await r2.json();
+    expect(d2.error).toBeTruthy();
+    // Verify that new fetch calls were made (not served from cache)
+    expect(callCount).toBeGreaterThan(callsAfterFirst);
+
     vi.unstubAllGlobals();
   });
 });

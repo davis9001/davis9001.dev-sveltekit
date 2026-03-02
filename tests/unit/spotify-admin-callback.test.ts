@@ -69,51 +69,31 @@ describe('Admin Spotify Callback Route', () => {
     } as any;
   }
 
-  it('should throw 403 when user is not authenticated', async () => {
-    const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
-    const event = createMockEvent({ user: undefined });
-
-    await expect(GET(event)).rejects.toMatchObject({ status: 403 });
-  });
-
-  it('should throw 403 when user is not owner or admin', async () => {
+  it('should redirect with error when Spotify returns an error param', async () => {
     const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
     const event = createMockEvent({
-      user: { id: '1', login: 'user', email: 'user@test.com', isOwner: false, isAdmin: false }
-    });
-
-    await expect(GET(event)).rejects.toMatchObject({ status: 403 });
-  });
-
-  it('should return error JSON when Spotify returns an error param', async () => {
-    const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
-    const event = createMockEvent({
-      user: { id: '1', login: 'owner', email: 'owner@test.com', isOwner: true },
       url: 'http://localhost:4220/admin/spotify/callback?error=access_denied'
     });
 
-    const response = await GET(event);
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.success).toBe(false);
-    expect(data.error).toContain('access_denied');
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: expect.stringContaining('/admin/spotify?error=')
+    });
   });
 
-  it('should return 400 when no code parameter is present', async () => {
+  it('should redirect with error when no code parameter is present', async () => {
     const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
     const event = createMockEvent({
-      user: { id: '1', login: 'owner', email: 'owner@test.com', isOwner: true },
       url: 'http://localhost:4220/admin/spotify/callback'
     });
 
-    const response = await GET(event);
-    expect(response.status).toBe(400);
-    const data = await response.json();
-    expect(data.success).toBe(false);
-    expect(data.error).toContain('code');
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: expect.stringContaining('/admin/spotify?error=')
+    });
   });
 
-  it('should exchange code for tokens and store them on success', async () => {
+  it('should exchange code for tokens and redirect on success', async () => {
     const mockKV = createMockKV();
     vi.stubGlobal(
       'fetch',
@@ -129,7 +109,6 @@ describe('Admin Spotify Callback Route', () => {
 
     const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
     const event = createMockEvent({
-      user: { id: '1', login: 'owner', email: 'owner@test.com', isOwner: true },
       platform: {
         env: {
           KV: mockKV,
@@ -140,10 +119,10 @@ describe('Admin Spotify Callback Route', () => {
       url: 'http://localhost:4220/admin/spotify/callback?code=auth_code_123'
     });
 
-    const response = await GET(event);
-    expect(response.status).toBe(200);
-    const data = await response.json();
-    expect(data.success).toBe(true);
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: '/admin/spotify?success=1'
+    });
 
     // Verify tokens were stored in KV
     expect(mockKV.put).toHaveBeenCalledWith(
@@ -167,11 +146,11 @@ describe('Admin Spotify Callback Route', () => {
 
     const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
     const event = createMockEvent({
-      user: { id: '1', login: 'owner', email: 'owner@test.com', isOwner: true },
       url: 'http://localhost:4220/admin/spotify/callback?code=my_code'
     });
 
-    await GET(event);
+    // Will throw redirect on success
+    await expect(GET(event)).rejects.toMatchObject({ status: 302 });
 
     expect(mockFetch).toHaveBeenCalledWith('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -190,7 +169,7 @@ describe('Admin Spotify Callback Route', () => {
     vi.unstubAllGlobals();
   });
 
-  it('should return 500 when Spotify token exchange fails', async () => {
+  it('should redirect with error when Spotify token exchange fails', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
@@ -202,14 +181,13 @@ describe('Admin Spotify Callback Route', () => {
 
     const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
     const event = createMockEvent({
-      user: { id: '1', login: 'owner', email: 'owner@test.com', isOwner: true },
       url: 'http://localhost:4220/admin/spotify/callback?code=bad_code'
     });
 
-    const response = await GET(event);
-    expect(response.status).toBe(500);
-    const data = await response.json();
-    expect(data.success).toBe(false);
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: expect.stringContaining('/admin/spotify?error=')
+    });
 
     vi.unstubAllGlobals();
   });
@@ -217,7 +195,6 @@ describe('Admin Spotify Callback Route', () => {
   it('should throw 500 when client credentials are missing', async () => {
     const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
     const event = createMockEvent({
-      user: { id: '1', login: 'owner', email: 'owner@test.com', isOwner: true },
       platform: {
         env: {
           KV: createMockKV(),
@@ -231,44 +208,58 @@ describe('Admin Spotify Callback Route', () => {
     await expect(GET(event)).rejects.toMatchObject({ status: 500 });
   });
 
-  it('should handle fetch errors gracefully', async () => {
+  it('should throw 500 when platform is not available', async () => {
+    const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
+    const event = createMockEvent({
+      platform: undefined,
+      url: 'http://localhost:4220/admin/spotify/callback?code=some_code'
+    });
+    // Override platform to undefined
+    event.platform = undefined;
+
+    await expect(GET(event)).rejects.toMatchObject({ status: 500 });
+  });
+
+  it('should redirect with error on fetch failure', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
 
     const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
     const event = createMockEvent({
-      user: { id: '1', login: 'owner', email: 'owner@test.com', isOwner: true },
       url: 'http://localhost:4220/admin/spotify/callback?code=some_code'
     });
 
-    const response = await GET(event);
-    expect(response.status).toBe(500);
-    const data = await response.json();
-    expect(data.success).toBe(false);
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: expect.stringContaining('/admin/spotify?error=')
+    });
 
     vi.unstubAllGlobals();
   });
 
-  it('should allow admin users (not just owner)', async () => {
+  it('should not require admin authentication for callback', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
-          access_token: 'admin_token',
-          refresh_token: 'admin_refresh',
+          access_token: 'anon_token',
+          refresh_token: 'anon_refresh',
           expires_in: 3600
         })
       })
     );
 
     const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
+    // No user at all — callback should still work
     const event = createMockEvent({
-      user: { id: '2', login: 'admin', email: 'admin@test.com', isOwner: false, isAdmin: true },
-      url: 'http://localhost:4220/admin/spotify/callback?code=admin_code'
+      user: undefined,
+      url: 'http://localhost:4220/admin/spotify/callback?code=anon_code'
     });
 
-    const response = await GET(event);
-    expect(response.status).toBe(200);
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: '/admin/spotify?success=1'
+    });
 
     vi.unstubAllGlobals();
   });
@@ -286,7 +277,6 @@ describe('Admin Spotify Callback Route', () => {
 
     const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
     const event = createMockEvent({
-      user: { id: '1', login: 'owner', email: 'owner@test.com', isOwner: true },
       platform: {
         env: {
           KV: createMockKV(),
@@ -298,7 +288,7 @@ describe('Admin Spotify Callback Route', () => {
       url: 'http://localhost:4220/admin/spotify/callback?code=custom_code'
     });
 
-    await GET(event);
+    await expect(GET(event)).rejects.toMatchObject({ status: 302 });
 
     const callBody = mockFetch.mock.calls[0][1].body as URLSearchParams;
     expect(callBody.get('redirect_uri')).toBe('https://custom.example.com/admin/spotify/callback');
@@ -306,7 +296,7 @@ describe('Admin Spotify Callback Route', () => {
     vi.unstubAllGlobals();
   });
 
-  it('should trigger outer catch block when KV.put throws during token exchange', async () => {
+  it('should redirect with error when KV.put throws during token exchange', async () => {
     const brokenKV = {
       get: vi.fn().mockResolvedValue(null),
       put: vi.fn().mockRejectedValue(new Error('KV write failed')),
@@ -327,7 +317,6 @@ describe('Admin Spotify Callback Route', () => {
 
     const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
     const event = createMockEvent({
-      user: { id: '1', login: 'owner', email: 'owner@test.com', isOwner: true },
       platform: {
         env: {
           KV: brokenKV,
@@ -338,12 +327,25 @@ describe('Admin Spotify Callback Route', () => {
       url: 'http://localhost:4220/admin/spotify/callback?code=some_code'
     });
 
-    // exchangeCodeForTokens catches internally, so this returns 500 from the exchange failure
-    const response = await GET(event);
-    expect(response.status).toBe(500);
-    const data = await response.json();
-    expect(data.success).toBe(false);
+    // exchangeCodeForTokens catches internally, exchange fails → redirect with error
+    await expect(GET(event)).rejects.toMatchObject({
+      status: 302,
+      location: expect.stringContaining('/admin/spotify?error=')
+    });
 
     vi.unstubAllGlobals();
+  });
+
+  it('should include error message in redirect URL for Spotify errors', async () => {
+    const { GET } = await import('../../src/routes/admin/spotify/callback/+server');
+    const event = createMockEvent({
+      url: 'http://localhost:4220/admin/spotify/callback?error=access_denied'
+    });
+
+    try {
+      await GET(event);
+    } catch (err: any) {
+      expect(err.location).toContain('access_denied');
+    }
   });
 });

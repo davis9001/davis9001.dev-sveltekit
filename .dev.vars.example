@@ -18,6 +18,6 @@ DISCORD_CLIENT_SECRET=your_discord_client_secret_here
 # SPOTIFY API Configuration
 SPOTIFY_CLIENT_ID=xxx
 SPOTIFY_CLIENT_SECRET=xxx
-SPOTIFY_REDIRECT_URI=http://127.0.0.1:4242/spotify/callback
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:4242/admin/spotify/callback
 SPOTIFY_REFRESH_TOKEN=xxx
 

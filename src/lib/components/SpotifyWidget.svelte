@@ -98,13 +98,6 @@
 		if (!initialData) {
 			fetchSpotifyData();
 		}
-
-		// Refresh data every 30 seconds
-		refreshInterval = setInterval(refreshData, 30000);
-	});
-
-	onDestroy(() => {
-		if (refreshInterval) clearInterval(refreshInterval);
 	});
 
 	$: profileUrl = spotifyData?.profileUrl || 'https://open.spotify.com/user/12810003?si=7ba6ee05f9cb4e96';

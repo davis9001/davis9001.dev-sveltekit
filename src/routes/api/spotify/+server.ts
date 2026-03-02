@@ -75,6 +75,32 @@ const SPOTIFY_USER_ID = '12810003';
 const PLAYLIST_CACHE_KEY = 'spotify:playlist-cache';
 const PLAYLIST_CACHE_TTL = 30 * 60; // 30 minutes in seconds
 
+// ── In-memory cache (survives across requests within the same worker/process) ──
+interface MemoryCache<T> {
+  data: T;
+  expiresAt: number;
+}
+
+let playlistMemoryCache: MemoryCache<SpotifyData['topPlaylists']> | null = null;
+const MEMORY_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+// Full response cache to avoid repeated Spotify API calls on rapid polling
+let fullResponseCache: MemoryCache<SpotifyData> | null = null;
+const FULL_RESPONSE_CACHE_TTL_MS = 25 * 1000; // 25 seconds — widget polls every 30s
+
+// Rate limit tracking — if Spotify returns 429, back off for the specified duration
+let rateLimitedUntil = 0;
+const MAX_BACKOFF_SECONDS = 300; // Cap at 5 minutes — Spotify sometimes sends absurdly long Retry-After values
+
+/**
+ * Exported for testing: reset all module-level caches and rate-limit state.
+ */
+export function _resetCacheForTesting(): void {
+  playlistMemoryCache = null;
+  fullResponseCache = null;
+  rateLimitedUntil = 0;
+}
+
 function makeErrorResponse(error: string, status = 200) {
   return json(
     {
@@ -91,49 +117,84 @@ function makeErrorResponse(error: string, status = 200) {
   );
 }
 
+/**
+ * Wrapper around fetch that checks for 429 responses and records the Retry-After.
+ * Returns the response as-is so callers can handle other statuses normally.
+ */
+async function spotifyFetch(url: string, accessToken: string): Promise<Response> {
+  // If we're currently rate-limited, return a synthetic 429 immediately
+  if (Date.now() < rateLimitedUntil) {
+    return new Response(null, { status: 429, statusText: 'Rate limited (local backoff)' });
+  }
+
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+
+  if (response.status === 429) {
+    const retryAfter = response.headers.get('Retry-After');
+    const backoffSeconds = retryAfter ? parseInt(retryAfter, 10) : 30;
+    const clampedSeconds = Math.min(
+      Math.max(isNaN(backoffSeconds) ? 30 : backoffSeconds, 5),
+      MAX_BACKOFF_SECONDS
+    );
+    const backoffMs = clampedSeconds * 1000;
+    rateLimitedUntil = Date.now() + backoffMs;
+    console.warn(`Spotify rate limited — backing off for ${clampedSeconds}s (Retry-After was ${retryAfter})`);
+  }
+
+  return response;
+}
+
+interface FetchResult<T> {
+  data: T | null;
+  failed: boolean;
+  status?: number;
+}
+
 async function getCurrentlyPlaying(
   accessToken: string
-): Promise<CurrentlyPlayingResponse | null> {
+): Promise<FetchResult<CurrentlyPlayingResponse>> {
   try {
-    const response = await fetch(
+    const response = await spotifyFetch(
       'https://api.spotify.com/v1/me/player/currently-playing',
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      accessToken
     );
 
     if (response.status === 204) {
-      return { is_playing: false, item: null, progress_ms: 0, context: null };
+      return { data: { is_playing: false, item: null, progress_ms: 0, context: null }, failed: false };
     }
 
     if (!response.ok) {
       console.error('Failed to fetch currently playing:', response.status);
-      return null;
+      return { data: null, failed: true, status: response.status };
     }
 
-    return await response.json();
+    return { data: await response.json(), failed: false };
   } catch (error) {
     console.error('Error fetching currently playing:', error);
-    return null;
+    return { data: null, failed: true };
   }
 }
 
 async function getRecentlyPlayed(
   accessToken: string
-): Promise<RecentlyPlayedResponse | null> {
+): Promise<FetchResult<RecentlyPlayedResponse>> {
   try {
-    const response = await fetch(
+    const response = await spotifyFetch(
       'https://api.spotify.com/v1/me/player/recently-played?limit=10',
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      accessToken
     );
 
     if (!response.ok) {
       console.error('Failed to fetch recently played:', response.status);
-      return null;
+      return { data: null, failed: true, status: response.status };
     }
 
-    return await response.json();
+    return { data: await response.json(), failed: false };
   } catch (error) {
     console.error('Error fetching recently played:', error);
-    return null;
+    return { data: null, failed: true };
   }
 }
 
@@ -141,25 +202,40 @@ async function getTopPlaylists(
   accessToken: string,
   kv: KVNamespace
 ): Promise<SpotifyData['topPlaylists']> {
-  // Check KV cache first
+  // Check in-memory cache first (works on both local dev and production)
+  if (playlistMemoryCache && Date.now() < playlistMemoryCache.expiresAt) {
+    return playlistMemoryCache.data;
+  }
+
+  // Check KV cache second
   try {
     const cached = await kv.get(PLAYLIST_CACHE_KEY, 'json');
     if (cached) {
-      return cached as SpotifyData['topPlaylists'];
+      const result = cached as SpotifyData['topPlaylists'];
+      // Populate memory cache from KV
+      playlistMemoryCache = { data: result, expiresAt: Date.now() + MEMORY_CACHE_TTL_MS };
+      return result;
     }
   } catch {
     // Cache miss, continue
   }
 
+  // If rate-limited, return empty rather than hammering the API
+  if (Date.now() < rateLimitedUntil) {
+    console.warn('Skipping playlist fetch — currently rate-limited');
+    return playlistMemoryCache?.data || [];
+  }
+
   try {
     // Step 1: Get user's playlists
-    const response = await fetch('https://api.spotify.com/v1/me/playlists?limit=50', {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
+    const response = await spotifyFetch(
+      'https://api.spotify.com/v1/me/playlists?limit=50',
+      accessToken
+    );
 
     if (!response.ok) {
       console.error('Failed to fetch playlists:', response.status);
-      return [];
+      return playlistMemoryCache?.data || [];
     }
 
     const data = await response.json();
@@ -168,63 +244,68 @@ async function getTopPlaylists(
     // Filter to user's own playlists
     const playlists = allPlaylists.filter((p) => p.owner?.id === SPOTIFY_USER_ID);
 
-    // Step 2: Fetch follower counts in parallel
-    const playlistDetails = await Promise.all(
-      playlists.map(async (playlist) => {
-        try {
-          const detailResp = await fetch(
-            `https://api.spotify.com/v1/playlists/${playlist.id}?fields=id,name,description,images,external_urls,tracks(total),owner,followers,public`,
-            { headers: { Authorization: `Bearer ${accessToken}` } }
-          );
+    // Step 2: Fetch follower counts sequentially (avoids concurrent request blast)
+    const playlistDetails: SpotifyPlaylist[] = [];
+    for (const playlist of playlists) {
+      // Bail early if we get rate-limited mid-loop
+      if (Date.now() < rateLimitedUntil) {
+        playlistDetails.push({ ...playlist, followers: { total: 0 } });
+        continue;
+      }
+      try {
+        const detailResp = await spotifyFetch(
+          `https://api.spotify.com/v1/playlists/${playlist.id}?fields=id,name,description,images,external_urls,tracks(total),owner,followers,public`,
+          accessToken
+        );
 
-          if (!detailResp.ok) {
-            return { ...playlist, followers: { total: 0 } };
-          }
-
-          return (await detailResp.json()) as SpotifyPlaylist;
-        } catch {
-          return { ...playlist, followers: { total: 0 } };
+        if (!detailResp.ok) {
+          playlistDetails.push({ ...playlist, followers: { total: 0 } });
+        } else {
+          playlistDetails.push((await detailResp.json()) as SpotifyPlaylist);
         }
-      })
-    );
+      } catch {
+        playlistDetails.push({ ...playlist, followers: { total: 0 } });
+      }
+    }
 
     // Step 3: Sort by follower count, take top 3
     const top3 = playlistDetails
       .sort((a, b) => (b.followers?.total || 0) - (a.followers?.total || 0))
       .slice(0, 3);
 
-    // Step 4: Fetch total duration for top 3
-    const topPlaylists = await Promise.all(
-      top3.map(async (playlist) => {
-        let totalDurationMs = 0;
-        try {
-          let url: string | null = `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?fields=items(track(duration_ms)),next&limit=100`;
-          while (url) {
-            const tracksResp = await fetch(url, {
-              headers: { Authorization: `Bearer ${accessToken}` }
-            });
-            if (!tracksResp.ok) break;
-            const tracksData = await tracksResp.json();
-            for (const item of tracksData.items || []) {
-              totalDurationMs += item.track?.duration_ms || 0;
-            }
-            url = tracksData.next;
+    // Step 4: Fetch total duration for top 3 (sequentially to avoid rate limits)
+    const topPlaylists: SpotifyData['topPlaylists'] = [];
+    for (const playlist of top3) {
+      let totalDurationMs = 0;
+      try {
+        let url: string | null = `https://api.spotify.com/v1/playlists/${playlist.id}/tracks?fields=items(track(duration_ms)),next&limit=100`;
+        while (url) {
+          if (Date.now() < rateLimitedUntil) break;
+          const tracksResp = await spotifyFetch(url, accessToken);
+          if (!tracksResp.ok) break;
+          const tracksData = await tracksResp.json();
+          for (const item of tracksData.items || []) {
+            totalDurationMs += item.track?.duration_ms || 0;
           }
-        } catch (e) {
-          console.error(`Error fetching tracks for playlist ${playlist.id}:`, e);
+          url = tracksData.next;
         }
-        return {
-          id: playlist.id,
-          name: playlist.name,
-          description: playlist.description || '',
-          imageUrl: playlist.images?.[0]?.url || null,
-          url: playlist.external_urls.spotify,
-          trackCount: playlist.tracks?.total || 0,
-          followers: playlist.followers?.total || 0,
-          totalDurationMs
-        };
-      })
-    );
+      } catch (e) {
+        console.error(`Error fetching tracks for playlist ${playlist.id}:`, e);
+      }
+      topPlaylists.push({
+        id: playlist.id,
+        name: playlist.name,
+        description: playlist.description || '',
+        imageUrl: playlist.images?.[0]?.url || null,
+        url: playlist.external_urls.spotify,
+        trackCount: playlist.tracks?.total || 0,
+        followers: playlist.followers?.total || 0,
+        totalDurationMs
+      });
+    }
+
+    // Cache in memory
+    playlistMemoryCache = { data: topPlaylists, expiresAt: Date.now() + MEMORY_CACHE_TTL_MS };
 
     // Cache in KV
     try {
@@ -238,7 +319,7 @@ async function getTopPlaylists(
     return topPlaylists;
   } catch (error) {
     console.error('Error fetching playlists:', error);
-    return [];
+    return playlistMemoryCache?.data || [];
   }
 }
 
@@ -247,9 +328,7 @@ async function resolveContext(
   accessToken: string
 ): Promise<{ type: string; name: string; url: string; } | null> {
   try {
-    const resp = await fetch(ctx.href, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
+    const resp = await spotifyFetch(ctx.href, accessToken);
     if (!resp.ok) return null;
 
     const data = await resp.json();
@@ -276,6 +355,13 @@ export const GET: RequestHandler = async ({ platform }) => {
     return makeErrorResponse('Platform not available', 500);
   }
 
+  // Return cached full response if still fresh (prevents excessive API calls from polling)
+  if (fullResponseCache && Date.now() < fullResponseCache.expiresAt) {
+    return json(fullResponseCache.data, {
+      headers: { 'Cache-Control': 'public, max-age=30' }
+    });
+  }
+
   try {
     const accessToken = await getValidAccessToken(platform.env.KV, platform.env);
 
@@ -284,11 +370,39 @@ export const GET: RequestHandler = async ({ platform }) => {
     }
 
     // Fetch all data in parallel
-    const [currentlyPlaying, recentlyPlayed, topPlaylists] = await Promise.all([
+    const [currentlyPlayingResult, recentlyPlayedResult, topPlaylists] = await Promise.all([
       getCurrentlyPlaying(accessToken),
       getRecentlyPlayed(accessToken),
       getTopPlaylists(accessToken, platform.env.KV)
     ]);
+
+    // If both currently-playing and recently-played returned 401, the token is
+    // invalid despite KV thinking it was still valid.  Clear KV cache so the
+    // next request forces a refresh.
+    const got401 =
+      currentlyPlayingResult.status === 401 || recentlyPlayedResult.status === 401;
+    if (got401) {
+      console.warn('Spotify returned 401 — clearing cached tokens from KV');
+      fullResponseCache = null; // ensure next poll forces a fresh fetch
+      try {
+        await platform.env.KV.delete('spotify:tokens');
+      } catch { /* best-effort */ }
+    }
+
+    // Detect whether fetches failed vs returned legitimately empty data
+    const allFetchesFailed =
+      currentlyPlayingResult.failed && recentlyPlayedResult.failed && topPlaylists.length === 0;
+
+    if (allFetchesFailed) {
+      const hint = got401
+        ? 'Spotify token is invalid or expired. Please re-authorize via the admin panel.'
+        : 'All Spotify API calls failed. The service may be temporarily unavailable.';
+      console.error(hint);
+      return makeErrorResponse(hint);
+    }
+
+    const currentlyPlaying = currentlyPlayingResult.data;
+    const recentlyPlayed = recentlyPlayedResult.data;
 
     // Resolve playback context
     let resolvedContext: { type: string; name: string; url: string; } | null = null;
@@ -314,6 +428,9 @@ export const GET: RequestHandler = async ({ platform }) => {
       topPlaylists,
       profileUrl: PROFILE_URL
     };
+
+    // Cache the full response in memory
+    fullResponseCache = { data, expiresAt: Date.now() + FULL_RESPONSE_CACHE_TTL_MS };
 
     return json(data, {
       headers: { 'Cache-Control': 'public, max-age=30' }
