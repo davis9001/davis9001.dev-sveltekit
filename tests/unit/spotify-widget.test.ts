@@ -104,7 +104,6 @@ describe('SpotifyWidget', () => {
     expect(screen.getByText('Now Playing')).toBeInTheDocument();
     expect(screen.getByText('Test Song')).toBeInTheDocument();
     expect(screen.getByText('Test Artist')).toBeInTheDocument();
-    expect(screen.getByText('Test Album')).toBeInTheDocument();
   });
 
   it('should render recently played tracks', () => {

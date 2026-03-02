@@ -170,7 +170,7 @@
 					{/if}
 				</div>
 
-				<div class="flex gap-4">
+				<div class="flex items-center gap-3">
 					{#if currentlyPlaying.track.album.images[0]}
 						<a
 							href={currentlyPlaying.track.album.external_urls.spotify}
@@ -181,21 +181,21 @@
 							<img
 								src={currentlyPlaying.track.album.images[0].url}
 								alt={currentlyPlaying.track.album.name}
-								class="w-20 h-20 rounded shadow-md hover:shadow-xl transition-shadow"
+								class="w-12 h-12 rounded shadow-md hover:shadow-xl transition-shadow"
 							/>
 						</a>
 					{/if}
 
-					<div class="flex-1 min-w-0">
+					<div class="flex-1 min-w-0 text-left">
 						<a
 							href={currentlyPlaying.track.external_urls.spotify}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="font-bold text-foreground hover:text-green-500 transition-colors block truncate"
+							class="font-bold text-sm text-foreground hover:text-green-500 transition-colors block truncate"
 						>
 							{currentlyPlaying.track.name}
 						</a>
-						<div class="text-sm text-foreground/70 truncate">
+						<div class="text-xs text-foreground/70 truncate">
 							{#each currentlyPlaying.track.artists as artist, idx}
 								{#if idx > 0}{', '}{/if}
 								<a
@@ -208,16 +208,6 @@
 								</a>
 							{/each}
 						</div>
-						<div class="text-xs text-foreground/50 mt-1">
-							<a
-								href={currentlyPlaying.track.album.external_urls.spotify}
-								target="_blank"
-								rel="noopener noreferrer"
-								class="hover:text-green-500 transition-colors truncate block"
-							>
-								{currentlyPlaying.track.album.name}
-							</a>
-						</div>
 					</div>
 				</div>
 			</div>
@@ -229,9 +219,9 @@
 				<h4 class="text-lg font-bold mb-3 text-foreground/90">
 					Recently Played
 				</h4>
-				<div class="space-y-2">
+				<div class="space-y-1">
 					{#each recentlyPlayed.slice(0, 5) as item (item.track.id + '-' + item.playedAt)}
-						<div class="flex gap-3 p-3 bg-gradient-to-br from-primary/5 via-background/50 to-accent/5 dark:from-primary/10 dark:via-background/70 dark:to-accent/10 rounded-lg hover:from-primary/10 hover:to-accent/10 transition-colors">
+						<div class="flex items-center gap-3 py-1.5 px-3 bg-foreground/[0.03] dark:bg-foreground/[0.05] rounded-lg hover:bg-foreground/[0.06] dark:hover:bg-foreground/[0.08] transition-colors">
 							{#if item.track.album.images[2]}
 								<a
 									href={item.track.album.external_urls.spotify}
@@ -247,7 +237,7 @@
 								</a>
 							{/if}
 
-							<div class="flex-1 min-w-0">
+							<div class="flex-1 min-w-0 text-left">
 								<a
 									href={item.track.external_urls.spotify}
 									target="_blank"
@@ -289,7 +279,7 @@
 				<div class="space-y-3">
 					{#each topPlaylists as playlist (playlist.id)}
 						{@const totalHours = Math.round((playlist.totalDurationMs / 3600000) * 10) / 10}
-						<div class="flex gap-4 p-3 bg-gradient-to-br from-primary/5 via-background/50 to-accent/5 dark:from-primary/10 dark:via-background/70 dark:to-accent/10 rounded-lg hover:from-primary/10 hover:to-accent/10 transition-colors">
+						<div class="flex gap-4 p-3 bg-foreground/[0.03] dark:bg-foreground/[0.05] rounded-lg hover:bg-foreground/[0.06] dark:hover:bg-foreground/[0.08] transition-colors">
 							{#if playlist.imageUrl}
 								<a
 									href={playlist.url}
