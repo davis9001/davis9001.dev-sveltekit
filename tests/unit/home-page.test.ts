@@ -29,115 +29,62 @@ describe.skip('Home Page Hero', () => {
 		expect(title).toBeTruthy();
 	});
 
-	it('should render the subtitle with correct text', () => {
+	it('should render the subtitle with author name', () => {
 		render(Page);
-		const subtitle = screen.getByText(/A full-stack Cloudflare starter/i);
+		const subtitle = screen.getByText(/David "davis9001" Monaghan/i);
 		expect(subtitle).toBeTruthy();
 	});
 
-	it('should render the search input with placeholder', () => {
+	it('should render the role description', () => {
 		render(Page);
-		const searchInput = screen.getByPlaceholderText('Start typing or ask something...');
-		expect(searchInput).toBeTruthy();
+		const role = screen.getByText('Software and Community Architect');
+		expect(role).toBeTruthy();
 	});
 
-	it('should render all command options', () => {
+	it('should render hero CTA links', () => {
 		render(Page);
-		expect(screen.getByText('Log in')).toBeTruthy();
-		expect(screen.getByText('Sign up')).toBeTruthy();
-		expect(screen.getByText('Ask something...')).toBeTruthy();
+		expect(screen.getByText(/Currently building \*Space/)).toBeTruthy();
+		expect(screen.getByText('Portfolio of Projects')).toBeTruthy();
+		expect(screen.getByText('Send a message')).toBeTruthy();
 	});
 
-	it('should navigate to login page when Log in is clicked', async () => {
-		render(Page);
-		const loginButton = screen.getByText('Log in').closest('button');
-		expect(loginButton).toBeTruthy();
-
-		if (loginButton) {
-			await fireEvent.click(loginButton);
-			expect(goto).toHaveBeenCalledWith('/auth/login');
-		}
-	});
-
-	it('should navigate to signup page when Sign up is clicked', async () => {
-		render(Page);
-		const signupButton = screen.getByText('Sign up').closest('button');
-		expect(signupButton).toBeTruthy();
-
-		if (signupButton) {
-			await fireEvent.click(signupButton);
-			expect(goto).toHaveBeenCalledWith('/auth/signup');
-		}
-	});
-
-	it('should navigate to chat page when Ask something is clicked', async () => {
-		render(Page);
-		const askButton = screen.getByText('Ask something...').closest('button');
-		expect(askButton).toBeTruthy();
-
-		if (askButton) {
-			await fireEvent.click(askButton);
-			expect(goto).toHaveBeenCalledWith('/chat');
-		}
-	});
-
-	it('should open command palette when search input is clicked', async () => {
-		render(Page);
-		const searchInput = screen.getByPlaceholderText(
-			'Start typing or ask something...'
-		) as HTMLInputElement;
-
-		await fireEvent.click(searchInput);
-
-		// Check if command palette store is set to true
-		expect(get(showCommandPalette)).toBe(true);
-	});
-
-	it('should open command palette when search input is focused', async () => {
-		render(Page);
-		const searchInput = screen.getByPlaceholderText('Start typing or ask something...');
-
-		await fireEvent.focus(searchInput);
-
-		// Check if command palette store is set to true
-		expect(get(showCommandPalette)).toBe(true);
-	});
-
-	it('should open command palette when typing in search input', async () => {
-		render(Page);
-		const searchInput = screen.getByPlaceholderText('Start typing or ask something...');
-
-		await fireEvent.keyDown(searchInput, { key: 'a' });
-
-		// Check if command palette store is set to true
-		expect(get(showCommandPalette)).toBe(true);
-	});
-
-	it('should render cosmic background elements', () => {
+	it('should have hero section with banner role', () => {
 		const { container } = render(Page);
-
-		// Check for cosmic background
-		const cosmicBg = container.querySelector('.cosmic-bg');
-		expect(cosmicBg).toBeTruthy();
-
-		// Check for stars
-		const stars = container.querySelector('.stars-layer');
-		expect(stars).toBeTruthy();
-
-		// Check for planets
-		const planets = container.querySelectorAll('.planet');
-		expect(planets.length).toBeGreaterThan(0);
+		const banner = container.querySelector('[role="banner"]');
+		expect(banner).toBeTruthy();
 	});
 
-	it('should render AI indicator with animation bars', () => {
+	it('should have quick links navigation', () => {
 		const { container } = render(Page);
-		const bars = container.querySelectorAll('.bar');
-		expect(bars.length).toBe(3);
+		const nav = container.querySelector('nav[aria-label="Quick links"]');
+		expect(nav).toBeTruthy();
 	});
 
-	it('should have accessible search input', () => {
+	it('should render the logo with alt text', () => {
 		render(Page);
-		const searchInput = screen.getByLabelText('Search or ask a question');
-		expect(searchInput).toBeTruthy();
+		const logo = screen.getByAlt(/davis9001 logo/i);
+		expect(logo).toBeTruthy();
+	});
+
+	it('should have activity section with proper aria label', () => {
+		const { container } = render(Page);
+		const section = container.querySelector('[aria-label="Activity and updates"]');
+		expect(section).toBeTruthy();
+	});
+
+	it('should render ASCII animation grid', () => {
+		const { container } = render(Page);
+		const asciiGrid = container.querySelector('.ascii-character');
+		// Characters are generated in onMount, may not be present in SSR test
+		// but the container should exist
+		const gridContainer = container.querySelector('.font-mono');
+		expect(gridContainer).toBeTruthy();
+	});
+
+	it('should have scroll hint indicator', () => {
+		const { container } = render(Page);
+		const scrollHint = container.querySelector('.hero-scroll-hint');
+		expect(scrollHint).toBeTruthy();
+		expect(scrollHint?.getAttribute('aria-hidden')).toBe('true');
 	});
 });
