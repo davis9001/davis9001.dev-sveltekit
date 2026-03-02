@@ -15,7 +15,6 @@ const staticRoutes = [
   '/',
   '/portfolio',
   '/updates',
-  '/documentation',
   '/privacy',
   '/terms'
 ];

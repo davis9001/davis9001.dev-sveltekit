@@ -25,7 +25,7 @@ describe('Sitemap XML Endpoint', () => {
     expect(body).toContain('https://davis9001.dev/');
     expect(body).toContain('https://davis9001.dev/portfolio');
     expect(body).toContain('https://davis9001.dev/updates');
-    expect(body).toContain('https://davis9001.dev/documentation');
+    expect(body).not.toContain('https://davis9001.dev/documentation');
     expect(body).toContain('https://davis9001.dev/privacy');
     expect(body).toContain('https://davis9001.dev/terms');
   });

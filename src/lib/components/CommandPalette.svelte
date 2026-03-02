@@ -70,6 +70,20 @@
 			action: () => goto('/'),
 			icon: '🏠'
 		},
+		{
+			id: 'blog',
+			label: 'Blog',
+			description: 'Read blog posts and updates',
+			action: () => goto('/updates'),
+			icon: '📝'
+		},
+		{
+			id: 'portfolio',
+			label: 'Portfolio',
+			description: 'View portfolio projects',
+			action: () => goto('/portfolio'),
+			icon: '💼'
+		},
 		...(hasAIProviders
 			? [
 					{
@@ -81,13 +95,6 @@
 					}
 				]
 			: []),
-		{
-			id: 'documentation',
-			label: 'Documentation',
-			description: 'View NebulaKit documentation',
-			action: () => goto('/documentation'),
-			icon: '📚'
-		},
 		{
 			id: 'login',
 			label: 'Sign In',
