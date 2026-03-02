@@ -5,8 +5,10 @@
 	import SocialLinks from '$lib/components/SocialLinks.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
+	import AnimatedCrow from '$lib/components/AnimatedCrow.svelte';
 	import { formatBlogDate } from '$lib/utils/blog';
 	import SEO from '$lib/components/SEO.svelte';
+	import type { CrowTarget } from '$lib/utils/crow';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -14,7 +16,106 @@
 	$: recentPosts = data.recentPosts || [];
 
 	let asciiCharacters: string[] = [];
-	
+
+	// Crow landing targets — positions relative to viewport
+	// These are computed on mount and on resize to stay responsive
+	let crowTargets: CrowTarget[] = [];
+
+	function computeCrowTargets() {
+		const vw = window.innerWidth;
+		const vh = window.innerHeight;
+
+		const targets: CrowTarget[] = [];
+
+		// ── Shoulder ──
+		// The background photo is positioned at -9ch 18em (background-size: contain).
+		// The person's right shoulder sits in the upper-left quadrant of the image.
+		// Scale is large so the crow looks realistically perched on you.
+		// zIndex 35 puts it between the background (z-30) and content (z-40).
+		const shoulderX = Math.min(vw * 0.22, 280);
+		const shoulderY = vh * 0.45;
+		targets.push({
+			id: 'shoulder',
+			x: shoulderX,
+			y: shoulderY,
+			scale: 1.6,
+			zIndex: 35
+		});
+
+		// ── Logo — land on top edge of the logo image ──
+		const logo = document.querySelector('.hero-logo');
+		if (logo) {
+			const rect = logo.getBoundingClientRect();
+			targets.push({
+				id: 'logo',
+				x: rect.left + rect.width * 0.5,
+				y: rect.top,
+				scale: 0.4,
+				zIndex: 45,
+				anchorSelector: '.hero-logo',
+				anchorAlign: { x: 0.5, y: 0 }
+			});
+		}
+
+		// ── Title — land on top of the "davis9001" text ──
+		const title = document.querySelector('.hero-title');
+		if (title) {
+			const rect = title.getBoundingClientRect();
+			// Land on the right half of the title text (looks natural for a crow)
+			targets.push({
+				id: 'title',
+				x: rect.left + rect.width * 0.65,
+				y: rect.top,
+				scale: 0.35,
+				zIndex: 45,
+				anchorSelector: '.hero-title',
+				anchorAlign: { x: 0.65, y: 0 }
+			});
+		}
+
+		// ── CTA — land on top edge of the first CTA button ──
+		const cta = document.querySelector('.hero-cta');
+		if (cta) {
+			const rect = cta.getBoundingClientRect();
+			targets.push({
+				id: 'cta',
+				x: rect.left + rect.width * 0.5,
+				y: rect.top,
+				scale: 0.3,
+				zIndex: 45,
+				anchorSelector: '.hero-cta',
+				anchorAlign: { x: 0.5, y: 0 }
+			});
+		}
+
+		// ── Scroll hint — land on the scroll chevron ──
+		const scrollHint = document.querySelector('.hero-scroll-hint');
+		if (scrollHint) {
+			const rect = scrollHint.getBoundingClientRect();
+			targets.push({
+				id: 'scroll-hint',
+				x: rect.left + rect.width * 0.5,
+				y: rect.top,
+				scale: 0.28,
+				zIndex: 45,
+				anchorSelector: '.hero-scroll-hint',
+				anchorAlign: { x: 0.5, y: 0 }
+			});
+		}
+
+		// ── Theme switcher — top-right corner ──
+		// Theme switcher is z-50, crow sits just above it
+		targets.push({
+			id: 'theme-switcher',
+			x: vw - 60,
+			y: 40,
+			scale: 0.3,
+			zIndex: 51
+		});
+
+		crowTargets = targets;
+	}
+
 	onMount(() => {
 		// Generate ASCII characters (same as Fresh site)
 		const chars = [];
@@ -27,6 +128,14 @@
 		const script = document.createElement('script');
 		script.src = '/ascii-animate.js';
 		document.head.appendChild(script);
+
+		// Compute crow targets after layout settles
+		computeCrowTargets();
+		window.addEventListener('resize', computeCrowTargets);
+
+		return () => {
+			window.removeEventListener('resize', computeCrowTargets);
+		};
 	});
 </script>
 
@@ -41,6 +150,16 @@
 	<div class="fixed top-0 right-0 m-4 z-50">
 		<ThemeSwitcher variant="inline" simpleToggle={true} />
 	</div>
+
+	<!-- Animated Crow -->
+	{#if crowTargets.length > 0}
+		<AnimatedCrow
+			targets={crowTargets}
+			minIdleSeconds={6}
+			maxIdleSeconds={14}
+			flightDurationMs={2400}
+		/>
+	{/if}
 
 	<!-- Background Image -->
 	<div
