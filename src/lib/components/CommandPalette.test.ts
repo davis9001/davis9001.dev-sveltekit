@@ -569,6 +569,40 @@ describe('CommandPalette', () => {
 			expect(labels.some((l) => l?.includes('Vibe Coding Needs Discipline'))).toBe(true);
 			expect(labels.some((l) => l?.includes('starspace.group'))).toBe(false);
 		});
+
+		it('should filter all blog posts when typing "blog"', async () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, portfolioItems: mockPortfolioItems, blogPosts: mockBlogPosts }
+			});
+			const input = container.querySelector('.search-input') as HTMLInputElement;
+
+			await fireEvent.input(input, { target: { value: 'blog' } });
+
+			const labels = Array.from(container.querySelectorAll('.command-label')).map(
+				(el) => el.textContent
+			);
+
+			// Blog post should appear because its badge is "Blog"
+			expect(labels.some((l) => l?.includes('Vibe Coding Needs Discipline'))).toBe(true);
+		});
+
+		it('should filter all portfolio items when typing "portfolio"', async () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, portfolioItems: mockPortfolioItems, blogPosts: mockBlogPosts }
+			});
+			const input = container.querySelector('.search-input') as HTMLInputElement;
+
+			await fireEvent.input(input, { target: { value: 'portfolio' } });
+
+			const labels = Array.from(container.querySelectorAll('.command-label')).map(
+				(el) => el.textContent
+			);
+
+			// Portfolio item should appear because its badge is "Portfolio"
+			expect(labels.some((l) => l?.includes('starspace.group'))).toBe(true);
+			// Blog post should not appear
+			expect(labels.some((l) => l?.includes('Vibe Coding Needs Discipline'))).toBe(false);
+		});
 	});
 
 	describe('Theme Commands', () => {

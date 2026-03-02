@@ -171,7 +171,8 @@
 	$: filteredCommands = commands.filter(
 		(cmd) =>
 			cmd.label.toLowerCase().includes(query.toLowerCase()) ||
-			cmd.description.toLowerCase().includes(query.toLowerCase())
+			cmd.description.toLowerCase().includes(query.toLowerCase()) ||
+			(cmd.badge && cmd.badge.toLowerCase().includes(query.toLowerCase()))
 	);
 
 	// Reset selection to first item whenever the search query changes
