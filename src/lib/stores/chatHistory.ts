@@ -172,7 +172,7 @@ function createChatHistoryStore() {
 
 		addMessage(
 			conversationId: string,
-			message: { role: 'user' | 'assistant' | 'system'; content: string; cost?: MessageCost }
+			message: { role: 'user' | 'assistant' | 'system'; content: string; cost?: MessageCost; }
 		): Message {
 			const newMessage: Message = {
 				id: generateId(),

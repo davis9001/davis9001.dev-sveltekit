@@ -657,6 +657,106 @@ describe('Spotify API Route', () => {
     vi.unstubAllGlobals();
   });
 
+  it('should exclude private playlists owned by the user', async () => {
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    const fetchResponses: Record<string, unknown> = {
+      'https://api.spotify.com/v1/me/player/currently-playing': {
+        status: 204,
+        ok: true,
+        json: async () => null
+      },
+      'https://api.spotify.com/v1/me/player/recently-played?limit=10': {
+        ok: true,
+        json: async () => ({ items: [] })
+      },
+      'https://api.spotify.com/v1/me/playlists?limit=50': {
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              id: 'pub1',
+              name: 'Public Playlist',
+              description: 'Visible to all',
+              images: [{ url: 'https://example.com/pub.jpg', height: 300, width: 300 }],
+              external_urls: { spotify: 'https://open.spotify.com/playlist/pub1' },
+              tracks: { total: 15 },
+              owner: { id: '12810003', display_name: 'User' },
+              followers: { total: 100 },
+              public: true
+            },
+            {
+              id: 'priv1',
+              name: 'Private Playlist',
+              description: 'Secret jams',
+              images: [],
+              external_urls: { spotify: 'https://open.spotify.com/playlist/priv1' },
+              tracks: { total: 8 },
+              owner: { id: '12810003', display_name: 'User' },
+              followers: { total: 200 },
+              public: false
+            }
+          ]
+        })
+      }
+    };
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url.includes('/playlists/pub1?fields=')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              id: 'pub1',
+              name: 'Public Playlist',
+              description: 'Visible to all',
+              images: [{ url: 'https://example.com/pub.jpg', height: 300, width: 300 }],
+              external_urls: { spotify: 'https://open.spotify.com/playlist/pub1' },
+              tracks: { total: 15 },
+              owner: { id: '12810003' },
+              followers: { total: 100 },
+              public: true
+            })
+          });
+        }
+        if (url.includes('/playlists/pub1/tracks')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              items: [{ track: { duration_ms: 180000 } }],
+              next: null
+            })
+          });
+        }
+        const resp = fetchResponses[url];
+        if (resp) return Promise.resolve(resp);
+        return Promise.resolve({ ok: false, status: 404 });
+      })
+    );
+
+    const { GET } = await import('../../src/routes/api/spotify/+server');
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+
+    // Should only include the public playlist, not the private one
+    expect(data.topPlaylists).toHaveLength(1);
+    expect(data.topPlaylists[0].name).toBe('Public Playlist');
+    // Private playlist with higher followers should be excluded
+    expect(data.topPlaylists.find((p: { name: string; }) => p.name === 'Private Playlist')).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
   it('should handle failed playlist list fetch', async () => {
     const platform = createMockPlatform(
       {},
@@ -1364,7 +1464,8 @@ describe('Spotify API Route', () => {
                   external_urls: { spotify: 'https://open.spotify.com/playlist/pl1' },
                   tracks: { total: 10 },
                   followers: { total: 100 },
-                  owner: { id: '12810003' }
+                  owner: { id: '12810003' },
+                  public: true
                 },
                 {
                   id: 'pl2',
@@ -1374,7 +1475,8 @@ describe('Spotify API Route', () => {
                   external_urls: { spotify: 'https://open.spotify.com/playlist/pl2' },
                   tracks: { total: 5 },
                   followers: { total: 50 },
-                  owner: { id: '12810003' }
+                  owner: { id: '12810003' },
+                  public: true
                 }
               ]
             })
@@ -1456,7 +1558,8 @@ describe('Spotify API Route', () => {
                   external_urls: { spotify: 'https://open.spotify.com/playlist/pl1' },
                   tracks: { total: 10 },
                   followers: { total: 100 },
-                  owner: { id: '12810003' }
+                  owner: { id: '12810003' },
+                  public: true
                 }
               ]
             })
@@ -1473,7 +1576,8 @@ describe('Spotify API Route', () => {
               external_urls: { spotify: 'https://open.spotify.com/playlist/pl1' },
               tracks: { total: 10 },
               followers: { total: 100 },
-              owner: { id: '12810003' }
+              owner: { id: '12810003' },
+              public: true
             })
           });
         }

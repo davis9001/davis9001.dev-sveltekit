@@ -241,8 +241,8 @@ async function getTopPlaylists(
     const data = await response.json();
     const allPlaylists: SpotifyPlaylist[] = data.items || [];
 
-    // Filter to user's own playlists
-    const playlists = allPlaylists.filter((p) => p.owner?.id === SPOTIFY_USER_ID);
+    // Filter to user's own public playlists
+    const playlists = allPlaylists.filter((p) => p.owner?.id === SPOTIFY_USER_ID && p.public);
 
     // Step 2: Fetch follower counts sequentially (avoids concurrent request blast)
     const playlistDetails: SpotifyPlaylist[] = [];
