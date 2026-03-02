@@ -2,11 +2,14 @@
   Blog Post Detail Page
 
   Renders a single blog post with markdown content, social share buttons,
-  and navigation back to the updates list.
+  and navigation back to the updates list. Matches live davis9001.dev styling.
 -->
 <script lang="ts">
 	import { page } from '$app/stores';
 	import ShareButtons from '$lib/components/ShareButtons.svelte';
+	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
+	import SocialLinks from '$lib/components/SocialLinks.svelte';
+	import Footer from '$lib/components/Footer.svelte';
 	import { formatBlogDate, getReadingTime } from '$lib/utils/blog';
 	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
@@ -25,22 +28,40 @@
 	publishedAt={post.publishedAt || ''}
 />
 
-<div class="post-page">
-	<div class="post-nav">
-		<a href="/updates" class="back-link">&laquo; Back to /updates</a>
-	</div>
+<div class="px-3 sm:px-4 py-2 bg-background text-foreground min-h-screen overflow-x-hidden">
+	<!-- Simple Header -->
+	<header class="flex justify-between items-center p-2 sm:p-4 mx-auto z-50 relative gap-2">
+		<nav class="flex-shrink-0">
+			<a href="/" class="internal-button text-sm px-3 py-2">« davis9001.dev</a>
+		</nav>
+		<div class="flex items-center gap-4">
+			<ThemeSwitcher variant="inline" simpleToggle={true} />
+		</div>
+	</header>
 
-	<article class="post-article">
-		<header class="post-header">
-			<h1>{post.title}</h1>
+	<main class="p-1 md:p-9 flex-1 relative max-w-2xl mx-auto">
+		<!-- Background image (logo) -->
+		<div
+			class="fixed inset-0 bg-cover bg-center bg-no-repeat z-10 opacity-10 blur-xl"
+			style="background-image:url('/logo-green-Icon-250.webp');background-size:contain;background-position:-9ch -9em;"
+		></div>
+
+		<div class="relative z-50">
+			<div class="mb-9">
+				<a href="/updates" class="internal-button">« Back to /updates</a>
+			</div>
+
+			<h1 class="text-2xl sm:text-4xl font-bold">{post.title}</h1>
+
 			<div class="post-meta">
 				{#if post.publishedAt}
-					<time datetime={post.publishedAt}>
+					<time datetime={post.publishedAt} class="text-foreground/60">
 						{formatBlogDate(post.publishedAt)}
 					</time>
 				{/if}
-				<span class="post-read-time">{readingTime} min read</span>
+				<span class="text-foreground/60">{readingTime} min read</span>
 			</div>
+
 			{#if post.tags && post.tags.length > 0}
 				<div class="post-tags">
 					{#each post.tags as tag}
@@ -48,85 +69,41 @@
 					{/each}
 				</div>
 			{/if}
-		</header>
 
-		<ShareButtons url={$page.url.href} title={post.title} />
+			<ShareButtons url={$page.url.href} title={post.title} />
 
-		{#if post.summary}
-			<div class="post-summary">
-				<p>{post.summary}</p>
+			{#if post.summary}
+				<div class="mt-4 text-foreground">
+					<p>{post.summary}</p>
+				</div>
+			{/if}
+
+			<div class="markdown-body p-2 md:p-9">
+				{@html post.content}
 			</div>
-		{/if}
 
-		<div class="post-body markdown-body">
-			{@html post.content}
+			<ShareButtons url={$page.url.href} title={post.title} />
 		</div>
+	</main>
 
-		<ShareButtons url={$page.url.href} title={post.title} />
-	</article>
+	<SocialLinks />
+	<Footer />
 </div>
 
 <style>
-	.post-page {
-		max-width: 780px;
-		margin: 0 auto;
-		padding: var(--spacing-xl) var(--spacing-md);
-	}
-
-	.post-nav {
-		margin-bottom: var(--spacing-xl);
-	}
-
-	.back-link {
-		display: inline-block;
-		color: var(--color-text-secondary);
-		text-decoration: none;
-		font-size: 0.875rem;
-		padding: var(--spacing-xs) var(--spacing-sm);
-		border-radius: var(--radius-sm);
-		transition: color 0.2s ease, background-color 0.2s ease;
-	}
-
-	.back-link:hover {
-		color: var(--color-primary);
-		background-color: var(--color-surface);
-	}
-
-	.post-header {
-		margin-bottom: var(--spacing-xl);
-	}
-
-	.post-header h1 {
-		font-size: 2rem;
-		font-weight: 700;
-		color: var(--color-text);
-		line-height: 1.2;
-		margin-bottom: var(--spacing-md);
-	}
-
-	@media (min-width: 768px) {
-		.post-header h1 {
-			font-size: 2.5rem;
-		}
-	}
-
 	.post-meta {
 		display: flex;
 		gap: var(--spacing-md);
 		font-size: 0.875rem;
-		color: var(--color-text-secondary);
+		margin-top: var(--spacing-sm);
 		margin-bottom: var(--spacing-md);
-	}
-
-	.post-read-time::before {
-		content: '·';
-		margin-right: var(--spacing-sm);
 	}
 
 	.post-tags {
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--spacing-xs);
+		margin-bottom: var(--spacing-md);
 	}
 
 	.post-tag {
@@ -134,19 +111,10 @@
 		padding: 0.125rem var(--spacing-sm);
 		font-size: 0.75rem;
 		font-weight: 500;
-		color: var(--color-primary);
+		color: hsla(var(--accent));
 		background-color: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-sm);
-	}
-
-	.post-summary {
-		font-size: 1.125rem;
-		line-height: 1.6;
-		color: var(--color-text-secondary);
-		margin-bottom: var(--spacing-xl);
-		padding-bottom: var(--spacing-lg);
-		border-bottom: 1px solid var(--color-border);
 	}
 
 	/* Markdown content styles */

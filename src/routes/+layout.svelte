@@ -26,7 +26,11 @@
 	$: isHomePage = $page.url.pathname === '/';
 
 	// Standalone full-screen pages (no nav, no footer)
-	$: isStandalonePage = $page.url.pathname === '/' || $page.url.pathname === '/lifeofastranger';
+	$: isStandalonePage =
+		$page.url.pathname === '/' ||
+		$page.url.pathname === '/lifeofastranger' ||
+		$page.url.pathname.startsWith('/updates') ||
+		$page.url.pathname.startsWith('/portfolio');
 
 	// Subscribe to theme changes and apply to DOM
 	if (browser) {

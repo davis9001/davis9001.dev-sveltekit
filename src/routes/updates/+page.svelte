@@ -1,10 +1,14 @@
 <!--
   Blog List Page (Updates)
 
-  Displays all blog posts sorted by date, matching the Fresh site's /updates page.
+  Displays all blog posts sorted by date, matching the live davis9001.dev /updates page.
+  Dark background with subtle blurred background image, simple header, cards on dark bg.
 -->
 <script lang="ts">
 	import { formatBlogDate } from '$lib/utils/blog';
+	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
+	import SocialLinks from '$lib/components/SocialLinks.svelte';
+	import Footer from '$lib/components/Footer.svelte';
 	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
@@ -19,149 +23,63 @@
 	path="/updates"
 />
 
-<div class="updates-page">
-	<header class="updates-header">
-		<div class="updates-title-row">
-			<h1>
-				<img
-					src="/logo-green-Icon-250.webp"
-					alt="davis9001 logo"
-					class="updates-logo"
-				/>
-				Updates (the davis9001 blog)
-			</h1>
+<div class="px-3 sm:px-4 py-2 bg-background text-foreground min-h-screen overflow-x-hidden">
+	<!-- Simple Header -->
+	<header class="flex justify-between items-center p-2 sm:p-4 mx-auto z-50 relative gap-2">
+		<nav class="flex-shrink-0">
+			<a href="/" class="internal-button text-sm px-3 py-2">« davis9001.dev</a>
+		</nav>
+		<div class="flex items-center gap-4">
+			<ThemeSwitcher variant="inline" simpleToggle={true} />
 		</div>
 	</header>
 
-	<div class="updates-list">
-		{#each posts as post}
-			<article class="update-card">
-				<a href="/updates/{post.slug}" class="update-card-link">
-					<h2>{post.title}</h2>
-					{#if post.publishedAt}
-						<time datetime={post.publishedAt}>
-							{formatBlogDate(post.publishedAt)}
-						</time>
-					{/if}
-					<p class="update-summary">{post.summary}</p>
-				</a>
-				{#if post.tags && post.tags.length > 0}
-					<div class="update-tags">
-						{#each post.tags as tag}
-							<span class="update-tag">{tag}</span>
-						{/each}
+	<main class="md:p-9 flex-1">
+		<!-- Title section with background image -->
+		<div class="flex relative">
+			<div
+				class="fixed inset-0 bg-cover bg-center bg-no-repeat z-10 opacity-10 blur-md"
+				style="background-image:url('/davis9001-2.webp');background-size:contain;background-position:-9ch 18em;"
+			></div>
+			<div class="flex content-center justify-center z-50 relative">
+				<h1 class="text-4xl font-bold flex space-x-3 heading-title">
+					<img
+						src="/logo-green-Icon-250.webp"
+						alt="davis9001 logo"
+						class="w-12 h-12 md:w-24 md:h-24"
+					/>
+					Updates (the davis9001 blog)
+				</h1>
+			</div>
+		</div>
+
+		<!-- Blog post cards -->
+		<div class="md:p-5 z-50 relative">
+			{#each posts as post}
+				<div class="md:p-3 m-1 sm:p-9 sm:m-3">
+					<div class="m-5 p-5 rounded-2xl">
+						<a class="text-accent" href="/updates/{post.slug}">
+							<h2 class="text-2xl font-bold">{post.title}</h2>
+							{#if post.publishedAt}
+								<time datetime={post.publishedAt} class="text-foreground/60">
+									{formatBlogDate(post.publishedAt)}
+								</time>
+							{/if}
+							<div class="mt-4 text-foreground">{post.summary}</div>
+						</a>
 					</div>
-				{/if}
-			</article>
-		{/each}
-	</div>
+				</div>
+			{/each}
+		</div>
+	</main>
+
+	<SocialLinks />
+	<Footer />
 </div>
 
 <style>
-	.updates-page {
-		max-width: 900px;
-		margin: 0 auto;
-		padding: var(--spacing-xl) var(--spacing-md);
-	}
-
-	.updates-header {
-		margin-bottom: var(--spacing-2xl);
-	}
-
-	.updates-title-row {
-		display: flex;
+	.heading-title {
+		margin: 2rem 0;
 		align-items: center;
-		justify-content: center;
-	}
-
-	.updates-header h1 {
-		font-size: 2rem;
-		font-weight: 700;
-		color: var(--color-text);
-		display: flex;
-		align-items: center;
-		gap: var(--spacing-sm);
-	}
-
-	.updates-logo {
-		width: 2rem;
-		height: 2rem;
-	}
-
-	@media (min-width: 768px) {
-		.updates-logo {
-			width: 3rem;
-			height: 3rem;
-		}
-
-		.updates-header h1 {
-			font-size: 2.5rem;
-		}
-	}
-
-	.updates-list {
-		display: flex;
-		flex-direction: column;
-		gap: var(--spacing-md);
-	}
-
-	.update-card {
-		padding: var(--spacing-lg);
-		border-radius: var(--radius-lg);
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		transition: box-shadow 0.2s ease;
-	}
-
-	.update-card:hover {
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-	}
-
-	.update-card-link {
-		text-decoration: none;
-		display: block;
-	}
-
-	.update-card-link h2 {
-		font-size: 1.375rem;
-		font-weight: 600;
-		color: var(--color-primary);
-		margin-bottom: var(--spacing-xs);
-		line-height: 1.3;
-	}
-
-	.update-card-link:hover h2 {
-		text-decoration: underline;
-	}
-
-	.update-card-link time {
-		display: block;
-		font-size: 0.8125rem;
-		color: var(--color-text-secondary);
-		margin-bottom: var(--spacing-sm);
-	}
-
-	.update-summary {
-		color: var(--color-text);
-		font-size: 0.9375rem;
-		line-height: 1.6;
-	}
-
-	.update-tags {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--spacing-xs);
-		margin-top: var(--spacing-sm);
-	}
-
-	.update-tag {
-		display: inline-block;
-		padding: 0.125rem var(--spacing-sm);
-		font-size: 0.75rem;
-		font-weight: 500;
-		color: var(--color-primary);
-		background-color: var(--color-background);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-sm);
 	}
 </style>

@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { safeFilename } from '$lib/utils/portfolio';
+	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
+	import SocialLinks from '$lib/components/SocialLinks.svelte';
+	import Footer from '$lib/components/Footer.svelte';
 	import SEO from '$lib/components/SEO.svelte';
 
 	export let data: PageData;
@@ -20,49 +23,70 @@
 	path="/portfolio"
 />
 
-<div class="portfolio-page">
-	<div class="portfolio-container">
-		<header class="portfolio-header">
-			<h1 class="portfolio-title">Portfolio Projects</h1>
-			<a href="/" class="back-link">← Back to home</a>
-		</header>
+<div class="px-3 sm:px-4 py-2 bg-background text-foreground min-h-screen overflow-x-hidden">
+	<!-- Simple Header -->
+	<header class="flex justify-between items-center p-2 sm:p-4 mx-auto z-50 relative gap-2">
+		<nav class="flex-shrink-0">
+			<a href="/" class="internal-button text-sm px-3 py-2">« davis9001.dev</a>
+		</nav>
+		<div class="flex items-center gap-4">
+			<ThemeSwitcher variant="inline" simpleToggle={true} />
+		</div>
+	</header>
 
-		<div class="projects-grid">
+	<main class="p-1 sm:p-9 flex-1">
+		<!-- Title section with background image -->
+		<div class="flex relative">
+			<div
+				class="fixed inset-0 bg-cover bg-center bg-no-repeat blur-sm opacity-20 z-10"
+				style="background-image:url('/davis9001-2.webp');background-size:contain;background-position:-9ch 18em;"
+			></div>
+			<div class="flex content-center justify-center relative z-50">
+				<h1 class="text-4xl font-bold flex space-x-3 heading-title">
+					<img
+						src="/logo-green-Icon-250.webp"
+						alt="davis9001 logo"
+						class="w-12 h-12 md:w-24 md:h-24"
+					/>
+					Portfolio Projects
+				</h1>
+			</div>
+		</div>
+
+		<!-- Projects grid -->
+		<div class="md:p-5 grid md:grid-cols-2 lg:grid-cols-3 gap-20 relative z-50">
 			{#each projects as project}
-				<article class="project-card">
-					{#if project.meta.url}
-						<a href="/portfolio/project/{project.slug}" class="screenshot-link">
-							<img
-								src={safeFilename(project.meta.url)}
-								alt="Screenshot of {project.meta.title}"
-								class="screenshot-img"
-								loading="lazy"
-							/>
-							<h2 class="project-title">{project.meta.title}</h2>
-						</a>
-					{:else}
-						<h2 class="project-title">{project.meta.title}</h2>
-					{/if}
+				<div class="md:p-3 m-1 sm:p-9 sm:m-3">
+					<div class="rounded-2xl">
+						{#if project.meta.url}
+							<a class="text-accent" href="/portfolio/project/{project.slug}">
+								<img
+									src={safeFilename(project.meta.url)}
+									alt="Screenshot of {project.meta.title}"
+									loading="lazy"
+								/>
+								<h2 class="text-2xl font-bold">{project.meta.title}</h2>
+							</a>
+							<p class="text-foreground/60">
+								<a class="font-bold" href={project.meta.url} target="_blank" rel="noopener noreferrer">
+									{project.meta.url}
+								</a>
+							</p>
+						{:else}
+							<h2 class="text-2xl font-bold">{project.meta.title}</h2>
+						{/if}
 
-					{#if project.meta.url}
-						<a
-							href={project.meta.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="project-url"
-						>
-							{project.meta.url}
-						</a>
-					{/if}
+						{#if project.meta.latestContribution}
+							<p class="italic text-foreground/60">
+								Updated: <time datetime={project.meta.latestContribution} class="text-foreground/60">
+									{formatDate(project.meta.latestContribution)}
+								</time>
+							</p>
+						{/if}
 
-					{#if project.meta.latestContribution}
-						<p class="project-date">
-							Updated: {formatDate(project.meta.latestContribution)}
-						</p>
-					{/if}
-
-					<p class="project-summary">{project.meta.summary}</p>
-				</article>
+						<div class="mt-4 text-foreground">{project.meta.summary}</div>
+					</div>
+				</div>
 			{/each}
 		</div>
 
@@ -71,132 +95,16 @@
 				<p>No projects found.</p>
 			</div>
 		{/if}
-	</div>
+	</main>
+
+	<SocialLinks />
+	<Footer />
 </div>
 
 <style>
-	.portfolio-page {
-		min-height: 100vh;
-		background-color: var(--color-background);
-		padding: 3rem 1rem;
-	}
-
-	.portfolio-container {
-		max-width: 80rem;
-		margin: 0 auto;
-	}
-
-	.portfolio-header {
-		margin-bottom: 3rem;
-	}
-
-	.portfolio-title {
-		font-size: 2.5rem;
-		font-weight: 900;
-		color: var(--color-text);
-		margin-bottom: 1rem;
-	}
-
-	.back-link {
-		display: inline-block;
-		color: var(--color-primary);
-		text-decoration: none;
-		transition: opacity 150ms;
-	}
-
-	.back-link:hover {
-		opacity: 0.8;
-	}
-
-	.projects-grid {
-		display: grid;
-		gap: 2.5rem;
-		grid-template-columns: 1fr;
-	}
-
-	@media (min-width: 640px) {
-		.projects-grid {
-			grid-template-columns: repeat(2, 1fr);
-		}
-	}
-
-	@media (min-width: 1024px) {
-		.projects-grid {
-			grid-template-columns: repeat(3, 1fr);
-		}
-	}
-
-	.project-card {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.screenshot-link {
-		display: block;
-		border-radius: 0.5rem;
-		overflow: hidden;
-		margin-bottom: 0.75rem;
-		transition: opacity 150ms;
-	}
-
-	.screenshot-link:hover {
-		opacity: 0.85;
-	}
-
-	.screenshot-img {
-		width: 100%;
-		height: auto;
-		display: block;
-		aspect-ratio: 16 / 10;
-		object-fit: cover;
-	}
-
-	.project-info {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.project-title {
-		font-size: 1.5rem;
-		font-weight: 700;
-		margin: 0;
-	}
-
-	.project-title-link {
-		color: var(--color-primary);
-		text-decoration: none;
-		transition: opacity 150ms;
-	}
-
-	.project-title-link:hover {
-		opacity: 0.8;
-	}
-
-	.project-url {
-		font-size: 0.875rem;
-		color: var(--color-primary);
-		text-decoration: none;
-		opacity: 0.8;
-	}
-
-	.project-url:hover {
-		opacity: 1;
-		text-decoration: underline;
-	}
-
-	.project-date {
-		font-size: 0.875rem;
-		font-style: italic;
-		color: var(--color-text-secondary);
-		margin: 0.25rem 0;
-	}
-
-	.project-summary {
-		font-size: 0.95rem;
-		color: var(--color-text);
-		line-height: 1.6;
-		margin: 0.25rem 0 0;
+	.heading-title {
+		margin: 2rem 0;
+		align-items: center;
 	}
 
 	.empty-state {

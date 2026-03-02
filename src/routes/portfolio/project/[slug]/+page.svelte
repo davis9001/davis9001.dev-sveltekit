@@ -1,7 +1,12 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { page } from '$app/stores';
 	import { marked } from 'marked';
 	import { safeFilename } from '$lib/utils/portfolio';
+	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
+	import ShareButtons from '$lib/components/ShareButtons.svelte';
+	import SocialLinks from '$lib/components/SocialLinks.svelte';
+	import Footer from '$lib/components/Footer.svelte';
 	import SEO from '$lib/components/SEO.svelte';
 
 	export let data: PageData;
@@ -22,180 +27,116 @@
 	imageUrl={project.meta.url ? `https://davis9001.dev/portfolio-screenshot/${safeFilename(project.meta.url)}` : 'https://davis9001.dev/cover.png'}
 />
 
-<div class="project-page">
-	<div class="project-container">
-		<div class="back-nav">
-			<a href="/portfolio" class="back-link">« Back to /portfolio</a>
+<div class="px-3 sm:px-4 py-2 bg-background text-foreground min-h-screen overflow-x-hidden">
+	<!-- Simple Header -->
+	<header class="flex justify-between items-center p-2 sm:p-4 mx-auto z-50 relative gap-2">
+		<nav class="flex-shrink-0">
+			<a href="/" class="internal-button text-sm px-3 py-2">« davis9001.dev</a>
+		</nav>
+		<div class="flex items-center gap-4">
+			<ThemeSwitcher variant="inline" simpleToggle={true} />
 		</div>
+	</header>
 
-		{#if project.meta.url}
-			<a href={project.meta.url} target="_blank" rel="noopener noreferrer" class="screenshot-link">
-				<img
-					src={safeFilename(project.meta.url)}
-					alt="Screenshot of {project.meta.title}"
-					class="screenshot-img"
-				/>
-			</a>
-		{/if}
+	<main class="p-3 md:p-9 flex-1 max-w-2xl mx-auto relative">
+		<!-- Background image (logo) -->
+		<div
+			class="fixed inset-0 bg-cover bg-center bg-no-repeat z-10 opacity-10 blur-xl"
+			style="background-image:url('/logo-green-Icon-250.webp');background-size:contain;background-position:-9ch -9em;"
+		></div>
 
-		<h1 class="project-title">{project.meta.title}</h1>
-
-		{#if project.meta.url}
-			<div class="project-url-row">
-				<a
-					href={project.meta.url}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="project-url"
-				>
-					{project.meta.url}
-				</a>
+		<div class="relative z-50">
+			<div class="mb-9">
+				<a href="/portfolio" class="internal-button">« Back to /portfolio</a>
 			</div>
-		{/if}
 
-		{#if project.meta.latestContribution}
-			<p class="project-date">
-				Latest Contribution: {formatDate(project.meta.latestContribution)}
-			</p>
-		{/if}
+			{#if project.meta.url}
+				<div>
+					<a href={project.meta.url} target="_blank" rel="noopener noreferrer">
+						<img
+							src={safeFilename(project.meta.url)}
+							alt="Screenshot of {project.meta.title}"
+						/>
+					</a>
+				</div>
+			{/if}
 
-		{#if project.content}
-			<div class="project-content">
-				{@html marked(project.content)}
-			</div>
-		{/if}
-	</div>
+			<h1 class="text-xl md:text-4xl font-bold mt-7">{project.meta.title}</h1>
+
+			{#if project.meta.url}
+				<div>
+					<a href={project.meta.url} target="_blank" rel="noopener noreferrer">
+						{project.meta.url}
+					</a>
+				</div>
+			{/if}
+
+			{#if project.meta.latestContribution}
+				<p class="text-foreground/60 italic">
+					Latest Contribution: <time datetime={project.meta.latestContribution}>
+						{formatDate(project.meta.latestContribution)}
+					</time>
+				</p>
+			{/if}
+
+			{#if project.content}
+				<div class="markdown-body p-3 md:p-9">
+					{@html marked(project.content)}
+				</div>
+			{/if}
+
+			<ShareButtons url={$page.url.href} title={project.meta.title} />
+		</div>
+	</main>
+
+	<SocialLinks />
+	<Footer />
 </div>
 
 <style>
-	.project-page {
-		min-height: 100vh;
-		background-color: var(--color-background);
-		padding: 1rem;
-	}
-
-	@media (min-width: 768px) {
-		.project-page {
-			padding: 2.5rem;
-		}
-	}
-
-	.project-container {
-		max-width: 42rem;
-		margin: 0 auto;
-	}
-
-	.back-nav {
-		margin-bottom: 2.25rem;
-	}
-
-	.back-link {
-		display: inline-block;
-		color: var(--color-primary);
-		text-decoration: none;
-		padding: 0.5rem 1rem;
-		border: 1px solid var(--color-border);
-		border-radius: 0.375rem;
-		transition: background-color 150ms, color 150ms;
-	}
-
-	.back-link:hover {
-		background-color: var(--color-surface);
-	}
-
-	.screenshot-link {
-		display: block;
-		margin-bottom: 1.75rem;
-	}
-
-	.screenshot-img {
-		width: 100%;
-		height: auto;
-		border-radius: 0.5rem;
-	}
-
-	.project-title {
-		font-size: 1.25rem;
-		font-weight: 700;
-		color: var(--color-text);
-		margin: 0 0 0.5rem;
-	}
-
-	@media (min-width: 768px) {
-		.project-title {
-			font-size: 2.25rem;
-		}
-	}
-
-	.project-url-row {
-		margin-bottom: 0.25rem;
-	}
-
-	.project-url {
-		color: var(--color-primary);
-		text-decoration: none;
-	}
-
-	.project-url:hover {
-		text-decoration: underline;
-	}
-
-	.project-date {
-		color: var(--color-text-secondary);
-		font-style: italic;
-		margin: 0.25rem 0 1rem;
-	}
-
-	.project-content {
-		padding: 0.75rem;
+	.markdown-body {
 		color: var(--color-text);
 		line-height: 1.7;
 	}
 
-	@media (min-width: 768px) {
-		.project-content {
-			padding: 2.25rem;
-		}
-	}
-
-	.project-content :global(a) {
+	.markdown-body :global(a) {
 		color: var(--color-primary);
 	}
 
-	.project-content :global(a:hover) {
+	.markdown-body :global(a:hover) {
 		text-decoration: underline;
 	}
 
-	.project-content :global(p) {
+	.markdown-body :global(p) {
 		margin-bottom: 1rem;
 	}
 
-	.project-content :global(ul),
-	.project-content :global(ol) {
+	.markdown-body :global(ul),
+	.markdown-body :global(ol) {
 		margin-bottom: 1rem;
 		padding-left: 2rem;
 	}
 
-	.project-content :global(li) {
+	.markdown-body :global(li) {
 		margin-bottom: 0.25rem;
 	}
 
-	.project-content :global(h1),
-	.project-content :global(h2),
-	.project-content :global(h3) {
+	.markdown-body :global(h1),
+	.markdown-body :global(h2),
+	.markdown-body :global(h3) {
 		color: var(--color-text);
 		margin: 1.5rem 0 0.75rem;
 		font-weight: 700;
 	}
 
-	.project-content :global(code) {
+	.markdown-body :global(code) {
 		background-color: var(--color-surface);
 		padding: 0.125rem 0.375rem;
 		border-radius: 0.25rem;
 		font-size: 0.875rem;
 	}
 
-	.project-content :global(pre) {
+	.markdown-body :global(pre) {
 		background-color: var(--color-surface);
 		padding: 1rem;
 		border-radius: 0.5rem;
@@ -203,7 +144,7 @@
 		margin-bottom: 1rem;
 	}
 
-	.project-content :global(pre code) {
+	.markdown-body :global(pre code) {
 		background: none;
 		padding: 0;
 	}
