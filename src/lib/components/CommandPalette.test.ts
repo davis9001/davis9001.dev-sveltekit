@@ -114,6 +114,45 @@ describe('CommandPalette', () => {
 		expect(commands[0].classList.contains('selected')).toBe(true);
 	});
 
+	it('should reset selectedIndex to 0 when search query changes', async () => {
+		const { container } = render(CommandPalette, { props: { show: true } });
+
+		// Move selection down
+		await fireEvent.keyDown(window, { key: 'ArrowDown' });
+		await fireEvent.keyDown(window, { key: 'ArrowDown' });
+
+		const commands = container.querySelectorAll('.command');
+		expect(commands[2].classList.contains('selected')).toBe(true);
+
+		// Type a search query — selection should reset to first item
+		const input = container.querySelector('.search-input') as HTMLInputElement;
+		await fireEvent.input(input, { target: { value: 'theme' } });
+
+		const filteredCommands = container.querySelectorAll('.command');
+		expect(filteredCommands.length).toBeGreaterThan(0);
+		expect(filteredCommands[0].classList.contains('selected')).toBe(true);
+	});
+
+	it('should call scrollIntoView on selected item during keyboard navigation', async () => {
+		// jsdom doesn't implement scrollIntoView — polyfill it globally
+		const scrollIntoViewMock = vi.fn();
+		Element.prototype.scrollIntoView = scrollIntoViewMock;
+
+		const { container } = render(CommandPalette, { props: { show: true } });
+
+		// Navigate down
+		await fireEvent.keyDown(window, { key: 'ArrowDown' });
+		// Allow tick() to complete
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
+		// scrollIntoView should have been called with { block: 'nearest' }
+		expect(scrollIntoViewMock).toHaveBeenCalledWith({ block: 'nearest' });
+
+		// Cleanup
+		// @ts-expect-error - removing polyfill
+		delete Element.prototype.scrollIntoView;
+	});
+
 	it('should close on backdrop click', async () => {
 		const { container, component } = render(CommandPalette, { props: { show: true } });
 		const backdrop = container.querySelector('.backdrop') as HTMLElement;
@@ -318,6 +357,218 @@ describe('CommandPalette', () => {
 
 		// Should navigate with trimmed query
 		expect(goto).toHaveBeenCalledWith('/chat?q=hello%20world');
+	});
+
+	describe('Portfolio Items', () => {
+		const mockPortfolioItems = [
+			{ slug: 'starspace', title: 'starspace.group', summary: 'Landing page for digital co-working space' },
+			{ slug: 'agapeverse', title: 'AgapeVerse', summary: 'AI-powered poetry app' }
+		];
+
+		it('should display portfolio items in command list', () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, portfolioItems: mockPortfolioItems }
+			});
+			const labels = Array.from(container.querySelectorAll('.command-label')).map(
+				(el) => el.textContent
+			);
+
+			expect(labels.some((l) => l?.includes('starspace.group'))).toBe(true);
+			expect(labels.some((l) => l?.includes('AgapeVerse'))).toBe(true);
+		});
+
+		it('should show Portfolio badge on portfolio items', () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, portfolioItems: mockPortfolioItems }
+			});
+			const commands = Array.from(container.querySelectorAll('.command'));
+			const portfolioCommand = commands.find((cmd) =>
+				cmd.querySelector('.command-label')?.textContent?.includes('starspace.group')
+			);
+
+			expect(portfolioCommand?.querySelector('.command-badge')?.textContent).toContain('Portfolio');
+		});
+
+		it('should filter portfolio items by search query', async () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, portfolioItems: mockPortfolioItems }
+			});
+			const input = container.querySelector('.search-input') as HTMLInputElement;
+
+			await fireEvent.input(input, { target: { value: 'agape' } });
+
+			const labels = Array.from(container.querySelectorAll('.command-label')).map(
+				(el) => el.textContent
+			);
+
+			expect(labels.some((l) => l?.includes('AgapeVerse'))).toBe(true);
+			expect(labels.some((l) => l?.includes('starspace.group'))).toBe(false);
+		});
+
+		it('should filter portfolio items by summary/description', async () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, portfolioItems: mockPortfolioItems }
+			});
+			const input = container.querySelector('.search-input') as HTMLInputElement;
+
+			await fireEvent.input(input, { target: { value: 'poetry' } });
+
+			const labels = Array.from(container.querySelectorAll('.command-label')).map(
+				(el) => el.textContent
+			);
+
+			expect(labels.some((l) => l?.includes('AgapeVerse'))).toBe(true);
+		});
+
+		it('should navigate to portfolio project on click', async () => {
+			const { goto } = await import('$app/navigation');
+			const { container } = render(CommandPalette, {
+				props: { show: true, portfolioItems: mockPortfolioItems }
+			});
+
+			const commands = Array.from(container.querySelectorAll('.command'));
+			const portfolioCommand = commands.find((cmd) =>
+				cmd.querySelector('.command-label')?.textContent?.includes('starspace.group')
+			) as HTMLElement;
+
+			await fireEvent.click(portfolioCommand);
+
+			expect(goto).toHaveBeenCalledWith('/portfolio/project/starspace');
+		});
+
+		it('should render with empty portfolio items', () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, portfolioItems: [] }
+			});
+			// Should still render base commands
+			const commands = container.querySelectorAll('.command');
+			expect(commands.length).toBeGreaterThan(0);
+		});
+	});
+
+	describe('Blog Posts', () => {
+		const mockBlogPosts = [
+			{ slug: 'agapeverse-is-born', title: 'AgapeVerse: Using AI to Spread Love', summary: 'A tale of creativity and AI' },
+			{ slug: 'quantum-computing-ai', title: 'Quantum Computing Meets AI', summary: 'The next frontier of computational intelligence' }
+		];
+
+		it('should display blog posts in command list', () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, blogPosts: mockBlogPosts }
+			});
+			const labels = Array.from(container.querySelectorAll('.command-label')).map(
+				(el) => el.textContent
+			);
+
+			expect(labels.some((l) => l?.includes('AgapeVerse: Using AI to Spread Love'))).toBe(true);
+			expect(labels.some((l) => l?.includes('Quantum Computing Meets AI'))).toBe(true);
+		});
+
+		it('should show Blog badge on blog items', () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, blogPosts: mockBlogPosts }
+			});
+			const commands = Array.from(container.querySelectorAll('.command'));
+			const blogCommand = commands.find((cmd) =>
+				cmd.querySelector('.command-label')?.textContent?.includes('Quantum Computing')
+			);
+
+			expect(blogCommand?.querySelector('.command-badge')?.textContent).toContain('Blog');
+		});
+
+		it('should filter blog posts by search query', async () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, blogPosts: mockBlogPosts }
+			});
+			const input = container.querySelector('.search-input') as HTMLInputElement;
+
+			await fireEvent.input(input, { target: { value: 'quantum' } });
+
+			const labels = Array.from(container.querySelectorAll('.command-label')).map(
+				(el) => el.textContent
+			);
+
+			expect(labels.some((l) => l?.includes('Quantum Computing Meets AI'))).toBe(true);
+			expect(labels.some((l) => l?.includes('AgapeVerse'))).toBe(false);
+		});
+
+		it('should filter blog posts by summary/description', async () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, blogPosts: mockBlogPosts }
+			});
+			const input = container.querySelector('.search-input') as HTMLInputElement;
+
+			await fireEvent.input(input, { target: { value: 'frontier' } });
+
+			const labels = Array.from(container.querySelectorAll('.command-label')).map(
+				(el) => el.textContent
+			);
+
+			expect(labels.some((l) => l?.includes('Quantum Computing Meets AI'))).toBe(true);
+		});
+
+		it('should navigate to blog post on click', async () => {
+			const { goto } = await import('$app/navigation');
+			const { container } = render(CommandPalette, {
+				props: { show: true, blogPosts: mockBlogPosts }
+			});
+
+			const commands = Array.from(container.querySelectorAll('.command'));
+			const blogCommand = commands.find((cmd) =>
+				cmd.querySelector('.command-label')?.textContent?.includes('Quantum Computing')
+			) as HTMLElement;
+
+			await fireEvent.click(blogCommand);
+
+			expect(goto).toHaveBeenCalledWith('/updates/quantum-computing-ai');
+		});
+
+		it('should render with empty blog posts', () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, blogPosts: [] }
+			});
+			// Should still render base commands
+			const commands = container.querySelectorAll('.command');
+			expect(commands.length).toBeGreaterThan(0);
+		});
+	});
+
+	describe('Combined Portfolio and Blog', () => {
+		const mockPortfolioItems = [
+			{ slug: 'starspace', title: 'starspace.group', summary: 'Landing page for digital co-working space' }
+		];
+		const mockBlogPosts = [
+			{ slug: 'vibe-coding', title: 'Vibe Coding Needs Discipline', summary: 'Engineering discipline matters' }
+		];
+
+		it('should display both portfolio and blog items together', () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, portfolioItems: mockPortfolioItems, blogPosts: mockBlogPosts }
+			});
+			const labels = Array.from(container.querySelectorAll('.command-label')).map(
+				(el) => el.textContent
+			);
+
+			expect(labels.some((l) => l?.includes('starspace.group'))).toBe(true);
+			expect(labels.some((l) => l?.includes('Vibe Coding Needs Discipline'))).toBe(true);
+		});
+
+		it('should filter across all item types', async () => {
+			const { container } = render(CommandPalette, {
+				props: { show: true, portfolioItems: mockPortfolioItems, blogPosts: mockBlogPosts }
+			});
+			const input = container.querySelector('.search-input') as HTMLInputElement;
+
+			// Search for something that only matches the blog post
+			await fireEvent.input(input, { target: { value: 'discipline' } });
+
+			const labels = Array.from(container.querySelectorAll('.command-label')).map(
+				(el) => el.textContent
+			);
+
+			expect(labels.some((l) => l?.includes('Vibe Coding Needs Discipline'))).toBe(true);
+			expect(labels.some((l) => l?.includes('starspace.group'))).toBe(false);
+		});
 	});
 
 	describe('Theme Commands', () => {

@@ -132,5 +132,55 @@ describe('Layout Server Load', () => {
 
 			expect(result.hasAuthConfig).toBe(true);
 		});
+
+		it('should return portfolioItems array from markdown files', async () => {
+			const mockFetch = vi.fn().mockResolvedValue({
+				ok: true,
+				json: vi.fn().mockResolvedValue({ hasProviders: false })
+			});
+
+			const { load } = await import('../../src/routes/+layout.server');
+			const result = (await load({
+				locals: {},
+				fetch: mockFetch,
+				platform: mockPlatform()
+			} as any)) as { portfolioItems: Array<{ slug: string; title: string; summary: string; }>; };
+
+			expect(Array.isArray(result.portfolioItems)).toBe(true);
+			expect(result.portfolioItems.length).toBeGreaterThan(0);
+			// Each item should have slug, title, and summary
+			result.portfolioItems.forEach((item) => {
+				expect(item).toHaveProperty('slug');
+				expect(item).toHaveProperty('title');
+				expect(item).toHaveProperty('summary');
+				expect(typeof item.slug).toBe('string');
+				expect(typeof item.title).toBe('string');
+			});
+		});
+
+		it('should return blogPosts array from markdown files', async () => {
+			const mockFetch = vi.fn().mockResolvedValue({
+				ok: true,
+				json: vi.fn().mockResolvedValue({ hasProviders: false })
+			});
+
+			const { load } = await import('../../src/routes/+layout.server');
+			const result = (await load({
+				locals: {},
+				fetch: mockFetch,
+				platform: mockPlatform()
+			} as any)) as { blogPosts: Array<{ slug: string; title: string; summary: string; }>; };
+
+			expect(Array.isArray(result.blogPosts)).toBe(true);
+			expect(result.blogPosts.length).toBeGreaterThan(0);
+			// Each post should have slug, title, and summary
+			result.blogPosts.forEach((post) => {
+				expect(post).toHaveProperty('slug');
+				expect(post).toHaveProperty('title');
+				expect(post).toHaveProperty('summary');
+				expect(typeof post.slug).toBe('string');
+				expect(typeof post.title).toBe('string');
+			});
+		});
 	});
 });

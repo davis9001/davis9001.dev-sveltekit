@@ -13,6 +13,8 @@
 
 	export let show = false;
 	export let hasAIProviders = false;
+	export let portfolioItems: Array<{ slug: string; title: string; summary: string }> = [];
+	export let blogPosts: Array<{ slug: string; title: string; summary: string }> = [];
 
 	let searchInput: HTMLInputElement;
 	let query = '';
@@ -147,7 +149,23 @@
 			badge: currentPreference === 'system' ? '✓ Active' : undefined,
 			onPreview: () => previewThemeChange(currentSystemTheme),
 			onPreviewEnd: endPreview
-		}
+		},
+		...portfolioItems.map((item) => ({
+			id: `portfolio-${item.slug}`,
+			label: item.title,
+			description: item.summary || 'Portfolio project',
+			action: () => goto(`/portfolio/project/${item.slug}`),
+			icon: '🖥️',
+			badge: 'Portfolio'
+		})),
+		...blogPosts.map((post) => ({
+			id: `blog-${post.slug}`,
+			label: post.title,
+			description: post.summary || 'Blog post',
+			action: () => goto(`/updates/${post.slug}`),
+			icon: '📄',
+			badge: 'Blog'
+		}))
 	] as Command[];
 
 	$: filteredCommands = commands.filter(
@@ -155,6 +173,9 @@
 			cmd.label.toLowerCase().includes(query.toLowerCase()) ||
 			cmd.description.toLowerCase().includes(query.toLowerCase())
 	);
+
+	// Reset selection to first item whenever the search query changes
+	$: query, (selectedIndex = 0);
 
 	$: if (show && !previousShow) {
 		// Only reset when transitioning from closed to open
@@ -166,6 +187,16 @@
 		});
 	} else if (!show) {
 		previousShow = false;
+	}
+
+	function scrollSelectedIntoView() {
+		tick().then(() => {
+			const container = document.querySelector('.commands');
+			const selected = container?.querySelector('.command.selected') as HTMLElement | null;
+			if (selected && container && typeof selected.scrollIntoView === 'function') {
+				selected.scrollIntoView({ block: 'nearest' });
+			}
+		});
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -182,6 +213,7 @@
 			if (selectedIndex >= 0 && selectedIndex < filteredCommands.length) {
 				filteredCommands[selectedIndex].onPreview?.();
 			}
+			scrollSelectedIntoView();
 		} else if (e.key === 'ArrowUp') {
 			e.preventDefault();
 			// End preview of previous command
@@ -193,6 +225,7 @@
 			if (selectedIndex >= 0 && selectedIndex < filteredCommands.length) {
 				filteredCommands[selectedIndex].onPreview?.();
 			}
+			scrollSelectedIntoView();
 		} else if (e.key === 'Enter') {
 			e.preventDefault();
 			if (filteredCommands.length > 0) {
