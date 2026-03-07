@@ -10,8 +10,13 @@
 	import {
 		CrowStateMachine,
 		getWingFlapAngle,
+		computeWingMode,
+		computeSoaringOffset,
+		computeDivingOffset,
 		getIdleAnimation,
 		isMouseTooClose,
+		pickRandomCharIndex,
+		findTextNodeOffset,
 		type CrowTarget,
 		type CrowPosition,
 		type CarriedItem,
@@ -36,12 +41,15 @@
 	/** Distance (px) at which the mouse scares the crow */
 	export let scareRadius = 120;
 
+	/** ID of the target the crow should start perched on (defaults to first target) */
+	export let startingTargetId: string | undefined = undefined;
+
 	let machine: CrowStateMachine | null = null;
 	let animFrameId: number;
 	let idleTimer: ReturnType<typeof setTimeout>;
 	let pos: CrowPosition = { x: 0, y: 0, scale: 1, rotation: 0, flipX: false };
 	let wingAngle = 0;
-	let state: 'perched' | 'taking-off' | 'flying' | 'landing' = 'perched';
+	let state: 'perched' | 'taking-off' | 'flying' | 'gliding' | 'soaring' | 'diving' | 'landing' = 'perched';
 	let mounted = false;
 	let animStartTime = 0;
 	let idleAnim: IdleAnimation = { headTilt: 0, bodyShiftX: 0, bodyShiftY: 0, tailWag: 0, lookDirection: 0 };
@@ -50,19 +58,75 @@
 	let scareCooldown = false; // Prevent rapid re-scaring
 	let currentZIndex = 45;
 
+	/** Cached character index per text-aware target, chosen once per landing */
+	let textCharMap = new Map<string, number>();
+
 	$: if (machine && carriedItem !== undefined) {
 		machine.setCarriedItem(carriedItem);
 	}
 
 	/**
+	 * Select a random character in a text-aware target's element and cache it.
+	 * Called once per landing so the crow sticks to the same character while perched.
+	 */
+	function selectTextChar(target: CrowTarget): void {
+		if (!target.textAware || !target.anchorSelector) return;
+		const el = document.querySelector(target.anchorSelector);
+		if (!el) return;
+		const text = el.textContent || '';
+		const charIndex = pickRandomCharIndex(text);
+		if (charIndex >= 0) {
+			textCharMap.set(target.id, charIndex);
+		}
+	}
+
+	/**
+	 * Use the Range API to get the viewport position of a specific character
+	 * inside an element. Walks all text nodes to find the right one.
+	 */
+	function getCharPosition(el: Element, flatIndex: number): { x: number; y: number } | null {
+		const textNodes: Text[] = [];
+		const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+		let node: Text | null;
+		while ((node = walker.nextNode() as Text | null)) {
+			textNodes.push(node);
+		}
+		if (textNodes.length === 0) return null;
+
+		const nodeLengths = textNodes.map((n) => n.length);
+		const result = findTextNodeOffset(nodeLengths, flatIndex);
+		if (!result) return null;
+
+		const textNode = textNodes[result.nodeIndex];
+		const range = document.createRange();
+		range.setStart(textNode, result.offset);
+		range.setEnd(textNode, Math.min(result.offset + 1, textNode.length));
+		const rect = range.getBoundingClientRect();
+		range.detach();
+
+		return {
+			x: rect.left + rect.width / 2,
+			y: rect.top
+		};
+	}
+
+	/**
 	 * Resolve the live position of a target from the DOM.
-	 * If the target has an anchorSelector, query the element's current bounding
-	 * rect so the crow follows it during scroll. Falls back to static x/y.
+	 * For text-aware targets, uses the Range API to land on a specific character.
+	 * Otherwise uses the bounding-box + anchorAlign approach.
+	 * Falls back to static x/y when no anchor element is found.
 	 */
 	function resolveTargetPosition(target: CrowTarget): { x: number; y: number } {
 		if (target.anchorSelector) {
 			const el = document.querySelector(target.anchorSelector);
 			if (el) {
+				// Text-aware: land on a specific character
+				if (target.textAware && textCharMap.has(target.id)) {
+					const charIndex = textCharMap.get(target.id)!;
+					const charPos = getCharPosition(el, charIndex);
+					if (charPos) return charPos;
+				}
+				// Fallback: bounding box
 				const rect = el.getBoundingClientRect();
 				const align = target.anchorAlign ?? { x: 0.5, y: 0 };
 				return {
@@ -101,6 +165,11 @@
 				refreshTargetPositions();
 				machine.setFlightDuration(flightDurationMs);
 				machine.startFlight();
+				// Pre-select a character for text-aware targets
+				const flightTarget = machine.getFlightTarget();
+				if (flightTarget?.textAware) {
+					selectTextChar(flightTarget);
+				}
 				state = 'flying';
 				animStartTime = Date.now();
 			}
@@ -115,6 +184,11 @@
 		refreshTargetPositions();
 		machine.setFlightDuration(flightDurationMs);
 		machine.startFleeingFlight(mouseX, mouseY);
+		// Pre-select a character for text-aware targets
+		const flightTarget = machine.getFlightTarget();
+		if (flightTarget?.textAware) {
+			selectTextChar(flightTarget);
+		}
 		state = 'flying';
 		animStartTime = Date.now();
 
@@ -130,8 +204,23 @@
 		if (currentState === 'flying') {
 			const progress = machine.getFlightProgress();
 			pos = machine.getCurrentPosition();
-			wingAngle = getWingFlapAngle('flying', Date.now() - animStartTime);
+			const elapsed = Date.now() - animStartTime;
+			const wingMode = computeWingMode(elapsed);
+			wingAngle = getWingFlapAngle(wingMode, elapsed);
+			state = wingMode === 'flapping' ? 'flying' : wingMode;
 			currentZIndex = machine.getCurrentZIndex();
+
+			// During soaring, add S/C-curve lateral drift
+			if (wingMode === 'soaring') {
+				const soarOffset = computeSoaringOffset(elapsed, 25 * pos.scale);
+				pos = { ...pos, x: pos.x + soarOffset.dx, y: pos.y + soarOffset.dy };
+			}
+
+			// During diving, add steep downward plunge with wobble
+			if (wingMode === 'diving') {
+				const diveOffset = computeDivingOffset(elapsed, 20 * pos.scale);
+				pos = { ...pos, x: pos.x + diveOffset.dx, y: pos.y + diveOffset.dy };
+			}
 
 			if (progress >= 1) {
 				machine.completeFlight();
@@ -182,7 +271,7 @@
 	onMount(() => {
 		if (targets.length === 0) return;
 		mounted = true;
-		machine = new CrowStateMachine(targets);
+		machine = new CrowStateMachine(targets, startingTargetId);
 		machine.setFlightDuration(flightDurationMs);
 		if (carriedItem) machine.setCarriedItem(carriedItem);
 		pos = machine.getCurrentPosition();
@@ -227,8 +316,8 @@
 		class="crow-svg"
 		style={state === 'perched' ? `transform: translate(${idleAnim.bodyShiftX}px, ${idleAnim.bodyShiftY}px);` : ''}
 	>
-		{#if state === 'flying'}
-			<!-- ===== FLYING WINGS (spread, flapping) ===== -->
+		{#if state === 'flying' || state === 'gliding' || state === 'soaring' || state === 'diving'}
+			<!-- ===== FLYING WINGS (spread: flapping, gliding, soaring, or diving) ===== -->
 			<!-- Left wing -->
 			<g
 				class="crow-wing"

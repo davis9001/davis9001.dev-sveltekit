@@ -6,9 +6,11 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import AnimatedCrow from '$lib/components/AnimatedCrow.svelte';
+	import CrowMurder from '$lib/components/CrowMurder.svelte';
 	import { formatBlogDate } from '$lib/utils/blog';
 	import SEO from '$lib/components/SEO.svelte';
 	import type { CrowTarget } from '$lib/utils/crow';
+	import { computeContainedImageBounds, imageLandmarkToViewport, findTextNodeOffset, computeRowInkCounts, findGlyphLedges, findInkCenterInRow, computeRowInteriorGapCounts, findCounterBottoms, findInteriorGapCenter } from '$lib/utils/crow';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -21,24 +23,102 @@
 	// These are computed on mount and on resize to stay responsive
 	let crowTargets: CrowTarget[] = [];
 
+	/** Character perch spots for the murder of crows (positions on the title text) */
+	let murderPerchSpots: Array<{ x: number; y: number }> = [];
+
+	// Natural dimensions of /davis9001-2.webp (420 × 736)
+	const IMG_NAT_W = 420;
+	const IMG_NAT_H = 736;
+
+	/**
+	 * Measure the actual pixel offset of the background-position CSS
+	 * (-9ch 18em) by creating an invisible measuring element.
+	 * This ensures the crow positions track correctly regardless of
+	 * the user's font size or zoom level.
+	 */
+	function measureBgOffset(): { offsetX: number; offsetY: number } {
+		const measure = document.createElement('div');
+		measure.style.cssText =
+			'position:absolute;visibility:hidden;pointer-events:none;' +
+			'width:9ch;height:18em;font:inherit';
+		document.body.appendChild(measure);
+		const chPx = measure.offsetWidth;   // 9ch in pixels
+		const emPx = measure.offsetHeight;  // 18em in pixels
+		document.body.removeChild(measure);
+		return { offsetX: -chPx, offsetY: emPx };
+	}
+
 	function computeCrowTargets() {
 		const vw = window.innerWidth;
 		const vh = window.innerHeight;
 
 		const targets: CrowTarget[] = [];
 
-		// ── Shoulder ──
-		// The background photo is positioned at -9ch 18em (background-size: contain).
-		// The person's right shoulder sits in the upper-left quadrant of the image.
-		// Scale is large so the crow looks realistically perched on you.
-		// zIndex 35 puts it between the background (z-30) and content (z-40).
-		const shoulderX = Math.min(vw * 0.22, 280);
-		const shoulderY = vh * 0.45;
+		// ── Compute where the background photo actually renders ──
+		// The background uses background-size:contain with offset -9ch 18em.
+		// We measure the offset in real pixels, then compute exactly where the
+		// contained image lands. Body landmarks are fractions *within the image*
+		// so they track correctly at any viewport size or font setting.
+		const { offsetX, offsetY } = measureBgOffset();
+		const imgBounds = computeContainedImageBounds(
+			vw, vh, IMG_NAT_W, IMG_NAT_H, offsetX, offsetY
+		);
+
+		// ── Body landmark coordinates ──
+		// Fractions within the 420×736 source image.
+		// The image extends well below the viewport (18em offset pushes it down),
+		// so only the top ~73% is visible on a 1080p screen.
+		//
+		//  Y fraction | Approx viewport position (1080p w/ 16px font)
+		//  ---------- | ------------------------------------------------
+		//  0.15       | ~42% (face / sunglasses area)
+		//  0.25       | ~52% (hands at sunglasses)
+		//  0.33       | ~60% (shoulder seam / collar)
+		//  0.45       | ~72% (mid-torso)
+
+		// ── Right shoulder ──
+		// Person's right (image left). Jacket shoulder seam ~20% across, ~35% down.
+		const rShoulder = imageLandmarkToViewport(0.20, 0.35, imgBounds);
 		targets.push({
-			id: 'shoulder',
-			x: shoulderX,
-			y: shoulderY,
-			scale: 1.6,
+			id: 'right-shoulder',
+			x: rShoulder.x,
+			y: rShoulder.y,
+			scale: 1.5,
+			zIndex: 35
+		});
+
+		// ── Left shoulder ──
+		// Person's left (image right). Jacket shoulder seam ~73% across, ~33% down.
+		const lShoulder = imageLandmarkToViewport(0.73, 0.33, imgBounds);
+		targets.push({
+			id: 'left-shoulder',
+			x: lShoulder.x,
+			y: lShoulder.y,
+			scale: 1.4,
+			flipX: true,
+			zIndex: 35
+		});
+
+		// ── Right forearm (raised to sunglasses) ──
+		// ~12% across, ~25% down the image.
+		const rForearm = imageLandmarkToViewport(0.12, 0.25, imgBounds);
+		targets.push({
+			id: 'right-forearm',
+			x: rForearm.x,
+			y: rForearm.y,
+			scale: 1.2,
+			zIndex: 35
+		});
+
+		// ── Left forearm (raised to sunglasses) ──
+		// ~83% across, ~22% down the image.
+		const lForearm = imageLandmarkToViewport(0.83, 0.22, imgBounds);
+		targets.push({
+			id: 'left-forearm',
+			x: lForearm.x,
+			y: lForearm.y,
+			scale: 1.2,
+			flipX: true,
 			zIndex: 35
 		});
 
@@ -57,11 +137,11 @@
 			});
 		}
 
-		// ── Title — land on top of the "davis9001" text ──
+		// ── Title — land on a character in the "davis9001" text ──
 		const title = document.querySelector('.hero-title');
 		if (title) {
 			const rect = title.getBoundingClientRect();
-			// Land on the right half of the title text (looks natural for a crow)
+			// Land on a random character in the title text
 			targets.push({
 				id: 'title',
 				x: rect.left + rect.width * 0.65,
@@ -69,11 +149,100 @@
 				scale: 0.35,
 				zIndex: 45,
 				anchorSelector: '.hero-title',
-				anchorAlign: { x: 0.65, y: 0 }
+				anchorAlign: { x: 0.65, y: 0 },
+				textAware: true
 			});
+
+			// ── Murder perch spots — find all horizontal ledges in each character ──
+			// Render each character on an offscreen canvas and scan the pixel data
+			// to find horizontal "ledges" — top edges of strokes where a crow can
+			// perch. This produces multiple perch spots per character (e.g. the dot
+			// and stem of "i", the loop of "9", crossbars, etc.).
+			const spots: Array<{ x: number; y: number }> = [];
+			const textNodes: Text[] = [];
+			const walker = document.createTreeWalker(title, NodeFilter.SHOW_TEXT);
+			let node: Text | null;
+			while ((node = walker.nextNode() as Text | null)) {
+				textNodes.push(node);
+			}
+			const nodeLengths = textNodes.map((n) => n.length);
+			const fullText = title.textContent || '';
+
+			// Set up canvas with the title's computed font for glyph scanning
+			const titleStyle = getComputedStyle(title);
+			const fontStr = `${titleStyle.fontWeight} ${titleStyle.fontSize} ${titleStyle.fontFamily}`;
+			const scanCanvas = document.createElement('canvas');
+			const scanCtx = scanCanvas.getContext('2d');
+
+			for (let ci = 0; ci < fullText.length; ci++) {
+				if (/\s/.test(fullText[ci])) continue;
+				const loc = findTextNodeOffset(nodeLengths, ci);
+				if (!loc) continue;
+				const tn = textNodes[loc.nodeIndex];
+				const range = document.createRange();
+				range.setStart(tn, loc.offset);
+				range.setEnd(tn, Math.min(loc.offset + 1, tn.length));
+				const cr = range.getBoundingClientRect();
+				range.detach();
+
+				if (!scanCtx) {
+					// Fallback: just use bounding rect top
+					spots.push({ x: cr.left + cr.width / 2, y: cr.top });
+					continue;
+				}
+
+				// Render the character and scan for ledges
+				scanCtx.font = fontStr;
+				const metrics = scanCtx.measureText(fullText[ci]);
+				const cw = Math.ceil(metrics.width) || 1;
+				const ch =
+					Math.ceil(metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) || 1;
+				scanCanvas.width = cw;
+				scanCanvas.height = ch;
+				scanCtx.font = fontStr; // must re-set after canvas resize
+				scanCtx.fillStyle = '#000';
+				scanCtx.fillText(fullText[ci], 0, metrics.fontBoundingBoxAscent);
+
+				const imageData = scanCtx.getImageData(0, 0, cw, ch);
+				const rowCounts = computeRowInkCounts(imageData.data, cw, ch);
+				const ledges = findGlyphLedges(rowCounts, cw);
+
+				// Also find counter bottoms (floors of holes in d, a, 9, 0, etc.)
+				const gapCounts = computeRowInteriorGapCounts(imageData.data, cw, ch);
+				const counterBottoms = findCounterBottoms(gapCounts, cw);
+
+				if (ledges.length === 0 && counterBottoms.length === 0) {
+					// No ledges or counters found — fall back to glyph top
+					spots.push({ x: cr.left + cr.width / 2, y: cr.top });
+					continue;
+				}
+
+				// Map each ledge from canvas coords to viewport coords
+				const scaleX = cr.width / cw;
+				const scaleY = cr.height / ch;
+				for (const ledgeRow of ledges) {
+					const inkCenter = findInkCenterInRow(imageData.data, cw, ledgeRow);
+					if (inkCenter === null) continue;
+					spots.push({
+						x: cr.left + inkCenter * scaleX,
+						y: cr.top + ledgeRow * scaleY
+					});
+				}
+
+				// Map each counter bottom from canvas coords to viewport coords
+				for (const bottomRow of counterBottoms) {
+					const gapCenter = findInteriorGapCenter(imageData.data, cw, bottomRow);
+					if (gapCenter === null) continue;
+					spots.push({
+						x: cr.left + gapCenter * scaleX,
+						y: cr.top + bottomRow * scaleY
+					});
+				}
+			}
+			murderPerchSpots = spots;
 		}
 
-		// ── CTA — land on top edge of the first CTA button ──
+		// ── CTA — land on a character in the first CTA button ──
 		const cta = document.querySelector('.hero-cta');
 		if (cta) {
 			const rect = cta.getBoundingClientRect();
@@ -84,7 +253,8 @@
 				scale: 0.3,
 				zIndex: 45,
 				anchorSelector: '.hero-cta',
-				anchorAlign: { x: 0.5, y: 0 }
+				anchorAlign: { x: 0.5, y: 0 },
+				textAware: true
 			});
 		}
 
@@ -158,7 +328,9 @@
 			minIdleSeconds={6}
 			maxIdleSeconds={14}
 			flightDurationMs={2400}
+			startingTargetId="right-shoulder"
 		/>
+		<CrowMurder targets={crowTargets} perchSpots={murderPerchSpots} />
 	{/if}
 
 	<!-- Background Image -->
