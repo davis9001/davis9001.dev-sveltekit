@@ -1,227 +1,94 @@
-![alt text](image.png)
-
 # davis9001.dev
 
-> Personal portfolio and dev showcase for Davis Monaghan
+> Personal website, portfolio, and blog of Davis Monaghan — Software and Community Architect.
 
 [![Powered by Cloudflare](https://img.shields.io/badge/Powered%20by-Cloudflare-F38020?style=flat&logo=cloudflare)](https://www.cloudflare.com/)
+[![Built with SvelteKit](https://img.shields.io/badge/Built%20with-SvelteKit-FF3E00?style=flat&logo=svelte)](https://kit.svelte.dev/)
 
-davis9001.dev is a production-ready web application built with everything you need for modern web applications. It comes with Cloudflare Workers integration (D1, KV, R2, Queues, Turnstile), a complete theme system, command palette, LLM chat UI, full authentication, and polished drag-and-drop—all built in from day one.
+## About
 
-## 🌟 Features
+[davis9001.dev](https://davis9001.dev) is my personal corner of the internet — a portfolio, dev blog, and playground for creative experiments. It's built with SvelteKit using [NebulaKit](https://github.com/starspacegroup/nebulakit) as the starting template, and runs on Cloudflare's edge network.
 
-- **🚀 Cloudflare Full Stack**: D1 database, KV storage, R2 buckets, Queues, and Turnstile built-in
-- **🎨 Theme System**: Light/dark modes with extensible CSS variables
-- **⌨️ Command Palette**: Keyboard-first navigation (Cmd/Ctrl + K)
-- **💬 LLM Chat UI**: Ready-to-use chat interface for AI integration
-- **🔐 Full Authentication**: Email/password + SSO (Google, GitHub) with account linking
-- **📱 Mobile-First**: Responsive layouts optimized for all devices
-- **🎯 Drag & Drop**: Polished DnD with cross-column and mobile support
-- **⚡ TypeScript**: Full type safety with Cloudflare Workers types
-- **🎨 UI Components**: Beautiful, accessible components out of the box
+## What's on the Site
 
-## 🚀 Quick Start
+### Portfolio
 
-### Use the Template
+A showcase of projects I've built, including:
 
-Click the **"Use this template"** button above to create your own repository, or **"Open in a codespace"** to start coding instantly in the cloud.
+- **[starspace.group](https://starspace.group)** — Digital coworking community landing page
+- **[game.starspace.group](https://game.starspace.group)** — Multiplayer browser game
+- **[Trill Symbiont](https://trill-symbiont.starspace.group)** — Generative ambient music tool using the Web Audio API
+- **[AgapeVerse](https://agapeverse.app)** — AI-powered love poem generator
+- **[robbieschroeder.com](https://robbieschroeder.com)** — Artist/musician portfolio (freelance)
+- Open-source contributions to [Deno docs](https://docs.deno.com) and [Deno Fresh](https://fresh.deno.dev/docs) (dark theme)
+- Sample sites for restaurants and therapists
 
-### Local Development
+### Blog
 
-```bash
-# Install dependencies
-npm install
+Posts on software engineering, open-source contributions, AI trends, creative coding, and occasional observations about crows in Maine.
 
-# Start development server
-npm run dev
+### Chat
 
-# Build for production
-npm run build
+An AI chat interface with voice support and conversation history.
 
-# Deploy to Cloudflare Pages
-npm run deploy
-```
+### Life of a Stranger
 
-Visit `http://localhost:4242` to see your app!
+An interactive art installation experiment.
 
-## 🧪 Testing (TDD Required!)
+## Tech Stack
 
-davis9001.dev follows **Test-Driven Development** with 90%+ code coverage requirements:
+- **[SvelteKit](https://kit.svelte.dev/)** — Full-stack framework
+- **[Cloudflare Workers](https://workers.cloudflare.com/)** — Edge runtime (D1, KV, R2, Queues, Turnstile)
+- **[TypeScript](https://www.typescriptlang.org/)** — Type safety throughout
+- **[Vite](https://vitejs.dev/)** — Build tooling
+- **Auth.js** — Authentication with GitHub and Discord OAuth
+- **Spotify API** — Now-playing widget on the home page
 
-```bash
-# Run all tests
-npm run test
+## Features
 
-# Run tests in watch mode
-npm run test:watch
+- Light/dark theme with WCAG AA contrast compliance
+- Command palette (Ctrl/Cmd + K)
+- Animated crow characters and ASCII art grid on the landing page
+- GitHub activity feed
+- Mobile-first responsive design
+- Content management system for blog posts and dynamic content
 
-# Check coverage (must be ≥90%)
-npm run test:coverage
-
-# Run E2E tests
-npm run test:e2e
-
-# Run all tests (unit + E2E)
-npm run test:all
-```
-
-**Important**: All features and bug fixes require tests written FIRST. See [CONTRIBUTING.md](./CONTRIBUTING.md) for details.
-
-## 📚 Documentation
-
-- [Setup Guide](./SETUP.md) - Complete installation and configuration instructions
-- [Features](./FEATURES.md) - Detailed feature documentation and usage examples
-- [Contributing Guide](./CONTRIBUTING.md) - Development workflow and testing standards
-- [Theme System Guide](./docs/THEME_SYSTEM.md) - Comprehensive theming and accessibility guide
-- [GitHub Copilot Instructions](.github/copilot-instructions.md) - AI-assisted development guidelines
-
-## 🏗️ Project Structure
-
-```
-davis9001.dev/
-├── src/
-│   ├── lib/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── stores/         # Svelte stores (theme, etc.)
-│   │   ├── server/         # Server-side utilities
-│   │   └── utils/          # Helper functions
-│   ├── routes/             # Application routes
-│   │   ├── auth/          # Authentication pages
-│   │   ├── chat/          # LLM chat interface
-│   │   └── demo/          # Feature demonstrations
-│   ├── app.css            # Global styles & theme
-│   └── app.html           # HTML template
-├── static/                 # Static assets
-└── wrangler.toml          # Cloudflare configuration
-```
-
-## 🎨 Theming
-
-davis9001.dev includes a comprehensive theme system with:
-
-- ✅ **WCAG AA compliant** colors (4.5:1 contrast minimum)
-- 🌓 Light and dark modes with automatic system detection
-- 🎨 CSS custom properties for all design tokens
-- ♿ Accessibility-first design approach
-- 🧪 Automated contrast validation
-
-```css
-/* All colors use CSS variables - never hardcode! */
-.button {
-	background-color: var(--color-primary);
-	color: var(--color-background);
-	border-radius: var(--radius-md);
-	padding: var(--spacing-sm) var(--spacing-md);
-}
-```
-
-**Validate theme contrast:**
+## Development
 
 ```bash
-npm run validate:contrast
+npm install        # Install dependencies
+npm run dev        # Start dev server on port 4242
+npm run build      # Production build
+npm run deploy     # Build and deploy to Cloudflare Pages
 ```
 
-See the [Theme System Guide](./docs/THEME_SYSTEM.md) for complete documentation.
+### Testing
 
-## 🔐 Authentication
+This project follows **Test-Driven Development** with 95%+ code coverage.
 
-Built-in auth pages with support for:
-
-- Email/password authentication
-- OAuth providers (Google, GitHub)
-- Session management
-- Account linking
-
-Easily extend with [@auth](https://authjs.dev/) for more providers.
-
-## 💬 Chat UI
-
-The included chat interface is ready to connect to your LLM API:
-
-```typescript
-// In /routes/chat/+page.svelte
-async function sendMessage() {
-	const response = await fetch('/api/chat', {
-		method: 'POST',
-		body: JSON.stringify({ message: input })
-	});
-	// Handle response
-}
+```bash
+npm run test              # Run unit tests
+npm run test:coverage     # Run with coverage report
+npm run test:e2e          # Run Playwright E2E tests
 ```
 
-## ☁️ Cloudflare Integration
+## Project Structure
 
-### D1 Database
-
-```typescript
-const result = await platform.env.DB.prepare('SELECT * FROM users WHERE email = ?')
-	.bind(email)
-	.first();
+```
+src/
+├── lib/
+│   ├── components/       # Svelte UI components
+│   ├── cms/              # Content management
+│   ├── services/         # Business logic
+│   ├── stores/           # Svelte stores
+│   ├── types/            # TypeScript types
+│   └── utils/            # Helpers
+├── routes/               # SvelteKit pages and API endpoints
+├── projects/             # Portfolio project markdown files
+└── updates/              # Blog post markdown files
+migrations/               # Cloudflare D1 database migrations
 ```
 
-### KV Storage
+## License
 
-```typescript
-await platform.env.KV.put('key', 'value');
-const value = await platform.env.KV.get('key');
-```
-
-### R2 Storage
-
-```typescript
-await platform.env.BUCKET.put('file.jpg', fileData);
-const file = await platform.env.BUCKET.get('file.jpg');
-```
-
-### Queues
-
-```typescript
-await platform.env.QUEUE.send({ data: 'message' });
-```
-
-## 🎯 Drag & Drop
-
-The demo page includes a fully functional kanban board with:
-
-- Desktop drag and drop
-- Mobile touch support
-- Cross-column dragging
-- Smooth animations
-
-## 📱 Mobile Support
-
-davis9001.dev is mobile-first with:
-
-- Responsive breakpoints (640px, 768px, 1024px, 1280px)
-- Touch-optimized interactions
-- Mobile navigation menu
-- Optimized bundle sizes
-
-## 🛠️ Tech Stack
-
-- [Svelte](https://svelte.dev/) - UI framework
-- [Cloudflare Workers](https://workers.cloudflare.com/) - Edge runtime
-- [TypeScript](https://www.typescriptlang.org/) - Type safety
-- [Vite](https://vitejs.dev/) - Build tool
-
-## 📝 License
-
-MIT License - feel free to use this template for any project!
-
-## 🤝 Contributing
-
-We welcome contributions! Please read our [Contributing Guide](./CONTRIBUTING.md) first.
-
-**Key requirements:**
-
-- ✅ Test-Driven Development (TDD) - write tests first
-- ✅ 90%+ code coverage on all changes
-- ✅ Cloudflare-first architecture
-- ✅ Minimal external dependencies
-- ✅ All tests passing before PR
-
-See [.github/copilot-instructions.md](.github/copilot-instructions.md) for detailed development guidelines.
-
-## ⭐ Show Your Support
-
-If you find davis9001.dev useful, please consider giving it a star on GitHub!
+MIT
