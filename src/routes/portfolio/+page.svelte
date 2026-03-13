@@ -23,7 +23,7 @@
 	path="/portfolio"
 />
 
-<div class="px-3 sm:px-4 py-2 bg-background text-foreground min-h-screen overflow-x-hidden">
+<div class="px-6 sm:px-8 py-2 bg-background text-foreground min-h-screen overflow-x-hidden">
 	<!-- Simple Header -->
 	<header class="flex justify-between items-center p-2 sm:p-4 mx-auto z-50 relative gap-2">
 		<nav class="flex-shrink-0">
@@ -34,7 +34,7 @@
 		</div>
 	</header>
 
-	<main class="p-1 sm:p-9 flex-1">
+	<main class="px-2 sm:p-9 flex-1">
 		<!-- Title section with background image -->
 		<div class="flex relative">
 			<div

@@ -107,7 +107,7 @@
 	$: showNoActivity = !currentlyPlaying?.isPlaying && recentlyPlayed.length === 0 && topPlaylists.length === 0;
 </script>
 
-<div class="mt-6 w-full max-w-screen-sm">
+<div class="mt-6 w-full">
 	<h3 class="text-xl sm:text-2xl font-black mb-4 flex items-center gap-2">
 		<svg
 			class="w-5 h-5 sm:w-6 sm:h-6 text-green-500"
@@ -219,9 +219,9 @@
 				<h4 class="text-lg font-bold mb-3 text-foreground/90">
 					Recently Played
 				</h4>
-				<div class="space-y-1">
+				<div class="space-y-2">
 					{#each recentlyPlayed.slice(0, 5) as item (item.track.id + '-' + item.playedAt)}
-						<div class="flex items-center gap-3 py-1.5 px-3 bg-foreground/[0.03] dark:bg-foreground/[0.05] rounded-lg hover:bg-foreground/[0.06] dark:hover:bg-foreground/[0.08] transition-colors">
+						<div class="flex items-center gap-3 py-2 px-3 bg-foreground/[0.03] dark:bg-foreground/[0.05] rounded-lg hover:bg-foreground/[0.06] dark:hover:bg-foreground/[0.08] transition-colors">
 							{#if item.track.album.images[2]}
 								<a
 									href={item.track.album.external_urls.spotify}
@@ -311,11 +311,11 @@
 									{playlist.name}
 								</a>
 								{#if playlist.description}
-									<p class="text-xs text-foreground/60 mt-0.5 line-clamp-2">
+									<p class="text-sm text-foreground/60 mt-2 line-clamp-2">
 										{playlist.description}
 									</p>
 								{/if}
-								<div class="text-xs text-foreground/50 mt-1">
+								<div class="text-sm text-foreground/50 mt-1">
 									{playlist.followers.toLocaleString()} saves &middot; {playlist.trackCount} songs, {Math.floor(totalHours)} hr {Math.round((totalHours % 1) * 60)} min
 								</div>
 							</div>

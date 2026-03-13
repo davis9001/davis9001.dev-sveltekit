@@ -28,7 +28,7 @@
 	publishedAt={post.publishedAt || ''}
 />
 
-<div class="px-3 sm:px-4 py-2 bg-background text-foreground min-h-screen overflow-x-hidden">
+<div class="px-6 sm:px-8 py-2 bg-background text-foreground min-h-screen overflow-x-hidden">
 	<!-- Simple Header -->
 	<header class="flex justify-between items-center p-2 sm:p-4 mx-auto z-50 relative gap-2">
 		<nav class="flex-shrink-0">
@@ -39,7 +39,7 @@
 		</div>
 	</header>
 
-	<main class="p-1 md:p-9 flex-1 relative max-w-2xl mx-auto">
+	<main class="px-2 py-1 md:p-9 flex-1 relative max-w-2xl mx-auto">
 		<!-- Background image (logo) -->
 		<div
 			class="fixed inset-0 bg-cover bg-center bg-no-repeat z-10 opacity-10 blur-xl"
