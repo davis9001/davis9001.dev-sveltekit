@@ -19,6 +19,7 @@ Dashboard is a personal productivity hub that lives behind GitHub authentication
 - **Weather & Location** — Current conditions and forecasts at a glance, no more opening a separate weather tab
 - **Traffic Maps** — Google Maps integration showing live traffic so I can plan around congestion
 - **GitHub Projects** — Repository and organization data pulled straight from the GitHub API, keeping project status visible without context-switching
+- **Crypto Chart Viewer** — Live cryptocurrency price charts so I can keep an eye on the market without leaving the dashboard
 - **Calendar** — A calendar view to keep track of what's coming up
 
 Widget layout and preferences are stored locally in the browser, so everything stays configured the way you left it.
