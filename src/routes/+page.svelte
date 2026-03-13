@@ -69,39 +69,45 @@
 		// The image extends well below the viewport (18em offset pushes it down),
 		// so only the top ~73% is visible on a 1080p screen.
 		//
-		//  Y fraction | Approx viewport position (1080p w/ 16px font)
-		//  ---------- | ------------------------------------------------
-		//  0.15       | ~42% (face / sunglasses area)
-		//  0.25       | ~52% (hands at sunglasses)
-		//  0.33       | ~60% (shoulder seam / collar)
-		//  0.45       | ~72% (mid-torso)
+		// Calibrated from debug dots — linear interpolation between two known points.
+		// (iy=0.04 → ~13% viewport, iy=0.40 → ~95% viewport)
 
-		// ── Right shoulder ──
-		// Person's right (image left). Jacket shoulder seam ~20% across, ~35% down.
-		const rShoulder = imageLandmarkToViewport(0.20, 0.35, imgBounds);
+		// ── White halo / circle above head ──
+		// Top of the white semicircle, centered on person.
+		const halo = imageLandmarkToViewport(0.50, -0.01, imgBounds);
 		targets.push({
-			id: 'right-shoulder',
-			x: rShoulder.x,
-			y: rShoulder.y,
-			scale: 1.5,
+			id: 'halo',
+			x: halo.x,
+			y: halo.y,
+			scale: 1.56,
 			zIndex: 35
 		});
 
-		// ── Left shoulder ──
-		// Person's left (image right). Jacket shoulder seam ~73% across, ~33% down.
-		const lShoulder = imageLandmarkToViewport(0.73, 0.33, imgBounds);
+		// ── Right arm ──
+		// Person's right arm (image left), raised to sunglasses.
+		const rArm = imageLandmarkToViewport(0.32, 0.22, imgBounds);
 		targets.push({
-			id: 'left-shoulder',
-			x: lShoulder.x,
-			y: lShoulder.y,
-			scale: 1.4,
+			id: 'right-arm',
+			x: rArm.x,
+			y: rArm.y,
+			scale: 1.68,
+			zIndex: 35
+		});
+
+		// ── Left arm ──
+		// Person's left arm (image right), raised to sunglasses.
+		const lArm = imageLandmarkToViewport(0.89, 0.19, imgBounds);
+		targets.push({
+			id: 'left-arm',
+			x: lArm.x,
+			y: lArm.y,
+			scale: 1.68,
 			flipX: true,
 			zIndex: 35
 		});
 
 		// ── Right forearm (raised to sunglasses) ──
-		// ~12% across, ~25% down the image.
-		const rForearm = imageLandmarkToViewport(0.12, 0.25, imgBounds);
+		const rForearm = imageLandmarkToViewport(0.12, 0.14, imgBounds);
 		targets.push({
 			id: 'right-forearm',
 			x: rForearm.x,
@@ -111,8 +117,7 @@
 		});
 
 		// ── Left forearm (raised to sunglasses) ──
-		// ~83% across, ~22% down the image.
-		const lForearm = imageLandmarkToViewport(0.83, 0.22, imgBounds);
+		const lForearm = imageLandmarkToViewport(0.83, 0.12, imgBounds);
 		targets.push({
 			id: 'left-forearm',
 			x: lForearm.x,
@@ -328,7 +333,7 @@
 			minIdleSeconds={6}
 			maxIdleSeconds={14}
 			flightDurationMs={2400}
-			startingTargetId="right-shoulder"
+			startingTargetId="right-arm"
 		/>
 		<CrowMurder targets={crowTargets} perchSpots={murderPerchSpots} />
 	{/if}

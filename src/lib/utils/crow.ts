@@ -554,41 +554,89 @@ export function isMouseTooClose(
   return Math.sqrt(dx * dx + dy * dy) < scareRadius;
 }
 
-/** Idle sitting animation offsets — super subtle micro-movements */
+/** Idle sitting animation offsets — rare, discrete gestures */
 export interface IdleAnimation {
   headTilt: number;
   bodyShiftX: number;
   bodyShiftY: number;
   tailWag: number;
   lookDirection: number;
+  /** 0 = wings folded, 1 = wings fully open */
+  wingStretch: number;
+  /** 0 = upright, 1 = fully bowed */
+  bowAmount: number;
 }
 
 /**
- * Compute subtle idle animation values for a perched crow.
- * Uses layered sine waves at different frequencies for organic feel.
+ * Compute idle animation values for a perched crow.
+ *
+ * Instead of constant micro-movements, the crow is mostly still.
+ * Occasionally it performs a discrete gesture:
+ *   - A bow (head dip forward)       — roughly every 8–15 seconds
+ *   - A wing open/close stretch      — roughly every 12–20 seconds
+ *
+ * Uses a pseudo-random hash of time buckets to decide when to trigger,
+ * keeping the function pure (no external state).
  */
 export function getIdleAnimation(timeMs: number): IdleAnimation {
-  // Very slow head tilt (period ~4s), amplitude ±5°
-  const headTilt = Math.sin(timeMs / 4000 * Math.PI * 2) * 3
-    + Math.sin(timeMs / 7000 * Math.PI * 2) * 2;
+  // ── Bowing ──
+  // A bow lasts ~800ms. We check 10-second buckets with a hash
+  // to decide if a bow happens in that window.
+  const bowBucket = Math.floor(timeMs / 10000);
+  const bowHash = ((bowBucket * 2654435761) >>> 0) % 100;
+  const shouldBow = bowHash < 30; // ~30% chance per 10s bucket
+  let bowAmount = 0;
+  let headTilt = 0;
+  if (shouldBow) {
+    const bowStart = bowBucket * 10000 + 2000; // start 2s into the bucket
+    const bowElapsed = timeMs - bowStart;
+    if (bowElapsed >= 0 && bowElapsed < 800) {
+      // Smooth up-and-down bow: sin(0→π) over 800ms
+      bowAmount = Math.sin((bowElapsed / 800) * Math.PI);
+      headTilt = bowAmount * 12; // head dips forward up to 12°
+    }
+  }
 
-  // Tiny body sway (period ~6s), amplitude ±1.5px
-  const bodyShiftX = Math.sin(timeMs / 6000 * Math.PI * 2) * 1.0
-    + Math.sin(timeMs / 9500 * Math.PI * 2) * 0.5;
+  // ── Wing stretch ──
+  // A stretch lasts ~1200ms. We check 15-second buckets.
+  const wingBucket = Math.floor(timeMs / 15000);
+  const wingHash = ((wingBucket * 2246822519) >>> 0) % 100;
+  const shouldStretch = wingHash < 25; // ~25% chance per 15s bucket
+  let wingStretch = 0;
+  if (shouldStretch) {
+    const stretchStart = wingBucket * 15000 + 5000; // start 5s into the bucket
+    const stretchElapsed = timeMs - stretchStart;
+    if (stretchElapsed >= 0 && stretchElapsed < 1200) {
+      // Smooth open-and-close: sin(0→π) over 1200ms
+      wingStretch = Math.sin((stretchElapsed / 1200) * Math.PI);
+    }
+  }
 
-  // Very subtle breathing-like up/down (period ~3s), amplitude ±1px
-  const bodyShiftY = Math.sin(timeMs / 3000 * Math.PI * 2) * 0.8
-    + Math.sin(timeMs / 5000 * Math.PI * 2) * 0.4;
+  // Tail stays still (no constant wag)
+  const tailWag = bowAmount * 3; // slight tail lift during a bow
 
-  // Tail feather micro-wag (period ~5s), amplitude ±3°
-  const tailWag = Math.sin(timeMs / 5000 * Math.PI * 2) * 2
-    + Math.sin(timeMs / 8000 * Math.PI * 2) * 1;
+  // Eyes: very rare slow glance, mostly centered
+  const lookBucket = Math.floor(timeMs / 12000);
+  const lookHash = ((lookBucket * 1597334677) >>> 0) % 100;
+  let lookDirection = 0;
+  if (lookHash < 20) {
+    const lookStart = lookBucket * 12000 + 3000;
+    const lookElapsed = timeMs - lookStart;
+    if (lookElapsed >= 0 && lookElapsed < 2000) {
+      const lookSide = (lookHash % 2 === 0) ? 1 : -1;
+      lookDirection = Math.sin((lookElapsed / 2000) * Math.PI) * 1.5 * lookSide;
+    }
+  }
 
-  // Eye look direction (period ~8s), amplitude ±2 (pixel offset)
-  const lookDirection = Math.sin(timeMs / 8000 * Math.PI * 2) * 1.5
-    + Math.sin(timeMs / 12000 * Math.PI * 2) * 0.5;
-
-  return { headTilt, bodyShiftX, bodyShiftY, tailWag, lookDirection };
+  return {
+    headTilt,
+    bodyShiftX: 0,
+    bodyShiftY: 0,
+    tailWag,
+    lookDirection,
+    wingStretch,
+    bowAmount
+  };
 }
 
 /**
@@ -763,11 +811,14 @@ export class CrowStateMachine {
     return this.carriedItem;
   }
 
-  /** Update available targets (e.g., after layout changes) */
+  /** Update available targets (e.g., after layout changes or zoom) */
   updateTargets(newTargets: CrowTarget[]): void {
     this.targets = newTargets;
-    // Keep current target if it still exists, else reset to first
-    if (!newTargets.some((t) => t.id === this.currentTarget.id)) {
+    // Refresh currentTarget coordinates from the updated list
+    const match = newTargets.find((t) => t.id === this.currentTarget.id);
+    if (match) {
+      this.currentTarget = match;
+    } else {
       this.currentTarget = newTargets[0];
     }
   }

@@ -52,11 +52,15 @@
 	let state: 'perched' | 'taking-off' | 'flying' | 'gliding' | 'soaring' | 'diving' | 'landing' = 'perched';
 	let mounted = false;
 	let animStartTime = 0;
-	let idleAnim: IdleAnimation = { headTilt: 0, bodyShiftX: 0, bodyShiftY: 0, tailWag: 0, lookDirection: 0 };
+	let idleAnim: IdleAnimation = { headTilt: 0, bodyShiftX: 0, bodyShiftY: 0, tailWag: 0, lookDirection: 0, wingStretch: 0, bowAmount: 0 };
 	let mouseX = -9999;
 	let mouseY = -9999;
 	let scareCooldown = false; // Prevent rapid re-scaring
 	let currentZIndex = 45;
+	/** Base devicePixelRatio captured at mount — used to compensate for zoom */
+	let baseDPR = 1;
+	/** Zoom compensation factor: baseDPR / currentDPR */
+	let zoomCompensation = 1;
 
 	/** Cached character index per text-aware target, chosen once per landing */
 	let textCharMap = new Map<string, number>();
@@ -199,6 +203,9 @@
 	function animate() {
 		if (!machine || !mounted) return;
 
+		// Compensate for browser zoom so the crow stays the same visual size
+		zoomCompensation = baseDPR / (window.devicePixelRatio || 1);
+
 		const currentState = machine.getState();
 
 		if (currentState === 'flying') {
@@ -271,6 +278,7 @@
 	onMount(() => {
 		if (targets.length === 0) return;
 		mounted = true;
+		baseDPR = window.devicePixelRatio || 1;
 		machine = new CrowStateMachine(targets, startingTargetId);
 		machine.setFlightDuration(flightDurationMs);
 		if (carriedItem) machine.setCarriedItem(carriedItem);
@@ -301,7 +309,7 @@
 <div
 	class="animated-crow"
 	style="
-		transform: translate({pos.x}px, {pos.y}px) scale({pos.scale}) {pos.flipX ? 'scaleX(-1)' : ''};
+		transform: translate({pos.x}px, {pos.y}px) scale({pos.scale * zoomCompensation}) {pos.flipX ? 'scaleX(-1)' : ''};
 		will-change: transform;
 		z-index: {currentZIndex};
 	"
@@ -314,7 +322,6 @@
 		height="70"
 		xmlns="http://www.w3.org/2000/svg"
 		class="crow-svg"
-		style={state === 'perched' ? `transform: translate(${idleAnim.bodyShiftX}px, ${idleAnim.bodyShiftY}px);` : ''}
 	>
 		{#if state === 'flying' || state === 'gliding' || state === 'soaring' || state === 'diving'}
 			<!-- ===== FLYING WINGS (spread: flapping, gliding, soaring, or diving) ===== -->
@@ -337,6 +344,37 @@
 			<g
 				class="crow-wing"
 				style="transform-origin: 0px -5px; transform: rotate({wingAngle}deg);"
+			>
+				<path
+					d="M2,-5 C15,-20 35,-32 50,-28 C40,-18 25,-10 5,-5 Z"
+					fill="var(--crow-wing, #1a1a1a)"
+					stroke="var(--crow-outline, #0d0d0d)"
+					stroke-width="0.8"
+				/>
+				<path d="M18,-18 C28,-26 42,-28 48,-26" fill="none" stroke="var(--crow-feather, #2a2a2a)" stroke-width="0.5" />
+				<path d="M12,-14 C22,-22 36,-26 44,-24" fill="none" stroke="var(--crow-feather, #2a2a2a)" stroke-width="0.5" />
+			</g>
+		{:else if idleAnim.wingStretch > 0}
+			<!-- ===== STRETCHING WINGS (idle wing open/close) ===== -->
+			<!-- Left wing — partially open -->
+			<g
+				class="crow-wing"
+				style="transform-origin: 0px -5px; transform: rotate({-idleAnim.wingStretch * 35}deg);"
+			>
+				<path
+					d="M-2,-5 C-15,-20 -35,-32 -50,-28 C-40,-18 -25,-10 -5,-5 Z"
+					fill="var(--crow-wing, #1a1a1a)"
+					stroke="var(--crow-outline, #0d0d0d)"
+					stroke-width="0.8"
+				/>
+				<path d="M-18,-18 C-28,-26 -42,-28 -48,-26" fill="none" stroke="var(--crow-feather, #2a2a2a)" stroke-width="0.5" />
+				<path d="M-12,-14 C-22,-22 -36,-26 -44,-24" fill="none" stroke="var(--crow-feather, #2a2a2a)" stroke-width="0.5" />
+			</g>
+
+			<!-- Right wing — partially open -->
+			<g
+				class="crow-wing"
+				style="transform-origin: 0px -5px; transform: rotate({idleAnim.wingStretch * 35}deg);"
 			>
 				<path
 					d="M2,-5 C15,-20 35,-32 50,-28 C40,-18 25,-10 5,-5 Z"
@@ -373,102 +411,142 @@
 			<path d="M5,4 C9,4 12,5 14,7" fill="none" stroke="var(--crow-feather, #2a2a2a)" stroke-width="0.3" />
 		{/if}
 
-		<!-- Tail feathers -->
+		<!-- Tail feathers — longer, more tapered for realism -->
 		<g style={state === 'perched' ? `transform-origin: -6px 8px; transform: rotate(${idleAnim.tailWag}deg);` : ''}>
 			<path
-				d="M-8,8 C-18,18 -28,22 -32,20 C-24,16 -20,10 -14,6 Z"
+				d="M-8,6 C-16,14 -30,22 -36,20 C-28,14 -20,8 -14,4 Z"
 				fill="var(--crow-body, #111111)"
 				stroke="var(--crow-outline, #0d0d0d)"
 				stroke-width="0.5"
 			/>
 			<path
-				d="M-6,10 C-14,22 -22,28 -28,26 C-20,20 -16,14 -10,8 Z"
+				d="M-6,8 C-14,18 -28,28 -34,26 C-24,18 -16,12 -10,6 Z"
 				fill="var(--crow-body, #111111)"
 				stroke="var(--crow-outline, #0d0d0d)"
 				stroke-width="0.5"
 			/>
 			<path
-				d="M-4,8 C-12,20 -18,26 -24,24 C-16,18 -12,12 -8,6 Z"
+				d="M-4,7 C-12,17 -24,26 -30,24 C-20,16 -14,10 -8,5 Z"
 				fill="var(--crow-tail, #191919)"
 				stroke="var(--crow-outline, #0d0d0d)"
 				stroke-width="0.5"
 			/>
+			<!-- Tail feather barb lines -->
+			<path d="M-14,12 C-20,16 -26,19 -30,20" fill="none" stroke="var(--crow-feather, #1e1e1e)" stroke-width="0.3" />
+			<path d="M-12,14 C-18,18 -24,22 -28,24" fill="none" stroke="var(--crow-feather, #1e1e1e)" stroke-width="0.3" />
 		</g>
 
-		<!-- Body -->
+		<!-- Body — sleeker, more elongated ellipse -->
 		<ellipse
 			cx="0"
 			cy="2"
-			rx="18"
-			ry="12"
+			rx="20"
+			ry="11"
 			fill="var(--crow-body, #111111)"
 			stroke="var(--crow-outline, #0d0d0d)"
 			stroke-width="0.8"
 		/>
 
-		<!-- Breast feather texture -->
-		<path
-			d="M6,6 C4,10 2,12 0,12 C-2,12 -4,10 -6,6"
+		<!-- Iridescent sheen on back (subtle blue-green highlight) -->
+		<ellipse
+			cx="-2"
+			cy="-1"
+			rx="14"
+			ry="7"
 			fill="none"
-			stroke="var(--crow-feather, #2a2a2a)"
+			stroke="var(--crow-sheen, #1a2030)"
+			stroke-width="1.5"
+			opacity="0.3"
+		/>
+
+		<!-- Breast feather texture — layered scallops -->
+		<path
+			d="M8,5 C6,9 3,11 0,11 C-3,11 -6,9 -8,5"
+			fill="none"
+			stroke="var(--crow-feather, #1e1e1e)"
 			stroke-width="0.4"
 		/>
 		<path
-			d="M8,4 C6,8 3,10 0,10 C-3,10 -6,8 -8,4"
+			d="M10,3 C8,7 4,9 0,9 C-4,9 -8,7 -10,3"
 			fill="none"
-			stroke="var(--crow-feather, #2a2a2a)"
+			stroke="var(--crow-feather, #1e1e1e)"
+			stroke-width="0.35"
+		/>
+		<path
+			d="M6,7 C4,10 2,12 0,12 C-2,12 -4,10 -6,7"
+			fill="none"
+			stroke="var(--crow-feather, #1e1e1e)"
 			stroke-width="0.3"
 		/>
 
-		<!-- Head (with subtle idle tilt) -->
+		<!-- Head (with subtle idle tilt) — slightly smaller, more angular -->
 		<g style={state === 'perched' ? `transform-origin: 14px -5px; transform: rotate(${idleAnim.headTilt}deg);` : ''}>
-			<circle
+			<!-- Head shape — slightly flattened on top like a real crow -->
+			<ellipse
 				cx="18"
 				cy="-8"
-				r="9"
+				rx="9"
+				ry="8.5"
 				fill="var(--crow-head, #0f0f0f)"
 				stroke="var(--crow-outline, #0d0d0d)"
 				stroke-width="0.8"
 			/>
 
-			<!-- Eye ring -->
-			<circle cx="22" cy="-10" r="3.5" fill="var(--crow-eye-ring, #1a1a1a)" />
-
-			<!-- Eye -->
-			<circle cx="22.5" cy="-10" r="2" fill="var(--crow-eye, #e8e8e8)" />
-
-			<!-- Pupil (shifts with lookDirection when perched) -->
-			<circle
-				cx={state === 'perched' ? 23 + idleAnim.lookDirection * 0.4 : 23}
-				cy={state === 'perched' ? -10.2 + idleAnim.lookDirection * 0.15 : -10.2}
-				r="1.1"
-				fill="var(--crow-pupil, #111111)"
-			/>
-
-			<!-- Eye highlight -->
-			<circle
-				cx={state === 'perched' ? 23.5 + idleAnim.lookDirection * 0.3 : 23.5}
-				cy="-11"
-				r="0.5"
-				fill="var(--crow-eye-highlight, #ffffff)"
-			/>
-
-			<!-- Beak -->
+			<!-- Forehead bump — crows have a slight forehead ridge -->
 			<path
-				d="M26,-8 L34,-6 L32,-4 L26,-5 Z"
-				fill="var(--crow-beak, #2c2c2c)"
+				d="M14,-14 C16,-16 20,-16.5 24,-14"
+				fill="var(--crow-head, #0f0f0f)"
+				stroke="var(--crow-outline, #0d0d0d)"
+				stroke-width="0.6"
+			/>
+
+			<!-- Eye — dark, almost all-black with subtle sheen -->
+			<circle cx="22" cy="-10" r="2.8" fill="var(--crow-eye, #0a0a0a)" />
+			<!-- Iris — very dark brown, barely visible -->
+			<circle cx="22.2" cy="-10" r="2" fill="var(--crow-iris, #151010)" />
+			<!-- Pupil -->
+			<circle
+				cx={state === 'perched' ? 22.5 + idleAnim.lookDirection * 0.3 : 22.5}
+				cy={state === 'perched' ? -10.1 + idleAnim.lookDirection * 0.1 : -10.1}
+				r="1.3"
+				fill="var(--crow-pupil, #050505)"
+			/>
+			<!-- Eye highlight — tiny, subtle sheen -->
+			<circle
+				cx={state === 'perched' ? 23.2 + idleAnim.lookDirection * 0.2 : 23.2}
+				cy="-11"
+				r="0.6"
+				fill="var(--crow-eye-highlight, #333333)"
+				opacity="0.6"
+			/>
+			<!-- Secondary micro-highlight -->
+			<circle cx="21.5" cy="-9.5" r="0.3" fill="var(--crow-eye-highlight, #333333)" opacity="0.35" />
+
+			<!-- Beak — longer, slightly curved like a real crow -->
+			<path
+				d="M26,-9 C28,-9.5 32,-8 35,-6.5 C33,-5 30,-4.5 26,-5 Z"
+				fill="var(--crow-beak, #1a1a1a)"
 				stroke="var(--crow-outline, #0d0d0d)"
 				stroke-width="0.5"
+			/>
+			<!-- Beak ridge -->
+			<path
+				d="M26,-8 C29,-8 32,-7 34,-6.5"
+				fill="none"
+				stroke="var(--crow-outline, #0d0d0d)"
+				stroke-width="0.6"
 			/>
 			<!-- Beak line (mouth) -->
 			<line
 				x1="26"
-				y1="-6"
-				x2="33"
-				y2="-5.5"
+				y1="-6.5"
+				x2="34"
+				y2="-6"
 				stroke="var(--crow-outline, #0d0d0d)"
 				stroke-width="0.4"
 			/>
+			<!-- Nostril -->
+			<circle cx="28" cy="-8" r="0.5" fill="var(--crow-outline, #0d0d0d)" />
 
 			<!-- Carried item in beak (moved inside head group so it tilts with head) -->
 			{#if showItem && carriedItem === 'letter'}

@@ -1305,26 +1305,26 @@ describe('Crow Animation Logic', () => {
     });
 
     it('should return subtle values (all within small ranges)', () => {
-      for (let t = 0; t < 10000; t += 500) {
+      for (let t = 0; t < 30000; t += 500) {
         const anim = getIdleAnimation(t);
-        expect(anim.headTilt).toBeGreaterThanOrEqual(-6);
-        expect(anim.headTilt).toBeLessThanOrEqual(6);
-        expect(anim.bodyShiftX).toBeGreaterThanOrEqual(-2);
-        expect(anim.bodyShiftX).toBeLessThanOrEqual(2);
-        expect(anim.bodyShiftY).toBeGreaterThanOrEqual(-2);
-        expect(anim.bodyShiftY).toBeLessThanOrEqual(2);
+        expect(anim.headTilt).toBeGreaterThanOrEqual(-15);
+        expect(anim.headTilt).toBeLessThanOrEqual(15);
+        expect(anim.bodyShiftX).toBe(0);
+        expect(anim.bodyShiftY).toBe(0);
       }
     });
 
     it('should produce varying values over time', () => {
-      const anim1 = getIdleAnimation(0);
-      const anim2 = getIdleAnimation(2000);
-      // At least one property should differ meaningfully
-      const diff =
-        Math.abs(anim1.headTilt - anim2.headTilt) +
-        Math.abs(anim1.bodyShiftX - anim2.bodyShiftX) +
-        Math.abs(anim1.bodyShiftY - anim2.bodyShiftY);
-      expect(diff).toBeGreaterThan(0.01);
+      // Sample many time points — at least one should have a non-zero gesture
+      let foundNonZero = false;
+      for (let t = 0; t < 30000; t += 500) {
+        const anim = getIdleAnimation(t);
+        if (anim.headTilt !== 0 || anim.wingStretch !== 0 || anim.bowAmount !== 0) {
+          foundNonZero = true;
+          break;
+        }
+      }
+      expect(foundNonZero).toBe(true);
     });
 
     it('should have a tailWag property', () => {

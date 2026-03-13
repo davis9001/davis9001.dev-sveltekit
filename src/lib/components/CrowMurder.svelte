@@ -484,19 +484,26 @@
 					{/if}
 
 					<!-- Tail -->
-					<path d="M-8,8 C-18,18 -28,22 -32,20 C-24,16 -20,10 -14,6 Z" fill="var(--crow-body, #111111)" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.5" />
-					<path d="M-6,10 C-14,22 -22,28 -28,26 C-20,20 -16,14 -10,8 Z" fill="var(--crow-body, #111111)" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.5" />
+					<path d="M-8,6 C-16,14 -30,22 -36,20 C-28,14 -20,8 -14,4 Z" fill="var(--crow-body, #111111)" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.5" />
+					<path d="M-6,8 C-14,18 -28,28 -34,26 C-24,18 -16,12 -10,6 Z" fill="var(--crow-body, #111111)" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.5" />
+					<path d="M-4,7 C-12,17 -24,26 -30,24 C-20,16 -14,10 -8,5 Z" fill="var(--crow-tail, #191919)" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.5" />
 
 					<!-- Body -->
-					<ellipse cx="0" cy="2" rx="18" ry="12" fill="var(--crow-body, #111111)" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.8" />
+					<ellipse cx="0" cy="2" rx="20" ry="11" fill="var(--crow-body, #111111)" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.8" />
 
 					<!-- Head -->
-					<circle cx="18" cy="-8" r="9" fill="var(--crow-head, #0f0f0f)" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.8" />
-					<!-- Eye -->
-					<circle cx="22.5" cy="-10" r="2" fill="var(--crow-eye, #e8e8e8)" />
-					<circle cx="23" cy="-10.2" r="1.1" fill="var(--crow-pupil, #111111)" />
-					<!-- Beak -->
-					<path d="M26,-8 L34,-6 L32,-4 L26,-5 Z" fill="var(--crow-beak, #2c2c2c)" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.5" />
+					<ellipse cx="18" cy="-8" rx="9" ry="8.5" fill="var(--crow-head, #0f0f0f)" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.8" />
+					<!-- Eye — dark with subtle sheen -->
+					<circle cx="22" cy="-10" r="2.8" fill="var(--crow-eye, #0a0a0a)" />
+					<circle cx="22.2" cy="-10" r="2" fill="var(--crow-iris, #151010)" />
+					<circle cx="22.5" cy="-10.1" r="1.3" fill="var(--crow-pupil, #050505)" />
+					<circle cx="23.2" cy="-11" r="0.6" fill="var(--crow-eye-highlight, #333333)" opacity="0.6" />
+					<circle cx="21.5" cy="-9.5" r="0.3" fill="var(--crow-eye-highlight, #333333)" opacity="0.35" />
+					<!-- Beak — longer, slightly curved -->
+					<path d="M26,-9 C28,-9.5 32,-8 35,-6.5 C33,-5 30,-4.5 26,-5 Z" fill="var(--crow-beak, #1a1a1a)" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.5" />
+					<path d="M26,-8 C29,-8 32,-7 34,-6.5" fill="none" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.6" />
+					<line x1="26" y1="-6.5" x2="34" y2="-6" stroke="var(--crow-outline, #0d0d0d)" stroke-width="0.4" />
+					<circle cx="28" cy="-8" r="0.5" fill="var(--crow-outline, #0d0d0d)" />
 
 					<!-- Legs (when perched) -->
 					{#if crow.state === 'perched'}
