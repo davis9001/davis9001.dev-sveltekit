@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getValidAccessToken } from '$lib/utils/spotify-tokens';
+import { getSpotifyCache, setSpotifyCache } from '$lib/services/spotify-cache';
 
 interface SpotifyTrack {
   id: string;
@@ -355,9 +356,19 @@ export const GET: RequestHandler = async ({ platform }) => {
     return makeErrorResponse('Platform not available', 500);
   }
 
-  // Return cached full response if still fresh (prevents excessive API calls from polling)
+  // Return in-memory cached response if still fresh (prevents excessive API calls from polling)
   if (fullResponseCache && Date.now() < fullResponseCache.expiresAt) {
     return json(fullResponseCache.data, {
+      headers: { 'Cache-Control': 'public, max-age=30' }
+    });
+  }
+
+  // Check global KV cache (shared across all users, 5-minute TTL)
+  const kvCached = await getSpotifyCache(platform.env.KV);
+  if (kvCached) {
+    // Populate in-memory cache from KV hit
+    fullResponseCache = { data: kvCached as SpotifyData, expiresAt: Date.now() + FULL_RESPONSE_CACHE_TTL_MS };
+    return json(kvCached, {
       headers: { 'Cache-Control': 'public, max-age=30' }
     });
   }
@@ -429,8 +440,9 @@ export const GET: RequestHandler = async ({ platform }) => {
       profileUrl: PROFILE_URL
     };
 
-    // Cache the full response in memory
+    // Cache the full response in memory and KV (global 5-minute cache)
     fullResponseCache = { data, expiresAt: Date.now() + FULL_RESPONSE_CACHE_TTL_MS };
+    await setSpotifyCache(platform.env.KV, data as unknown as Record<string, unknown>);
 
     return json(data, {
       headers: { 'Cache-Control': 'public, max-age=30' }

@@ -434,7 +434,7 @@
 				</div>
 
 				<div class="w-full">
-					<SpotifyWidget />
+					<SpotifyWidget initialData={data.spotifyData} />
 				</div>
 			</div>
 
