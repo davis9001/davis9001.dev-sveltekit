@@ -16,6 +16,8 @@
 	export let data: PageData;
 
 	$: recentPosts = data.recentPosts || [];
+	$: githubActivityData = data.githubActivityData as any;
+	$: spotifyData = data.spotifyData as any;
 
 	let asciiCharacters: string[] = [];
 
@@ -396,11 +398,11 @@
 	</section>
 
 	<!-- ===== CONTENT — Below the fold ===== -->
-	<section class="relative z-40 content-section" role="region" aria-label="Activity and updates">
+	<section class="relative z-40 content-section" aria-label="Activity and updates">
 		<div class="content-card bg-background/70 backdrop-blur-sm rounded-xl">
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start">
 				<div class="w-full flex flex-col gap-4 lg:gap-6">
-					<GitHubActivityGrid initialData={data.githubActivityData} />
+					<GitHubActivityGrid initialData={githubActivityData} />
 
 					<div class="w-full">
 						<h3 class="text-xl sm:text-2xl font-black mb-4 flex items-center gap-2">
@@ -439,7 +441,7 @@
 				</div>
 
 				<div class="w-full">
-					<SpotifyWidget initialData={data.spotifyData} />
+					<SpotifyWidget initialData={spotifyData} />
 				</div>
 			</div>
 

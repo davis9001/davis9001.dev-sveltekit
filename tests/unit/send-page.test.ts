@@ -583,7 +583,7 @@ describe('Send Page', () => {
 
       const { getByText } = render(SendPage.default, {
         props: {
-          data: { user: null, hasAIProviders: false, hasAuthConfig: false },
+          data: { user: null, hasAIProviders: false, portfolioItems: [], blogPosts: [], hasAuthConfig: false },
           form: null
         }
       });
@@ -597,7 +597,7 @@ describe('Send Page', () => {
 
       const { container } = render(SendPage.default, {
         props: {
-          data: { user: null, hasAIProviders: false, hasAuthConfig: false },
+          data: { user: null, hasAIProviders: false, portfolioItems: [], blogPosts: [], hasAuthConfig: false },
           form: null
         }
       });
@@ -626,7 +626,7 @@ describe('Send Page', () => {
 
       const { getByText, container } = render(SendPage.default, {
         props: {
-          data: { user: null, hasAIProviders: false, hasAuthConfig: false },
+          data: { user: null, hasAIProviders: false, portfolioItems: [], blogPosts: [], hasAuthConfig: false },
           form: { success: true }
         }
       });
@@ -644,8 +644,8 @@ describe('Send Page', () => {
 
       const { getByText, container } = render(SendPage.default, {
         props: {
-          data: { user: null, hasAIProviders: false, hasAuthConfig: false },
-          form: { error: 'Please enter a message.' }
+          data: { user: null, hasAIProviders: false, portfolioItems: [], blogPosts: [], hasAuthConfig: false },
+          form: { error: 'Please enter a message.', name: undefined, contact: undefined }
         }
       });
 
@@ -670,7 +670,7 @@ describe('Send Page', () => {
 
       const { container, getByText } = render(SendPage.default, {
         props: {
-          data: { user: mockUser, hasAIProviders: false, hasAuthConfig: false },
+          data: { user: mockUser, hasAIProviders: false, portfolioItems: [], blogPosts: [], hasAuthConfig: false },
           form: null
         }
       });
@@ -691,7 +691,7 @@ describe('Send Page', () => {
 
       const { container } = render(SendPage.default, {
         props: {
-          data: { user: null, hasAIProviders: false, hasAuthConfig: false },
+          data: { user: null, hasAIProviders: false, portfolioItems: [], blogPosts: [], hasAuthConfig: false },
           form: null
         }
       });
@@ -705,7 +705,7 @@ describe('Send Page', () => {
 
       render(SendPage.default, {
         props: {
-          data: { user: null, hasAIProviders: false, hasAuthConfig: false },
+          data: { user: null, hasAIProviders: false, portfolioItems: [], blogPosts: [], hasAuthConfig: false },
           form: null
         }
       });
@@ -720,7 +720,7 @@ describe('Send Page', () => {
 
       const { container } = render(SendPage.default, {
         props: {
-          data: { user: null, hasAIProviders: false, hasAuthConfig: false },
+          data: { user: null, hasAIProviders: false, portfolioItems: [], blogPosts: [], hasAuthConfig: false },
           form: { success: true }
         }
       });

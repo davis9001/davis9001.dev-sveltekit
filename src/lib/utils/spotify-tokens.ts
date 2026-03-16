@@ -1,3 +1,5 @@
+import type { KVNamespace } from '@cloudflare/workers-types';
+
 /**
  * Spotify Token Management using Cloudflare KV
  * Stores and manages Spotify access/refresh tokens.

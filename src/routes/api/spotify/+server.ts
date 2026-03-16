@@ -1,3 +1,4 @@
+import type { KVNamespace } from '@cloudflare/workers-types';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getValidAccessToken } from '$lib/utils/spotify-tokens';

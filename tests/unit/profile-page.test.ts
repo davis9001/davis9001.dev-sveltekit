@@ -117,6 +117,9 @@ describe('Profile Page', () => {
 					isAdmin: false
 				},
 				hasAIProviders: false,
+				portfolioItems: [],
+				blogPosts: [],
+				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};
@@ -147,6 +150,9 @@ describe('Profile Page', () => {
 					isOwner: false
 				},
 				hasAIProviders: false,
+				portfolioItems: [],
+				blogPosts: [],
+				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};
@@ -172,6 +178,9 @@ describe('Profile Page', () => {
 					isOwner: false
 				},
 				hasAIProviders: false,
+				portfolioItems: [],
+				blogPosts: [],
+				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};
@@ -199,6 +208,9 @@ describe('Profile Page', () => {
 					isAdmin: true
 				},
 				hasAIProviders: false,
+				portfolioItems: [],
+				blogPosts: [],
+				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};
@@ -223,6 +235,9 @@ describe('Profile Page', () => {
 					isOwner: true
 				},
 				hasAIProviders: false,
+				portfolioItems: [],
+				blogPosts: [],
+				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};
@@ -246,6 +261,9 @@ describe('Profile Page', () => {
 					isOwner: false
 				},
 				hasAIProviders: false,
+				portfolioItems: [],
+				blogPosts: [],
+				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};

@@ -75,7 +75,7 @@ describe('Home Page Server Load - Spotify SSR', () => {
     const platform = { env: { DB: db, KV: {} }, context: {}, caches: {} };
 
     const { load } = await import('../../src/routes/+page.server');
-    const result = await load({ platform } as any);
+    const result = await load({ platform } as any) as any;
 
     expect(result.spotifyData).toEqual(sampleSpotifyData);
     expect(result.recentPosts).toBeDefined();
@@ -93,7 +93,7 @@ describe('Home Page Server Load - Spotify SSR', () => {
     const platform = { env: { DB: db }, context: {}, caches: {} };
 
     const { load } = await import('../../src/routes/+page.server');
-    const result = await load({ platform } as any);
+    const result = await load({ platform } as any) as any;
 
     // Stale data should still be returned for instant rendering
     expect(result.spotifyData).toEqual(sampleSpotifyData);
@@ -104,14 +104,14 @@ describe('Home Page Server Load - Spotify SSR', () => {
     const platform = { env: { DB: db }, context: {}, caches: {} };
 
     const { load } = await import('../../src/routes/+page.server');
-    const result = await load({ platform } as any);
+    const result = await load({ platform } as any) as any;
 
     expect(result.spotifyData).toBeNull();
   });
 
   it('should return null spotifyData when platform is not available', async () => {
     const { load } = await import('../../src/routes/+page.server');
-    const result = await load({ platform: undefined } as any);
+    const result = await load({ platform: undefined } as any) as any;
 
     expect(result.spotifyData).toBeNull();
     expect(result.recentPosts).toBeDefined();
@@ -121,7 +121,7 @@ describe('Home Page Server Load - Spotify SSR', () => {
     const platform = { env: {} };
 
     const { load } = await import('../../src/routes/+page.server');
-    const result = await load({ platform } as any);
+    const result = await load({ platform } as any) as any;
 
     expect(result.spotifyData).toBeNull();
   });
@@ -137,7 +137,7 @@ describe('Home Page Server Load - Spotify SSR', () => {
     const platform = { env: { DB: db }, context: {}, caches: {} };
 
     const { load } = await import('../../src/routes/+page.server');
-    const result = await load({ platform } as any);
+    const result = await load({ platform } as any) as any;
 
     expect(result.spotifyData).toBeNull();
     expect(result.recentPosts).toBeDefined();

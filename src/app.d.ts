@@ -33,6 +33,7 @@ declare global {
 				SPOTIFY_REDIRECT_URI?: string;
 				SPOTIFY_REFRESH_TOKEN?: string;
 				DISCORD_WEBHOOK_URL?: string;
+				GH_API_TOKEN?: string;
 			};
 			context: {
 				waitUntil(promise: Promise<any>): void;

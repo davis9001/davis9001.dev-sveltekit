@@ -62,7 +62,7 @@ describe.skip('Home Page Hero', () => {
 
 	it('should render the logo with alt text', () => {
 		render(Page);
-		const logo = screen.getByAlt(/davis9001 logo/i);
+		const logo = screen.getByAltText(/davis9001 logo/i);
 		expect(logo).toBeTruthy();
 	});
 

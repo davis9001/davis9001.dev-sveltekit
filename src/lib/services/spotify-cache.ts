@@ -1,3 +1,5 @@
+import type { D1Database } from '@cloudflare/workers-types';
+
 /**
  * Spotify Response Cache Service
  *

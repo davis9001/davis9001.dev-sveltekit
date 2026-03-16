@@ -1,3 +1,4 @@
+import type { KVNamespace } from '@cloudflare/workers-types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   exchangeCodeForTokens

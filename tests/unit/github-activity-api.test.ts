@@ -24,7 +24,7 @@ describe('GitHub Activity API', () => {
         text: () => Promise.resolve('')
       });
     });
-    globalThis.fetch = mockFetch;
+    globalThis.fetch = mockFetch as typeof fetch;
   });
 
   afterEach(() => {

@@ -1,3 +1,5 @@
+import type { D1Database } from '@cloudflare/workers-types';
+
 /**
  * GitHub Activity Response Cache Service
  *
