@@ -8,23 +8,16 @@
 		pmRatio: number; // 0.0 = all AM, 1.0 = all PM, -1 = no time data
 	}
 
+	export let initialData: ActivityDay[] | null = null;
+
 	const NUM_WEEKS = 9;
 
-	let activityData: ActivityDay[] = [];
-	let loading = true;
+	let activityData: ActivityDay[] = initialData ?? [];
+	let loading = !initialData;
 	let error: string | null = null;
-	let isDark = false;
 	
 	let lastFetchDate = '';
 	let midnightTimer: ReturnType<typeof setTimeout> | null = null;
-
-	// Color definitions for AM (green) and PM (purple) at each intensity level
-	const greenColors: Record<number, { light: string; dark: string }> = {
-		1: { light: 'rgba(187, 247, 208, 1)', dark: 'rgba(20, 83, 45, 0.7)' },
-		2: { light: 'rgba(74, 222, 128, 1)', dark: 'rgba(21, 128, 61, 1)' },
-		3: { light: 'rgba(34, 197, 94, 1)', dark: 'rgba(22, 163, 74, 1)' },
-		4: { light: 'rgba(22, 163, 74, 1)', dark: 'rgba(34, 197, 94, 1)' }
-	};
 
 	function localDateKey(): string {
 		const d = new Date();
@@ -75,18 +68,6 @@
 		}, msUntilMidnight());
 	}
 
-	function getCellStyle(level: number): { background: string; border?: string } {
-		if (level === 0) {
-			return isDark
-				? { background: 'rgba(31, 41, 55, 0.5)', border: '1px solid rgba(55, 65, 81, 0.3)' }
-				: { background: 'rgba(243, 244, 246, 1)', border: '1px solid rgba(229, 231, 235, 0.5)' };
-		}
-
-		const mode = isDark ? 'dark' : 'light';
-		const green = greenColors[level]?.[mode] ?? greenColors[1][mode];
-		return { background: green };
-	}
-
 	// Build weeks grid
 	$: weeks = (() => {
 		const weeksArray: (ActivityDay | null)[][] = [];
@@ -131,19 +112,7 @@
 	$: activeDays = activityData.filter(d => d.count > 0).length;
 
 	onMount(() => {
-		// Check dark mode via data-theme attribute
-		const checkDark = () => {
-			isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-		};
-		checkDark();
-		
-		const observer = new MutationObserver(checkDark);
-		observer.observe(document.documentElement, { 
-			attributes: true, 
-			attributeFilter: ['data-theme'] 
-		});
-
-		// Initial fetch
+		// Initial fetch (refresh in background if we have SSR data, full fetch if not)
 		fetchActivity();
 		scheduleMidnightRefresh();
 
@@ -158,7 +127,6 @@
 
 		return () => {
 			if (midnightTimer) clearTimeout(midnightTimer);
-			observer.disconnect();
 			document.removeEventListener('visibilitychange', onVisibilityChange);
 		};
 	});
@@ -229,11 +197,9 @@
 								<div class="aspect-square"></div>
 							{:else}
 								{@const date = new Date(day.date + 'T00:00:00Z')}
-								{@const cellStyle = getCellStyle(day.level)}
-								
-								<div
-									class="aspect-square rounded-sm transition-all duration-300 hover:scale-110 cursor-pointer {isSaturday ? 'ring-1 ring-red-500/20 dark:ring-red-500/30' : isSunday ? 'ring-1 ring-blue-500/20 dark:ring-blue-500/30' : ''}"
-									style="background: {cellStyle.background}; border: {cellStyle.border ?? 'none'};"
+							
+							<div
+								class="aspect-square rounded-sm transition-all duration-300 hover:scale-110 cursor-pointer activity-level-{day.level} {isSaturday ? 'ring-1 ring-red-500/20 dark:ring-red-500/30' : isSunday ? 'ring-1 ring-blue-500/20 dark:ring-blue-500/30' : ''}"
 									title="{date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })}: {day.count} {day.count === 1 ? 'contribution' : 'contributions'}"
 								></div>
 							{/if}
@@ -247,10 +213,8 @@
 					<span class="opacity-50">Less</span>
 					<div class="flex gap-0.5">
 						{#each [0, 1, 2, 3, 4] as level}
-							{@const style = getCellStyle(level)}
 							<div
-								class="w-2.5 h-2.5 rounded-sm"
-								style="background: {style.background}; border: {style.border ?? 'none'};"
+								class="w-2.5 h-2.5 rounded-sm activity-level-{level}"
 								title={level === 0 ? 'No activity' : `Activity level ${level}`}
 							></div>
 						{/each}
@@ -262,3 +226,22 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.activity-level-0 {
+		background: var(--activity-0-bg);
+		border: var(--activity-0-border);
+	}
+	.activity-level-1 {
+		background: var(--activity-1-bg);
+	}
+	.activity-level-2 {
+		background: var(--activity-2-bg);
+	}
+	.activity-level-3 {
+		background: var(--activity-3-bg);
+	}
+	.activity-level-4 {
+		background: var(--activity-4-bg);
+	}
+</style>

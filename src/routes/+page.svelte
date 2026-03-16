@@ -400,7 +400,7 @@
 		<div class="content-card bg-background/70 backdrop-blur-sm rounded-xl">
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start">
 				<div class="w-full flex flex-col gap-4 lg:gap-6">
-					<GitHubActivityGrid />
+					<GitHubActivityGrid initialData={data.githubActivityData} />
 
 					<div class="w-full">
 						<h3 class="text-xl sm:text-2xl font-black mb-4 flex items-center gap-2">

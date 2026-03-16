@@ -7,6 +7,7 @@
  */
 import { processRawPosts } from '$lib/utils/blog';
 import { getSpotifyCacheStale } from '$lib/services/spotify-cache';
+import { getGitHubActivityCacheStale } from '$lib/services/github-activity-cache';
 import type { PageServerLoad } from './$types';
 
 // Load all markdown files at build time
@@ -21,12 +22,17 @@ export const load: PageServerLoad = async ({ platform }) => {
   // Load cached Spotify data from D1 for instant SSR rendering (stale OK —
   // the widget refreshes from the API on mount to pick up any updates)
   let spotifyData = null;
+  let githubActivityData = null;
   if (platform?.env?.DB) {
-    spotifyData = await getSpotifyCacheStale(platform.env.DB);
+    [spotifyData, githubActivityData] = await Promise.all([
+      getSpotifyCacheStale(platform.env.DB),
+      getGitHubActivityCacheStale(platform.env.DB)
+    ]);
   }
 
   return {
     recentPosts,
-    spotifyData
+    spotifyData,
+    githubActivityData
   };
 };

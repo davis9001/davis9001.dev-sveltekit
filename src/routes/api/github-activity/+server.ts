@@ -1,5 +1,9 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import {
+	getGitHubActivityCache,
+	setGitHubActivityCache
+} from '$lib/services/github-activity-cache';
 
 const DAYS_TO_FETCH = 63; // 9 weeks
 const USERNAME = 'davis9001';
@@ -12,7 +16,7 @@ interface ContributionDay {
 	pmRatio: number;
 }
 
-function classifyTimestamp(isoTimestamp: string): { dateKey: string; hour: number } | null {
+function classifyTimestamp(isoTimestamp: string): { dateKey: string; hour: number; } | null {
 	const dt = new Date(isoTimestamp);
 	if (isNaN(dt.getTime())) return null;
 
@@ -34,7 +38,7 @@ function classifyTimestamp(isoTimestamp: string): { dateKey: string; hour: numbe
 }
 
 function addHourEntry(
-	map: Map<string, { am: number; pm: number }>,
+	map: Map<string, { am: number; pm: number; }>,
 	dateKey: string,
 	hour: number
 ) {
@@ -51,9 +55,9 @@ async function fetchCommitTimestampsGraphQL(
 	since: string,
 	until: string,
 	token?: string
-): Promise<Map<string, { am: number; pm: number }>> {
-	const countsByDate = new Map<string, { am: number; pm: number }>();
-	
+): Promise<Map<string, { am: number; pm: number; }>> {
+	const countsByDate = new Map<string, { am: number; pm: number; }>();
+
 	if (!token) {
 		console.log('[github-activity] No GH_API_TOKEN — skipping GraphQL commit timestamps');
 		return countsByDate;
@@ -166,8 +170,8 @@ async function fetchCommitTimestampsGraphQL(
 	return countsByDate;
 }
 
-async function fetchEventHours(token?: string): Promise<Map<string, { am: number; pm: number }>> {
-	const countsByDate = new Map<string, { am: number; pm: number }>();
+async function fetchEventHours(token?: string): Promise<Map<string, { am: number; pm: number; }>> {
+	const countsByDate = new Map<string, { am: number; pm: number; }>();
 
 	const headers: Record<string, string> = {
 		Accept: 'application/vnd.github.v3+json',
@@ -208,8 +212,8 @@ async function fetchEventHours(token?: string): Promise<Map<string, { am: number
 	return countsByDate;
 }
 
-function parseContributionCalendar(html: string): Map<string, { count: number; level: number }> {
-	const contributions = new Map<string, { count: number; level: number }>();
+function parseContributionCalendar(html: string): Map<string, { count: number; level: number; }> {
+	const contributions = new Map<string, { count: number; level: number; }>();
 	const idToDate = new Map<string, string>();
 
 	const cellRegex = /data-date="(\d{4}-\d{2}-\d{2})"\s+id="(contribution-day-component-\d+-\d+)"\s+data-level="(\d)"/g;
@@ -250,6 +254,19 @@ function parseContributionCalendar(html: string): Map<string, { count: number; l
 
 export const GET: RequestHandler = async ({ platform }) => {
 	try {
+		// Check D1 cache first (shared across all users, 5-minute TTL)
+		if (platform?.env?.DB) {
+			const dbCached = await getGitHubActivityCache(platform.env.DB);
+			if (dbCached) {
+				console.log('[github-activity] Serving from D1 cache');
+				return json(dbCached, {
+					headers: {
+						'Cache-Control': 'public, max-age=60'
+					}
+				});
+			}
+		}
+
 		console.log('[github-activity] Fetching contribution calendar from GitHub profile...');
 
 		const response = await fetch(`https://github.com/users/${USERNAME}/contributions`, {
@@ -290,7 +307,7 @@ export const GET: RequestHandler = async ({ platform }) => {
 			fetchEventHours(token)
 		]);
 
-		const mergedHours = new Map<string, { am: number; pm: number }>();
+		const mergedHours = new Map<string, { am: number; pm: number; }>();
 		for (const [dateKey, counts] of commitHours) {
 			mergedHours.set(dateKey, { ...counts });
 		}
@@ -315,7 +332,7 @@ export const GET: RequestHandler = async ({ platform }) => {
 
 			const contribution = contributions.get(dateKey);
 			const counts = mergedHours.get(dateKey);
-			
+
 			let pmRatio = -1;
 			if (counts) {
 				const total = counts.am + counts.pm;
@@ -348,11 +365,14 @@ export const GET: RequestHandler = async ({ platform }) => {
 		console.log(`[github-activity] Total contributions in last ${DAYS_TO_FETCH} days: ${totalContributions}`);
 		console.log(`[github-activity] Active days: ${activeDays}`);
 
+		// Cache the response in D1 for subsequent visitors
+		if (platform?.env?.DB) {
+			await setGitHubActivityCache(platform.env.DB, activityData);
+		}
+
 		return json(activityData, {
 			headers: {
-				'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-				Pragma: 'no-cache',
-				Expires: '0'
+				'Cache-Control': 'public, max-age=60'
 			}
 		});
 	} catch (error) {

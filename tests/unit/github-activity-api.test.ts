@@ -101,7 +101,7 @@ describe('GitHub Activity API', () => {
       expect(data.length).toBe(0);
     });
 
-    it('should set no-cache headers', async () => {
+    it('should set cache-control headers', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         text: () => Promise.resolve('<div></div>')
@@ -110,7 +110,7 @@ describe('GitHub Activity API', () => {
       const { GET } = await import('../../src/routes/api/github-activity/+server.js');
       const response = await GET({ platform: createMockPlatform() } as any);
 
-      expect(response.headers.get('Cache-Control')).toContain('no-store');
+      expect(response.headers.get('Cache-Control')).toContain('public');
     });
 
     it('should sort activity data by date ascending', async () => {
@@ -1278,6 +1278,141 @@ describe('GitHub Activity API', () => {
 
       const { GET } = await import('../../src/routes/api/github-activity/+server.js');
       const response = await GET({ platform: createMockPlatform('token') } as any);
+      const data = await response.json();
+
+      expect(Array.isArray(data)).toBe(true);
+    });
+  });
+
+  describe('D1 caching behavior', () => {
+    function createMockDB(cachedData?: unknown, cachedAt?: number) {
+      const store = new Map<string, Record<string, unknown>>();
+      if (cachedData !== undefined && cachedAt !== undefined) {
+        store.set('github-activity:full-response', {
+          key: 'github-activity:full-response',
+          data: JSON.stringify(cachedData),
+          cached_at: cachedAt
+        });
+      }
+
+      return {
+        prepare: vi.fn((sql: string) => ({
+          bind: vi.fn((...args: unknown[]) => ({
+            first: vi.fn(async () => {
+              const key = args[0] as string;
+              return store.get(key) ?? null;
+            }),
+            run: vi.fn(async () => {
+              if (sql.trim().toUpperCase().startsWith('REPLACE')) {
+                const key = args[0] as string;
+                const data = args[1] as string;
+                const cachedAt = args[2] as number;
+                store.set(key, { key, data, cached_at: cachedAt });
+              }
+              return { success: true };
+            })
+          }))
+        }))
+      };
+    }
+
+    it('should return cached data from D1 when fresh (< 5 minutes)', async () => {
+      const cachedActivity = [
+        { date: '2025-03-16', count: 5, level: 2, pmRatio: 0.5 }
+      ];
+      const db = createMockDB(cachedActivity, Date.now() - 60_000); // 1 minute ago
+
+      const { GET } = await import('../../src/routes/api/github-activity/+server.js');
+      const response = await GET({
+        platform: { env: { DB: db } }
+      } as any);
+      const data = await response.json();
+
+      expect(data).toEqual(cachedActivity);
+      // Should NOT have fetched from GitHub (no fetch calls)
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should fetch from GitHub when cache is stale (> 5 minutes)', async () => {
+      const staleData = [
+        { date: '2025-03-16', count: 1, level: 1, pmRatio: -1 }
+      ];
+      const db = createMockDB(staleData, Date.now() - 6 * 60 * 1000); // 6 minutes ago
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve('<div></div>')
+      });
+
+      const { GET } = await import('../../src/routes/api/github-activity/+server.js');
+      const response = await GET({
+        platform: { env: { DB: db } }
+      } as any);
+      const data = await response.json();
+
+      // Should have fetched from GitHub
+      expect(mockFetch).toHaveBeenCalled();
+      expect(Array.isArray(data)).toBe(true);
+    });
+
+    it('should write to D1 cache after a successful GitHub fetch', async () => {
+      const db = createMockDB(); // empty cache
+
+      const today = new Date();
+      const dateStr = today.toISOString().split('T')[0];
+      const html = createContributionHTML([
+        { date: dateStr, level: 2, count: 5 }
+      ]);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve(html)
+      });
+
+      const { GET } = await import('../../src/routes/api/github-activity/+server.js');
+      await GET({
+        platform: { env: { DB: db } }
+      } as any);
+
+      // Should have written to D1 (REPLACE INTO github_activity_cache)
+      const prepareCalls = db.prepare.mock.calls;
+      const writeCalls = prepareCalls.filter((c: string[]) =>
+        c[0].includes('REPLACE')
+      );
+      expect(writeCalls.length).toBe(1);
+    });
+
+    it('should not write empty arrays to D1 cache', async () => {
+      const db = createMockDB(); // empty cache
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404
+      });
+
+      const { GET } = await import('../../src/routes/api/github-activity/+server.js');
+      await GET({
+        platform: { env: { DB: db } }
+      } as any);
+
+      // Should NOT have written to D1 since the response was empty
+      const prepareCalls = db.prepare.mock.calls;
+      const writeCalls = prepareCalls.filter((c: string[]) =>
+        c[0].includes('REPLACE')
+      );
+      expect(writeCalls.length).toBe(0);
+    });
+
+    it('should work when platform has no DB', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        text: () => Promise.resolve('<div></div>')
+      });
+
+      const { GET } = await import('../../src/routes/api/github-activity/+server.js');
+      const response = await GET({
+        platform: { env: {} }
+      } as any);
       const data = await response.json();
 
       expect(Array.isArray(data)).toBe(true);
