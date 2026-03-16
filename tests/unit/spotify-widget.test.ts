@@ -471,4 +471,51 @@ describe('SpotifyWidget', () => {
 
     expect(screen.queryByText('Now Playing')).not.toBeInTheDocument();
   });
+
+  it('should render cached data immediately without loading state when initialData is provided', () => {
+    const data = makeSpotifyData({
+      recentlyPlayed: [
+        {
+          track: makeTrack({ id: 'cached1', name: 'Cached Track' }),
+          playedAt: new Date().toISOString()
+        }
+      ]
+    });
+    // Stub fetch for any background refresh attempt
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(() => new Promise(() => { }))
+    );
+
+    render(SpotifyWidget, { props: { initialData: data } });
+
+    // Cached data should be visible immediately — no loading spinner
+    expect(screen.queryByText('Loading Spotify data...')).not.toBeInTheDocument();
+    expect(screen.getByText('Cached Track')).toBeInTheDocument();
+    expect(screen.getByText('Recently Played')).toBeInTheDocument();
+  });
+
+  it('should not show loading state while refreshing with initialData', () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(() => new Promise(() => { }))
+    );
+
+    render(SpotifyWidget, {
+      props: {
+        initialData: makeSpotifyData({
+          recentlyPlayed: [
+            {
+              track: makeTrack({ id: 'cached1', name: 'Cached Track' }),
+              playedAt: new Date().toISOString()
+            }
+          ]
+        })
+      }
+    });
+
+    // Cached data should be visible immediately, no loading spinner
+    expect(screen.queryByText('Loading Spotify data...')).not.toBeInTheDocument();
+    expect(screen.getByText('Cached Track')).toBeInTheDocument();
+  });
 });

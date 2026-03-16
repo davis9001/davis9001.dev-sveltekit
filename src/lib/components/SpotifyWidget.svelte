@@ -94,8 +94,11 @@
 	}
 
 	onMount(() => {
-		// Skip initial fetch if data was provided via props
-		if (!initialData) {
+		if (initialData) {
+			// Data was provided via SSR — show it immediately, then refresh
+			// in the background to pick up any updates
+			refreshData();
+		} else {
 			fetchSpotifyData();
 		}
 	});

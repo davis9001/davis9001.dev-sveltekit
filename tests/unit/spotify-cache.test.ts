@@ -1,27 +1,48 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getSpotifyCache,
+  getSpotifyCacheStale,
   setSpotifyCache,
-  SPOTIFY_RESPONSE_CACHE_KEY,
   SPOTIFY_CACHE_TTL_MS
 } from '../../src/lib/services/spotify-cache';
 
-function createMockKV(stored: Record<string, unknown> = {}) {
-  const store: Record<string, string> = {};
-  for (const [k, v] of Object.entries(stored)) {
-    store[k] = JSON.stringify(v);
+/**
+ * Creates a mock D1Database that stores rows in a simple in-memory map.
+ * Supports the subset of D1 API used by the spotify-cache service:
+ *   db.prepare(sql).bind(...).first()
+ *   db.prepare(sql).bind(...).run()
+ */
+function createMockDB(rows: Record<string, Record<string, unknown>> = {}) {
+  const store = new Map<string, Record<string, unknown>>();
+  for (const [key, row] of Object.entries(rows)) {
+    store.set(key, row);
   }
-  return {
-    get: vi.fn(async (key: string, type?: string) => {
-      const val = store[key] ?? null;
-      if (val && type === 'json') return JSON.parse(val);
-      return val;
-    }),
-    put: vi.fn(async (key: string, value: string) => {
-      store[key] = value;
-    }),
-    delete: vi.fn(async () => { })
+
+  const db = {
+    prepare: vi.fn((sql: string) => {
+      return {
+        bind: vi.fn((...args: unknown[]) => {
+          return {
+            first: vi.fn(async () => {
+              const key = args[0] as string;
+              return store.get(key) ?? null;
+            }),
+            run: vi.fn(async () => {
+              if (sql.trim().toUpperCase().startsWith('INSERT') || sql.trim().toUpperCase().startsWith('REPLACE')) {
+                const key = args[0] as string;
+                const data = args[1] as string;
+                const cachedAt = args[2] as number;
+                store.set(key, { key, data, cached_at: cachedAt });
+              }
+              return { success: true };
+            })
+          };
+        })
+      };
+    })
   };
+
+  return db;
 }
 
 const sampleSpotifyData = {
@@ -43,134 +64,230 @@ const sampleSpotifyData = {
   profileUrl: 'https://open.spotify.com/user/12810003'
 };
 
-describe('Spotify Cache Service', () => {
+describe('Spotify Cache Service (D1)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('getSpotifyCache', () => {
     it('should return null when no cached data exists', async () => {
-      const kv = createMockKV();
-      const result = await getSpotifyCache(kv as unknown as KVNamespace);
+      const db = createMockDB();
+      const result = await getSpotifyCache(db as unknown as D1Database);
       expect(result).toBeNull();
-      expect(kv.get).toHaveBeenCalledWith(SPOTIFY_RESPONSE_CACHE_KEY, 'json');
     });
 
     it('should return cached data when it is fresh (within 5 minutes)', async () => {
-      const cachedEntry = {
-        data: sampleSpotifyData,
-        cachedAt: Date.now() - 60_000 // 1 minute ago
-      };
-      const kv = createMockKV({ [SPOTIFY_RESPONSE_CACHE_KEY]: cachedEntry });
+      const cachedAt = Date.now() - 60_000; // 1 minute ago
+      const db = createMockDB({
+        'spotify:full-response': {
+          key: 'spotify:full-response',
+          data: JSON.stringify(sampleSpotifyData),
+          cached_at: cachedAt
+        }
+      });
 
-      const result = await getSpotifyCache(kv as unknown as KVNamespace);
+      const result = await getSpotifyCache(db as unknown as D1Database);
       expect(result).toEqual(sampleSpotifyData);
     });
 
     it('should return null when cached data is stale (older than 5 minutes)', async () => {
-      const cachedEntry = {
-        data: sampleSpotifyData,
-        cachedAt: Date.now() - SPOTIFY_CACHE_TTL_MS - 1000 // 5 minutes + 1 second ago
-      };
-      const kv = createMockKV({ [SPOTIFY_RESPONSE_CACHE_KEY]: cachedEntry });
+      const cachedAt = Date.now() - SPOTIFY_CACHE_TTL_MS - 1000;
+      const db = createMockDB({
+        'spotify:full-response': {
+          key: 'spotify:full-response',
+          data: JSON.stringify(sampleSpotifyData),
+          cached_at: cachedAt
+        }
+      });
 
-      const result = await getSpotifyCache(kv as unknown as KVNamespace);
+      const result = await getSpotifyCache(db as unknown as D1Database);
       expect(result).toBeNull();
     });
 
-    it('should return data when exactly at the 5-minute boundary', async () => {
-      const cachedEntry = {
-        data: sampleSpotifyData,
-        cachedAt: Date.now() - SPOTIFY_CACHE_TTL_MS // exactly 5 minutes ago
-      };
-      const kv = createMockKV({ [SPOTIFY_RESPONSE_CACHE_KEY]: cachedEntry });
+    it('should return null when exactly at the 5-minute boundary', async () => {
+      const cachedAt = Date.now() - SPOTIFY_CACHE_TTL_MS;
+      const db = createMockDB({
+        'spotify:full-response': {
+          key: 'spotify:full-response',
+          data: JSON.stringify(sampleSpotifyData),
+          cached_at: cachedAt
+        }
+      });
 
-      const result = await getSpotifyCache(kv as unknown as KVNamespace);
-      // At exactly the boundary, age === TTL, which is NOT less than TTL, so it should be stale
+      const result = await getSpotifyCache(db as unknown as D1Database);
+      // At exactly the boundary, age === TTL, which is NOT less than TTL
       expect(result).toBeNull();
     });
 
-    it('should return null when KV throws an error', async () => {
-      const kv = {
-        get: vi.fn().mockRejectedValue(new Error('KV unavailable')),
-        put: vi.fn(),
-        delete: vi.fn()
+    it('should return null when D1 throws an error', async () => {
+      const db = {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({
+            first: vi.fn().mockRejectedValue(new Error('D1 unavailable'))
+          }))
+        }))
       };
 
-      const result = await getSpotifyCache(kv as unknown as KVNamespace);
+      const result = await getSpotifyCache(db as unknown as D1Database);
       expect(result).toBeNull();
     });
 
-    it('should return null when cached entry has no cachedAt timestamp', async () => {
-      const cachedEntry = {
-        data: sampleSpotifyData
-        // missing cachedAt
-      };
-      const kv = createMockKV({ [SPOTIFY_RESPONSE_CACHE_KEY]: cachedEntry });
+    it('should return null when row has no data column', async () => {
+      const db = createMockDB({
+        'spotify:full-response': {
+          key: 'spotify:full-response',
+          cached_at: Date.now()
+          // missing data
+        }
+      });
 
-      const result = await getSpotifyCache(kv as unknown as KVNamespace);
+      const result = await getSpotifyCache(db as unknown as D1Database);
       expect(result).toBeNull();
     });
 
-    it('should return null when cached entry has no data', async () => {
-      const cachedEntry = {
-        cachedAt: Date.now()
-        // missing data
-      };
-      const kv = createMockKV({ [SPOTIFY_RESPONSE_CACHE_KEY]: cachedEntry });
+    it('should return null when row has no cached_at column', async () => {
+      const db = createMockDB({
+        'spotify:full-response': {
+          key: 'spotify:full-response',
+          data: JSON.stringify(sampleSpotifyData)
+          // missing cached_at
+        }
+      });
 
-      const result = await getSpotifyCache(kv as unknown as KVNamespace);
+      const result = await getSpotifyCache(db as unknown as D1Database);
       expect(result).toBeNull();
     });
   });
 
   describe('setSpotifyCache', () => {
-    it('should store data in KV with timestamp', async () => {
-      const kv = createMockKV();
+    it('should store data in D1 with timestamp', async () => {
+      const db = createMockDB();
       const now = Date.now();
 
-      await setSpotifyCache(kv as unknown as KVNamespace, sampleSpotifyData);
+      await setSpotifyCache(db as unknown as D1Database, sampleSpotifyData);
 
-      expect(kv.put).toHaveBeenCalledTimes(1);
-      const [key, value, options] = kv.put.mock.calls[0];
-      expect(key).toBe(SPOTIFY_RESPONSE_CACHE_KEY);
+      expect(db.prepare).toHaveBeenCalledTimes(1);
+      const sql = db.prepare.mock.calls[0][0] as string;
+      expect(sql).toContain('REPLACE');
+      expect(sql).toContain('spotify_cache');
 
-      const parsed = JSON.parse(value);
-      expect(parsed.data).toEqual(sampleSpotifyData);
-      expect(parsed.cachedAt).toBeGreaterThanOrEqual(now);
-      expect(parsed.cachedAt).toBeLessThanOrEqual(Date.now());
+      const bindCall = db.prepare.mock.results[0].value.bind;
+      expect(bindCall).toHaveBeenCalledWith(
+        'spotify:full-response',
+        JSON.stringify(sampleSpotifyData),
+        expect.any(Number)
+      );
 
-      // Should set a KV expiration TTL slightly longer than our cache TTL
-      expect(options.expirationTtl).toBe(600);
+      // Verify the timestamp is reasonable
+      const calledTimestamp = bindCall.mock.calls[0][2] as number;
+      expect(calledTimestamp).toBeGreaterThanOrEqual(now);
+      expect(calledTimestamp).toBeLessThanOrEqual(Date.now());
     });
 
-    it('should not throw when KV put fails', async () => {
-      const kv = {
-        get: vi.fn(),
-        put: vi.fn().mockRejectedValue(new Error('KV write failed')),
-        delete: vi.fn()
+    it('should not throw when D1 write fails', async () => {
+      const db = {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({
+            run: vi.fn().mockRejectedValue(new Error('D1 write failed'))
+          }))
+        }))
       };
 
-      // Should not throw
       await expect(
-        setSpotifyCache(kv as unknown as KVNamespace, sampleSpotifyData)
+        setSpotifyCache(db as unknown as D1Database, sampleSpotifyData)
       ).resolves.toBeUndefined();
     });
 
     it('should not cache data that contains an error', async () => {
-      const kv = createMockKV();
+      const db = createMockDB();
       const errorData = { ...sampleSpotifyData, error: 'Something went wrong' };
 
-      await setSpotifyCache(kv as unknown as KVNamespace, errorData);
+      await setSpotifyCache(db as unknown as D1Database, errorData);
 
-      // Should NOT write to KV when data has an error
-      expect(kv.put).not.toHaveBeenCalled();
+      // Should NOT write to D1 when data has an error
+      expect(db.prepare).not.toHaveBeenCalled();
     });
   });
 
   describe('cache TTL constant', () => {
     it('should be 5 minutes in milliseconds', () => {
       expect(SPOTIFY_CACHE_TTL_MS).toBe(5 * 60 * 1000);
+    });
+  });
+
+  describe('getSpotifyCacheStale', () => {
+    it('should return null when no cached data exists', async () => {
+      const db = createMockDB();
+      const result = await getSpotifyCacheStale(db as unknown as D1Database);
+      expect(result).toBeNull();
+    });
+
+    it('should return cached data when it is fresh', async () => {
+      const cachedAt = Date.now() - 60_000; // 1 minute ago
+      const db = createMockDB({
+        'spotify:full-response': {
+          key: 'spotify:full-response',
+          data: JSON.stringify(sampleSpotifyData),
+          cached_at: cachedAt
+        }
+      });
+
+      const result = await getSpotifyCacheStale(db as unknown as D1Database);
+      expect(result).toEqual(sampleSpotifyData);
+    });
+
+    it('should return cached data even when stale (older than 5 minutes)', async () => {
+      const cachedAt = Date.now() - SPOTIFY_CACHE_TTL_MS - 60_000; // 6 minutes ago
+      const db = createMockDB({
+        'spotify:full-response': {
+          key: 'spotify:full-response',
+          data: JSON.stringify(sampleSpotifyData),
+          cached_at: cachedAt
+        }
+      });
+
+      const result = await getSpotifyCacheStale(db as unknown as D1Database);
+      expect(result).toEqual(sampleSpotifyData);
+    });
+
+    it('should return cached data even when very old (hours old)', async () => {
+      const cachedAt = Date.now() - 3 * 60 * 60 * 1000; // 3 hours ago
+      const db = createMockDB({
+        'spotify:full-response': {
+          key: 'spotify:full-response',
+          data: JSON.stringify(sampleSpotifyData),
+          cached_at: cachedAt
+        }
+      });
+
+      const result = await getSpotifyCacheStale(db as unknown as D1Database);
+      expect(result).toEqual(sampleSpotifyData);
+    });
+
+    it('should return null when D1 throws an error', async () => {
+      const db = {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({
+            first: vi.fn().mockRejectedValue(new Error('D1 unavailable'))
+          }))
+        }))
+      };
+
+      const result = await getSpotifyCacheStale(db as unknown as D1Database);
+      expect(result).toBeNull();
+    });
+
+    it('should return null when row has no data column', async () => {
+      const db = createMockDB({
+        'spotify:full-response': {
+          key: 'spotify:full-response',
+          cached_at: Date.now()
+          // missing data
+        }
+      });
+
+      const result = await getSpotifyCacheStale(db as unknown as D1Database);
+      expect(result).toBeNull();
     });
   });
 });

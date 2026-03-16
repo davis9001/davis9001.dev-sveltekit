@@ -2,22 +2,33 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Tests for Home Page Server Load — Spotify SSR integration.
- * Verifies that cached Spotify data is loaded server-side for instant rendering.
+ * Verifies that cached Spotify data is loaded server-side from D1 for instant rendering.
  */
 
-function createMockKV(stored: Record<string, unknown> = {}) {
-  const store: Record<string, string> = {};
-  for (const [k, v] of Object.entries(stored)) {
-    store[k] = JSON.stringify(v);
+function createMockDB(rows: Record<string, Record<string, unknown>> = {}) {
+  const store = new Map<string, Record<string, unknown>>();
+  for (const [key, row] of Object.entries(rows)) {
+    store.set(key, row);
   }
+
   return {
-    get: vi.fn(async (key: string, type?: string) => {
-      const val = store[key] ?? null;
-      if (val && type === 'json') return JSON.parse(val);
-      return val;
-    }),
-    put: vi.fn(async () => { }),
-    delete: vi.fn(async () => { })
+    prepare: vi.fn((sql: string) => ({
+      bind: vi.fn((...args: unknown[]) => ({
+        first: vi.fn(async () => {
+          const key = args[0] as string;
+          return store.get(key) ?? null;
+        }),
+        run: vi.fn(async () => {
+          if (sql.trim().toUpperCase().startsWith('REPLACE')) {
+            const key = args[0] as string;
+            const data = args[1] as string;
+            const cachedAt = args[2] as number;
+            store.set(key, { key, data, cached_at: cachedAt });
+          }
+          return { success: true };
+        })
+      }))
+    }))
   };
 }
 
@@ -52,13 +63,16 @@ describe('Home Page Server Load - Spotify SSR', () => {
     vi.resetModules();
   });
 
-  it('should return spotifyData when KV has fresh cached data', async () => {
-    const cachedEntry = {
-      data: sampleSpotifyData,
-      cachedAt: Date.now() - 60_000 // 1 minute ago
-    };
-    const kv = createMockKV({ 'spotify:full-response': cachedEntry });
-    const platform = { env: { KV: kv, DB: {} }, context: {}, caches: {} };
+  it('should return spotifyData when D1 has fresh cached data', async () => {
+    const cachedAt = Date.now() - 60_000; // 1 minute ago
+    const db = createMockDB({
+      'spotify:full-response': {
+        key: 'spotify:full-response',
+        data: JSON.stringify(sampleSpotifyData),
+        cached_at: cachedAt
+      }
+    });
+    const platform = { env: { DB: db, KV: {} }, context: {}, caches: {} };
 
     const { load } = await import('../../src/routes/+page.server');
     const result = await load({ platform } as any);
@@ -67,23 +81,27 @@ describe('Home Page Server Load - Spotify SSR', () => {
     expect(result.recentPosts).toBeDefined();
   });
 
-  it('should return null spotifyData when KV cache is stale', async () => {
-    const cachedEntry = {
-      data: sampleSpotifyData,
-      cachedAt: Date.now() - 6 * 60 * 1000 // 6 minutes ago
-    };
-    const kv = createMockKV({ 'spotify:full-response': cachedEntry });
-    const platform = { env: { KV: kv }, context: {}, caches: {} };
+  it('should return spotifyData even when D1 cache is stale (cache-first strategy)', async () => {
+    const cachedAt = Date.now() - 6 * 60 * 1000; // 6 minutes ago
+    const db = createMockDB({
+      'spotify:full-response': {
+        key: 'spotify:full-response',
+        data: JSON.stringify(sampleSpotifyData),
+        cached_at: cachedAt
+      }
+    });
+    const platform = { env: { DB: db }, context: {}, caches: {} };
 
     const { load } = await import('../../src/routes/+page.server');
     const result = await load({ platform } as any);
 
-    expect(result.spotifyData).toBeNull();
+    // Stale data should still be returned for instant rendering
+    expect(result.spotifyData).toEqual(sampleSpotifyData);
   });
 
-  it('should return null spotifyData when KV has no cached data', async () => {
-    const kv = createMockKV();
-    const platform = { env: { KV: kv }, context: {}, caches: {} };
+  it('should return null spotifyData when D1 has no cached data', async () => {
+    const db = createMockDB();
+    const platform = { env: { DB: db }, context: {}, caches: {} };
 
     const { load } = await import('../../src/routes/+page.server');
     const result = await load({ platform } as any);
@@ -99,7 +117,7 @@ describe('Home Page Server Load - Spotify SSR', () => {
     expect(result.recentPosts).toBeDefined();
   });
 
-  it('should return null spotifyData when KV is not available on platform', async () => {
+  it('should return null spotifyData when DB is not available on platform', async () => {
     const platform = { env: {} };
 
     const { load } = await import('../../src/routes/+page.server');
@@ -109,12 +127,14 @@ describe('Home Page Server Load - Spotify SSR', () => {
   });
 
   it('should still return recentPosts even when Spotify cache fails', async () => {
-    const kv = {
-      get: vi.fn().mockRejectedValue(new Error('KV error')),
-      put: vi.fn(),
-      delete: vi.fn()
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({
+          first: vi.fn().mockRejectedValue(new Error('D1 error'))
+        }))
+      }))
     };
-    const platform = { env: { KV: kv }, context: {}, caches: {} };
+    const platform = { env: { DB: db }, context: {}, caches: {} };
 
     const { load } = await import('../../src/routes/+page.server');
     const result = await load({ platform } as any);

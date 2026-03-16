@@ -363,12 +363,12 @@ export const GET: RequestHandler = async ({ platform }) => {
     });
   }
 
-  // Check global KV cache (shared across all users, 5-minute TTL)
-  const kvCached = await getSpotifyCache(platform.env.KV);
-  if (kvCached) {
-    // Populate in-memory cache from KV hit
-    fullResponseCache = { data: kvCached as SpotifyData, expiresAt: Date.now() + FULL_RESPONSE_CACHE_TTL_MS };
-    return json(kvCached, {
+  // Check global D1 cache (shared across all users, 5-minute TTL)
+  const dbCached = await getSpotifyCache(platform.env.DB);
+  if (dbCached) {
+    // Populate in-memory cache from D1 hit
+    fullResponseCache = { data: dbCached as SpotifyData, expiresAt: Date.now() + FULL_RESPONSE_CACHE_TTL_MS };
+    return json(dbCached, {
       headers: { 'Cache-Control': 'public, max-age=30' }
     });
   }
@@ -440,9 +440,9 @@ export const GET: RequestHandler = async ({ platform }) => {
       profileUrl: PROFILE_URL
     };
 
-    // Cache the full response in memory and KV (global 5-minute cache)
+    // Cache the full response in memory and D1 (global 5-minute cache)
     fullResponseCache = { data, expiresAt: Date.now() + FULL_RESPONSE_CACHE_TTL_MS };
-    await setSpotifyCache(platform.env.KV, data as unknown as Record<string, unknown>);
+    await setSpotifyCache(platform.env.DB, data as unknown as Record<string, unknown>);
 
     return json(data, {
       headers: { 'Cache-Control': 'public, max-age=30' }

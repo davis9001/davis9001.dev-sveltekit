@@ -16,6 +16,33 @@ function createMockKV(stored: Record<string, unknown> = {}) {
   };
 }
 
+function createMockDB(rows: Record<string, Record<string, unknown>> = {}) {
+  const store = new Map<string, Record<string, unknown>>();
+  for (const [key, row] of Object.entries(rows)) {
+    store.set(key, row);
+  }
+
+  return {
+    prepare: vi.fn((sql: string) => ({
+      bind: vi.fn((...args: unknown[]) => ({
+        first: vi.fn(async () => {
+          const key = args[0] as string;
+          return store.get(key) ?? null;
+        }),
+        run: vi.fn(async () => {
+          if (sql.trim().toUpperCase().startsWith('REPLACE')) {
+            const key = args[0] as string;
+            const data = args[1] as string;
+            const cachedAt = args[2] as number;
+            store.set(key, { key, data, cached_at: cachedAt });
+          }
+          return { success: true };
+        })
+      }))
+    }))
+  };
+}
+
 function createMockPlatform(
   envOverrides: Record<string, unknown> = {},
   kvData: Record<string, unknown> = {}
@@ -23,6 +50,7 @@ function createMockPlatform(
   return {
     env: {
       KV: createMockKV(kvData),
+      DB: createMockDB(),
       SPOTIFY_CLIENT_ID: 'test_client_id',
       SPOTIFY_CLIENT_SECRET: 'test_client_secret',
       SPOTIFY_REFRESH_TOKEN: 'test_refresh_token',
@@ -258,6 +286,7 @@ describe('Spotify API Route', () => {
           put: vi.fn(),
           delete: vi.fn()
         },
+        DB: createMockDB(),
         SPOTIFY_CLIENT_ID: 'id',
         SPOTIFY_CLIENT_SECRET: 'secret',
         SPOTIFY_REFRESH_TOKEN: 'token'

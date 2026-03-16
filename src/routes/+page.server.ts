@@ -2,11 +2,11 @@
  * Home Page - Server Load
  *
  * Loads recent blog posts and cached Spotify data for display on the home page.
- * Spotify data is loaded from KV cache (shared across all users, 5-minute TTL)
+ * Spotify data is loaded from D1 cache (shared across all users, 5-minute TTL)
  * so the page renders instantly with music data on first paint.
  */
 import { processRawPosts } from '$lib/utils/blog';
-import { getSpotifyCache } from '$lib/services/spotify-cache';
+import { getSpotifyCacheStale } from '$lib/services/spotify-cache';
 import type { PageServerLoad } from './$types';
 
 // Load all markdown files at build time
@@ -18,10 +18,11 @@ export const load: PageServerLoad = async ({ platform }) => {
   // Return only metadata for the 5 most recent posts
   const recentPosts = posts.slice(0, 5).map(({ content, ...meta }) => meta);
 
-  // Load cached Spotify data from KV for instant SSR rendering
+  // Load cached Spotify data from D1 for instant SSR rendering (stale OK —
+  // the widget refreshes from the API on mount to pick up any updates)
   let spotifyData = null;
-  if (platform?.env?.KV) {
-    spotifyData = await getSpotifyCache(platform.env.KV);
+  if (platform?.env?.DB) {
+    spotifyData = await getSpotifyCacheStale(platform.env.DB);
   }
 
   return {
