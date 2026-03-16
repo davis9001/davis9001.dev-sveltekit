@@ -18,6 +18,7 @@ wrangler.toml.local
 coverage/
 .nyc_output/
 test-results/
+test-outputs/
 playwright-report/
 playwright/.cache/
 
