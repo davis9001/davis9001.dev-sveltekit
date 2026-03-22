@@ -11,7 +11,11 @@
 	import SEO from '$lib/components/SEO.svelte';
 	import type { CrowTarget } from '$lib/utils/crow';
 	import { computeContainedImageBounds, imageLandmarkToViewport, findTextNodeOffset, computeRowInkCounts, findGlyphLedges, findInkCenterInRow, computeRowInteriorGapCounts, findCounterBottoms, findInteriorGapCenter } from '$lib/utils/crow';
+	import { openCommandPalette } from '$lib/stores/commandPalette';
+	import { browser } from '$app/environment';
 	import type { PageData } from './$types';
+
+	$: isMac = browser && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
 	export let data: PageData;
 
@@ -387,6 +391,10 @@
 			</nav>
 
 			<SocialLinks />
+
+			<button class="cmd-palette-hint" on:click={openCommandPalette} aria-label="Open command palette">
+				<kbd>{isMac ? '⌘' : 'Ctrl'}</kbd><span>+</span><kbd>K</kbd>
+			</button>
 		</div>
 
 		<!-- Scroll hint -->
@@ -543,6 +551,42 @@
 		border-color: hsla(var(--special), 0.3);
 		box-shadow: 0 8px 30px -8px hsla(var(--special), 0.3);
 		color: hsla(var(--special));
+	}
+
+	/* ── Command Palette Hint ── */
+	.cmd-palette-hint {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.2rem;
+		margin-top: 1.25rem;
+		padding: 0.3rem 0.65rem;
+		border-radius: 0.375rem;
+		background: hsla(var(--foreground), 0.06);
+		border: 1px solid hsla(var(--foreground), 0.1);
+		color: hsla(var(--foreground), 0.4);
+		font-size: 0.7rem;
+		cursor: pointer;
+		transition: all 200ms ease;
+	}
+
+	.cmd-palette-hint:hover {
+		background: hsla(var(--foreground), 0.1);
+		color: hsla(var(--foreground), 0.6);
+		border-color: hsla(var(--foreground), 0.18);
+	}
+
+	.cmd-palette-hint kbd {
+		font-family: inherit;
+		font-size: 0.65rem;
+		padding: 0.1rem 0.3rem;
+		border-radius: 0.25rem;
+		background: hsla(var(--foreground), 0.08);
+		border: 1px solid hsla(var(--foreground), 0.12);
+	}
+
+	.cmd-palette-hint span {
+		font-size: 0.6rem;
+		opacity: 0.6;
 	}
 
 	/* ── Scroll Hint ── */

@@ -190,6 +190,36 @@
 		previousShow = false;
 	}
 
+	function lockBodyScroll(node: HTMLElement) {
+		document.body.style.overflow = 'hidden';
+
+		function handleWheel(e: WheelEvent) {
+			e.preventDefault();
+			const commands = node.querySelector('.commands') as HTMLElement | null;
+			if (commands) {
+				commands.scrollTop += e.deltaY;
+			}
+		}
+
+		function handleTouchMove(e: TouchEvent) {
+			const target = e.target as HTMLElement;
+			if (!target.closest('.commands')) {
+				e.preventDefault();
+			}
+		}
+
+		node.addEventListener('wheel', handleWheel, { passive: false });
+		node.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+		return {
+			destroy() {
+				document.body.style.overflow = '';
+				node.removeEventListener('wheel', handleWheel);
+				node.removeEventListener('touchmove', handleTouchMove);
+			}
+		};
+	}
+
 	function scrollSelectedIntoView() {
 		tick().then(() => {
 			const container = document.querySelector('.commands');
@@ -273,6 +303,7 @@
 {#if show}
 	<div
 		class="backdrop"
+		use:lockBodyScroll
 		on:click={handleBackdropClick}
 		role="presentation"
 		on:keydown={(e) => e.key === 'Escape' && closeCommandPalette()}
@@ -372,6 +403,8 @@
 		padding-top: 20vh;
 		z-index: 1000;
 		animation: fadeIn 0.2s ease;
+		overscroll-behavior: contain;
+		overflow: auto;
 	}
 
 	@keyframes fadeIn {
