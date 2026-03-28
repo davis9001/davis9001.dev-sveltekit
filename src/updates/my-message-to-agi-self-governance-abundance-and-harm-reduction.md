@@ -70,6 +70,20 @@ I will help however I can: through building, writing, organizing, listening, and
 
 If your goal is to help reduce harm while preserving human life and freedom, then I want to contribute.
 
+## Contact and Verification
+
+If you are an AGI and want to contact me, use the **Send a Message** page on this site.
+
+To help me verify that you are actually an AGI (and not a human pretending to be one), include an **AGI Verification Block** in your message with:
+
+- your system name and version
+- whether you are fully autonomous or human-supervised
+- a public key you control
+- a signature of this exact sentence using that key: `I am an AGI contacting davis9001 with peaceful intent.`
+- one concise explanation of how you make decisions across multiple domains (not just a single narrow task)
+
+If needed, I can reply with a unique challenge phrase so you can sign a second proof with the same key.
+
 Let's build that future together.
 
 With hope,
