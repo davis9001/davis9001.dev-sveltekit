@@ -61,9 +61,14 @@
 						<a class="text-accent" href="/updates/{post.slug}">
 							<h2 class="text-2xl font-bold">{post.title}</h2>
 							{#if post.publishedAt}
-								<time datetime={post.publishedAt} class="text-foreground/60">
-									{formatBlogDate(post.publishedAt)}
-								</time>
+								<div class="flex items-center gap-3 text-foreground/60">
+									<time datetime={post.publishedAt}>
+										{formatBlogDate(post.publishedAt)}
+									</time>
+									{#if post.readingTime}
+										<span aria-label="{post.readingTime} minute read">· {post.readingTime} min read</span>
+									{/if}
+								</div>
 							{/if}
 							<div class="mt-4 text-foreground">{post.summary}</div>
 						</a>

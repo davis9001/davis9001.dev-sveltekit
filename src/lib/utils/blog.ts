@@ -14,6 +14,7 @@ export interface BlogPostMeta {
   summary: string;
   description?: string;
   tags: string[];
+  readingTime?: number;
 }
 
 /** A full blog post with parsed content */
