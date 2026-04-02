@@ -13,6 +13,10 @@ import {
   generateOffscreenSpawnPoints,
   computeFlockEntryDelays,
   computeDepartureSchedule,
+  hasCrowExitedViewport,
+  startFlockCrowPerch,
+  startFlockCrowFlight,
+  hasPerchExpired,
   computeFlockingForces,
   computeContainedImageBounds,
   imageLandmarkToViewport,
@@ -20,6 +24,8 @@ import {
   computeSoaringOffset,
   computeDivingOffset,
   computePerchLinePositions,
+  samplePerchSpotsFromRect,
+  dedupePerchSpots,
   distributeAmongPerchSpots,
   computeGlyphVisualTop,
   computeRowInkCounts,
@@ -30,6 +36,7 @@ import {
   findInteriorGapCenter,
   isSpotOccupied,
   pickAvailablePerchSpot,
+  derivePerchSpotsFromPretextLines,
   computeScareResponse,
   shouldAttemptLanding,
   type CrowTarget,
@@ -38,6 +45,7 @@ import {
   type ImageBounds,
   type WingMode,
   type PerchLine,
+  type PerchRectLike,
   CrowStateMachine
 } from './crow';
 
@@ -488,6 +496,65 @@ describe('Crow Animation Logic', () => {
     it('should handle zero crows gracefully', () => {
       const positions = computePerchLinePositions(0, perchLine);
       expect(positions).toHaveLength(0);
+    });
+  });
+
+  describe('samplePerchSpotsFromRect', () => {
+    const rect: PerchRectLike = { left: 100, top: 200, width: 320, height: 48 };
+
+    it('should sample points across the rectangle top edge', () => {
+      const spots = samplePerchSpotsFromRect(rect, { spacingPx: 64 });
+      expect(spots.length).toBeGreaterThan(1);
+      for (const spot of spots) {
+        expect(spot.y).toBe(199);
+        expect(spot.x).toBeGreaterThan(rect.left);
+        expect(spot.x).toBeLessThan(rect.left + rect.width);
+      }
+    });
+
+    it('should respect minCount and maxCount bounds', () => {
+      const sparse = samplePerchSpotsFromRect(rect, { spacingPx: 999, minCount: 2 });
+      const dense = samplePerchSpotsFromRect(rect, { spacingPx: 10, maxCount: 4 });
+      expect(sparse).toHaveLength(2);
+      expect(dense).toHaveLength(4);
+    });
+
+    it('should return empty for invalid rectangles', () => {
+      expect(samplePerchSpotsFromRect({ left: 0, top: 0, width: 0, height: 40 })).toEqual([]);
+      expect(samplePerchSpotsFromRect({ left: 0, top: 0, width: 100, height: 0 })).toEqual([]);
+    });
+  });
+
+  describe('dedupePerchSpots', () => {
+    it('should remove near-duplicates and preserve order', () => {
+      const input = [
+        { x: 10, y: 10 },
+        { x: 12, y: 12 },
+        { x: 40, y: 40 },
+        { x: 41, y: 41 },
+        { x: 90, y: 20 }
+      ];
+
+      const result = dedupePerchSpots(input, 5);
+      expect(result).toEqual([
+        { x: 10, y: 10 },
+        { x: 40, y: 40 },
+        { x: 90, y: 20 }
+      ]);
+    });
+
+    it('should cap output using maxSpots', () => {
+      const input = [
+        { x: 10, y: 10 },
+        { x: 30, y: 10 },
+        { x: 50, y: 10 },
+        { x: 70, y: 10 }
+      ];
+      const result = dedupePerchSpots(input, 3, 2);
+      expect(result).toEqual([
+        { x: 10, y: 10 },
+        { x: 30, y: 10 }
+      ]);
     });
   });
 
@@ -1530,6 +1597,63 @@ describe('Crow Animation Logic', () => {
     });
   });
 
+  describe('derivePerchSpotsFromPretextLines', () => {
+    it('should return one centered perch per matched line', () => {
+      const text = 'davis9001';
+      const anchors = [
+        { index: 0, x: 10, y: 120 },
+        { index: 1, x: 20, y: 118 },
+        { index: 2, x: 30, y: 119 },
+        { index: 3, x: 40, y: 121 },
+        { index: 4, x: 50, y: 117 },
+        { index: 5, x: 60, y: 119 },
+        { index: 6, x: 70, y: 118 },
+        { index: 7, x: 80, y: 120 },
+        { index: 8, x: 90, y: 121 }
+      ];
+
+      const spots = derivePerchSpotsFromPretextLines(text, anchors, ['davis', '9001']);
+
+      expect(spots).toHaveLength(2);
+      expect(spots[0]).toEqual({ x: 30, y: 117 });
+      expect(spots[1]).toEqual({ x: 70, y: 118 });
+    });
+
+    it('should advance through repeated line text in order', () => {
+      const text = 'ha ha';
+      const anchors = [
+        { index: 0, x: 10, y: 100 },
+        { index: 1, x: 20, y: 100 },
+        { index: 3, x: 40, y: 120 },
+        { index: 4, x: 50, y: 120 }
+      ];
+
+      const spots = derivePerchSpotsFromPretextLines(text, anchors, ['ha', 'ha']);
+
+      expect(spots).toHaveLength(2);
+      expect(spots[0]).toEqual({ x: 10, y: 100 });
+      expect(spots[1]).toEqual({ x: 40, y: 120 });
+    });
+
+    it('should skip lines that cannot be matched against the source text', () => {
+      const text = 'crow';
+      const anchors = [
+        { index: 0, x: 10, y: 50 },
+        { index: 1, x: 20, y: 50 },
+        { index: 2, x: 30, y: 50 },
+        { index: 3, x: 40, y: 50 }
+      ];
+
+      const spots = derivePerchSpotsFromPretextLines(text, anchors, ['xx', 'cr']);
+
+      expect(spots).toEqual([{ x: 10, y: 50 }]);
+    });
+
+    it('should return empty array when there are no anchors', () => {
+      expect(derivePerchSpotsFromPretextLines('crow', [], ['cr'])).toEqual([]);
+    });
+  });
+
   describe('CrowTarget textAware support', () => {
     it('should allow textAware on a CrowTarget', () => {
       const target: CrowTarget = {
@@ -1771,6 +1895,90 @@ describe('Crow Animation Logic', () => {
     it('should handle 1 crow (none leave)', () => {
       const schedule = computeDepartureSchedule(1, 60000);
       expect(schedule).toHaveLength(0);
+    });
+  });
+
+  describe('hasCrowExitedViewport', () => {
+    const viewport = { width: 1280, height: 720 };
+
+    it('should return false for a crow still on screen', () => {
+      expect(hasCrowExitedViewport({ x: 640, y: 360 }, viewport)).toBe(false);
+    });
+
+    it('should return false for a crow near the edge but not beyond margin', () => {
+      expect(hasCrowExitedViewport({ x: -80, y: 300 }, viewport, 120)).toBe(false);
+      expect(hasCrowExitedViewport({ x: 1340, y: 300 }, viewport, 120)).toBe(false);
+    });
+
+    it('should return true once the crow is fully beyond the margin', () => {
+      expect(hasCrowExitedViewport({ x: -130, y: 300 }, viewport, 120)).toBe(true);
+      expect(hasCrowExitedViewport({ x: 1410, y: 300 }, viewport, 120)).toBe(true);
+      expect(hasCrowExitedViewport({ x: 300, y: -140 }, viewport, 120)).toBe(true);
+      expect(hasCrowExitedViewport({ x: 300, y: 860 }, viewport, 120)).toBe(true);
+    });
+  });
+
+  describe('flock crow state transitions', () => {
+    it('should store perch timing separately from velocity', () => {
+      const crow: FlockCrow = {
+        id: 1,
+        x: 0,
+        y: 0,
+        vx: 3,
+        vy: -2,
+        targetX: 100,
+        targetY: 50,
+        state: 'flying'
+      };
+
+      startFlockCrowPerch(crow, { x: 40, y: 80 }, 1000, 5000);
+
+      expect(crow.state).toBe('perched');
+      expect(crow.x).toBe(40);
+      expect(crow.y).toBe(80);
+      expect(crow.vx).toBe(0);
+      expect(crow.vy).toBe(0);
+      expect(crow.perchEndTime).toBe(6000);
+    });
+
+    it('should reset perched crow motion before departure flight', () => {
+      const crow: FlockCrow = {
+        id: 2,
+        x: 100,
+        y: 200,
+        vx: 999999,
+        vy: 0,
+        targetX: 100,
+        targetY: 200,
+        state: 'perched',
+        perchEndTime: 999999
+      };
+
+      startFlockCrowFlight(crow, { x: 1600, y: -200 }, 'departing');
+
+      expect(crow.state).toBe('departing');
+      expect(crow.targetX).toBe(1600);
+      expect(crow.targetY).toBe(-200);
+      expect(crow.vx).toBe(0);
+      expect(crow.vy).toBe(0);
+      expect(crow.perchEndTime).toBeUndefined();
+    });
+
+    it('should report perch expiration using perchEndTime', () => {
+      const crow: FlockCrow = {
+        id: 3,
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        targetX: 0,
+        targetY: 0,
+        state: 'perched',
+        perchEndTime: 5000
+      };
+
+      expect(hasPerchExpired(crow, 4999)).toBe(false);
+      expect(hasPerchExpired(crow, 5000)).toBe(true);
     });
   });
 

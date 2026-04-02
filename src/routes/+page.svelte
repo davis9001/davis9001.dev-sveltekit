@@ -10,7 +10,7 @@
 	import { formatBlogDate } from '$lib/utils/blog';
 	import SEO from '$lib/components/SEO.svelte';
 	import type { CrowTarget } from '$lib/utils/crow';
-	import { computeContainedImageBounds, imageLandmarkToViewport, findTextNodeOffset, computeRowInkCounts, findGlyphLedges, findInkCenterInRow, computeRowInteriorGapCounts, findCounterBottoms, findInteriorGapCenter } from '$lib/utils/crow';
+	import { computeContainedImageBounds, imageLandmarkToViewport, findTextNodeOffset, computeRowInkCounts, findGlyphLedges, findInkCenterInRow, computeRowInteriorGapCounts, findCounterBottoms, findInteriorGapCenter, derivePerchSpotsFromPretextLines, samplePerchSpotsFromRect, dedupePerchSpots, type TextCharAnchor, type RectPerchSamplingOptions } from '$lib/utils/crow';
 	import { openCommandPalette } from '$lib/stores/commandPalette';
 	import { browser } from '$app/environment';
 	import type { PageData } from './$types';
@@ -36,6 +36,34 @@
 	const IMG_NAT_W = 420;
 	const IMG_NAT_H = 736;
 
+	type PretextLine = { text: string };
+	type PretextModule = {
+		prepareWithSegments: (text: string, font: string, options?: { whiteSpace?: 'normal' | 'pre-wrap' }) => any;
+		layoutWithLines: (prepared: any, maxWidth: number, lineHeight: number) => { lines: PretextLine[] };
+	};
+
+	let pretextModule: PretextModule | null = null;
+
+	function parseLineHeightPx(raw: string, fontSizePx: number): number {
+		if (raw === 'normal') return Math.round(fontSizePx * 1.2);
+		const value = parseFloat(raw);
+		return Number.isFinite(value) && value > 0 ? value : Math.round(fontSizePx * 1.2);
+	}
+
+	function collectElementPerchSpots(
+		selector: string,
+		options: RectPerchSamplingOptions = {}
+	): Array<{ x: number; y: number }> {
+		const spots: Array<{ x: number; y: number }> = [];
+		for (const node of document.querySelectorAll(selector)) {
+			if (!(node instanceof HTMLElement)) continue;
+			const rect = node.getBoundingClientRect();
+			if (rect.width < 8 || rect.height < 8) continue;
+			spots.push(...samplePerchSpotsFromRect(rect, options));
+		}
+		return spots;
+	}
+
 	/**
 	 * Measure the actual pixel offset of the background-position CSS
 	 * (-9ch 18em) by creating an invisible measuring element.
@@ -59,6 +87,7 @@
 		const vh = window.innerHeight;
 
 		const targets: CrowTarget[] = [];
+		const spots: Array<{ x: number; y: number }> = [];
 
 		// ── Compute where the background photo actually renders ──
 		// The background uses background-size:contain with offset -9ch 18em.
@@ -169,7 +198,7 @@
 			// to find horizontal "ledges" — top edges of strokes where a crow can
 			// perch. This produces multiple perch spots per character (e.g. the dot
 			// and stem of "i", the loop of "9", crossbars, etc.).
-			const spots: Array<{ x: number; y: number }> = [];
+			const charAnchors: TextCharAnchor[] = [];
 			const textNodes: Text[] = [];
 			const walker = document.createTreeWalker(title, NodeFilter.SHOW_TEXT);
 			let node: Text | null;
@@ -182,6 +211,8 @@
 			// Set up canvas with the title's computed font for glyph scanning
 			const titleStyle = getComputedStyle(title);
 			const fontStr = `${titleStyle.fontWeight} ${titleStyle.fontSize} ${titleStyle.fontFamily}`;
+			const fontSizePx = parseFloat(titleStyle.fontSize) || 16;
+			const lineHeightPx = parseLineHeightPx(titleStyle.lineHeight, fontSizePx);
 			const scanCanvas = document.createElement('canvas');
 			const scanCtx = scanCanvas.getContext('2d');
 
@@ -195,6 +226,7 @@
 				range.setEnd(tn, Math.min(loc.offset + 1, tn.length));
 				const cr = range.getBoundingClientRect();
 				range.detach();
+				charAnchors.push({ index: ci, x: cr.left + cr.width / 2, y: cr.top });
 
 				if (!scanCtx) {
 					// Fallback: just use bounding rect top
@@ -250,8 +282,30 @@
 					});
 				}
 			}
-			murderPerchSpots = spots;
+
+			if (pretextModule) {
+				try {
+					const prepared = pretextModule.prepareWithSegments(fullText, fontStr, { whiteSpace: 'normal' });
+					const layout = pretextModule.layoutWithLines(prepared, rect.width, lineHeightPx);
+					const lineTexts = layout.lines.map((line) => line.text);
+					const lineSpots = derivePerchSpotsFromPretextLines(fullText, charAnchors, lineTexts);
+					spots.push(...lineSpots);
+				} catch {
+					// Keep legacy perch generation when Pretext is unavailable or fails.
+				}
+			}
 		}
+
+		// Add broader UI perches so the murder can land naturally across the page.
+		spots.push(...collectElementPerchSpots('.hero-logo', { spacingPx: 80, minCount: 1, maxCount: 3, yOffsetPx: -2 }));
+		spots.push(...collectElementPerchSpots('.hero-subtitle, .hero-role', { spacingPx: 78, minCount: 1, maxCount: 5, yOffsetPx: -1 }));
+		spots.push(...collectElementPerchSpots('.hero-cta', { spacingPx: 54, minCount: 2, maxCount: 6, yOffsetPx: -2 }));
+		spots.push(...collectElementPerchSpots('.cmd-palette-hint', { spacingPx: 48, minCount: 2, maxCount: 4, yOffsetPx: -2 }));
+		spots.push(...collectElementPerchSpots('.hero-scroll-hint', { spacingPx: 20, minCount: 1, maxCount: 2, yOffsetPx: -2 }));
+		spots.push(...collectElementPerchSpots('.content-card h2, .content-card h3', { spacingPx: 72, minCount: 1, maxCount: 6, yOffsetPx: -1 }));
+		spots.push(...collectElementPerchSpots('.content-card a, .content-card button', { spacingPx: 62, minCount: 1, maxCount: 4, yOffsetPx: -2 }));
+
+		murderPerchSpots = dedupePerchSpots(spots, 16, 220);
 
 		// ── CTA — land on a character in the first CTA button ──
 		const cta = document.querySelector('.hero-cta');
@@ -310,7 +364,20 @@
 		script.src = '/ascii-animate.js';
 		document.head.appendChild(script);
 
-		// Compute crow targets after layout settles
+		void (async () => {
+			try {
+				const mod = await import('@chenglou/pretext');
+				pretextModule = {
+					prepareWithSegments: (text, font, options) => mod.prepareWithSegments(text, font, options),
+					layoutWithLines: (prepared, maxWidth, lineHeight) => mod.layoutWithLines(prepared, maxWidth, lineHeight)
+				};
+			} catch {
+				pretextModule = null;
+			}
+			computeCrowTargets();
+		})();
+
+		// Compute immediately too so the crow still has targets before the optional module resolves.
 		computeCrowTargets();
 		window.addEventListener('resize', computeCrowTargets);
 

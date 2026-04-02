@@ -1,7 +1,7 @@
 <!--
   CrowMurder.svelte
 
-  Easter egg: when the user types "murder" on the page, 42 crows spawn
+	Easter egg: when the user types "murder" on the page, 23 crows spawn
   off-screen and flock in. They fly around with boids flocking behavior,
   perch occasionally, and gradually depart over ~9 minutes until only
   one remains (joining the original crow).
@@ -13,6 +13,10 @@
 		generateOffscreenSpawnPoints,
 		computeFlockEntryDelays,
 		computeDepartureSchedule,
+		hasCrowExitedViewport,
+		startFlockCrowPerch,
+		startFlockCrowFlight,
+		hasPerchExpired,
 		computeFlockingForces,
 		getWingFlapAngle,
 		computeWingMode,
@@ -36,7 +40,7 @@
 	 *  (e.g. character positions on the site title) */
 	export let perchSpots: Array<{ x: number; y: number }> = [];
 
-	const FLOCK_COUNT = 42;
+	const FLOCK_COUNT = 23;
 	const ENTRY_SPREAD_MS = 8000;
 	const DEPARTURE_TOTAL_MS = 9 * 60 * 1000; // 9 minutes
 	const CROW_SPEED = 3.5; // px per frame
@@ -46,7 +50,7 @@
 	const LANDING_CHANCE = 0.04; // per-frame chance when conditions met
 	const SCARE_RADIUS = 80; // mouse proximity to scare a perched crow
 	const CHAIN_SCARE_RADIUS = 120; // radius to chain-scare nearby perched crows
-	const MIN_PERCH_DISTANCE = 18; // minimum px between perched crows
+	const MIN_PERCH_DISTANCE = 28; // minimum px between perched crows
 	const FLOCK_PHASE_MS = 12000; // crows flock freely for 12s before seeking perches
 	const FLOCK_WANDER_RADIUS = 250; // how far waypoints scatter from flock center
 
@@ -175,10 +179,13 @@
 			// Find a flying or perched crow to depart
 			const candidate = crows.find((c) => c.state === 'flying' || c.state === 'perched');
 			if (candidate) {
+				if (candidate.state === 'perched') {
+					occupiedSpots = occupiedSpots.filter(
+						(s) => Math.abs(s.x - candidate.x) > 2 || Math.abs(s.y - candidate.y) > 2
+					);
+				}
 				const dest = pickDepartureTarget(candidate);
-				candidate.targetX = dest.x;
-				candidate.targetY = dest.y;
-				candidate.state = 'departing';
+				startFlockCrowFlight(candidate, dest, 'departing');
 			}
 			departureIndex++;
 		}
@@ -216,10 +223,11 @@
 					occupiedSpots = occupiedSpots.filter(
 						(s) => Math.abs(s.x - crow.x) > 2 || Math.abs(s.y - crow.y) > 2
 					);
-					crow.state = 'flying';
 					flightStartTimes[i] = now;
-					crow.targetX = crow.x + scare.fleeDirection.dx * 300;
-					crow.targetY = crow.y + scare.fleeDirection.dy * 300;
+					startFlockCrowFlight(crow, {
+						x: crow.x + scare.fleeDirection.dx * 300,
+						y: crow.y + scare.fleeDirection.dy * 300
+					});
 					crow.vx = scare.fleeDirection.dx * CROW_SPEED * 1.5;
 					crow.vy = scare.fleeDirection.dy * CROW_SPEED * 1.5;
 
@@ -231,14 +239,15 @@
 							occupiedSpots = occupiedSpots.filter(
 								(s) => Math.abs(s.x - sCrow.x) > 2 || Math.abs(s.y - sCrow.y) > 2
 							);
-							sCrow.state = 'flying';
 							const si = crows.indexOf(sCrow);
 							if (si >= 0) flightStartTimes[si] = now;
 							// Flee in a similar but slightly randomized direction
 							const angle = Math.atan2(scare.fleeDirection.dy, scare.fleeDirection.dx)
 								+ (Math.random() - 0.5) * 1.2;
-							sCrow.targetX = sCrow.x + Math.cos(angle) * 250;
-							sCrow.targetY = sCrow.y + Math.sin(angle) * 250;
+							startFlockCrowFlight(sCrow, {
+								x: sCrow.x + Math.cos(angle) * 250,
+								y: sCrow.y + Math.sin(angle) * 250
+							});
 							sCrow.vx = Math.cos(angle) * CROW_SPEED;
 							sCrow.vy = Math.sin(angle) * CROW_SPEED;
 						}
@@ -246,22 +255,21 @@
 					continue;
 				}
 
-				// Check if perch duration has elapsed (stored in vx as perchEndTime hack)
-				if (now >= crow.vx) {
+				if (hasPerchExpired(crow, now)) {
 					occupiedSpots = occupiedSpots.filter(
 						(s) => Math.abs(s.x - crow.x) > 2 || Math.abs(s.y - crow.y) > 2
 					);
-					crow.state = 'flying';
 					flightStartTimes[i] = now;
 					// Prefer perch spots; fallback to random targets
 					if (perchPositions.length > 0) {
 						const pp = perchPositions[i % perchPositions.length];
-						crow.targetX = pp.x;
-						crow.targetY = pp.y;
+						startFlockCrowFlight(crow, pp);
 					} else if (targets.length > 0) {
 						const t = targets[Math.floor(Math.random() * targets.length)];
-						crow.targetX = t.x + (Math.random() - 0.5) * 200;
-						crow.targetY = t.y + (Math.random() - 0.5) * 100;
+						startFlockCrowFlight(crow, {
+							x: t.x + (Math.random() - 0.5) * 200,
+							y: t.y + (Math.random() - 0.5) * 100
+						});
 					}
 				}
 				continue;
@@ -313,10 +321,7 @@
 			// Check if close to target
 			const flightTime = now - flightStartTimes[i];
 			if (dist < 15) {
-				if (crow.state === 'departing') {
-					crow.state = 'departed';
-					wingAngles[i] = 0;
-				} else if (crow.state === 'flying' && inFlockPhase) {
+				if (crow.state === 'flying' && inFlockPhase) {
 					// During flock phase: reached waypoint, pick a new wandering waypoint
 					let fcx = window.innerWidth / 2;
 					let fcy = window.innerHeight * 0.25;
@@ -341,12 +346,8 @@
 							i, perchSpots, occupiedSpots, MIN_PERCH_DISTANCE
 						);
 						if (spot) {
-							crow.state = 'perched';
 							const perchDuration = PERCH_DURATION_MIN + Math.random() * (PERCH_DURATION_MAX - PERCH_DURATION_MIN);
-							crow.vx = now + perchDuration;
-							crow.vy = 0;
-							crow.x = spot.x;
-							crow.y = spot.y;
+							startFlockCrowPerch(crow, spot, now, perchDuration);
 							occupiedSpots.push({ x: spot.x, y: spot.y });
 						} else {
 							// All spots taken — pick a new target to circle
@@ -357,10 +358,8 @@
 					} else if (willPerch) {
 						// No perch spots — land at current position
 						if (!isSpotOccupied({ x: crow.x, y: crow.y }, occupiedSpots, MIN_PERCH_DISTANCE)) {
-							crow.state = 'perched';
 							const perchDuration = PERCH_DURATION_MIN + Math.random() * (PERCH_DURATION_MAX - PERCH_DURATION_MIN);
-							crow.vx = now + perchDuration;
-							crow.vy = 0;
+							startFlockCrowPerch(crow, { x: crow.x, y: crow.y }, now, perchDuration);
 							occupiedSpots.push({ x: crow.x, y: crow.y });
 						} else {
 							// Too close to another crow — keep flying
@@ -402,7 +401,7 @@
 			if (crow.state === 'departing') {
 				const vw = window.innerWidth;
 				const vh = window.innerHeight;
-				if (crow.x < -250 || crow.x > vw + 250 || crow.y < -250 || crow.y > vh + 250) {
+				if (hasCrowExitedViewport({ x: crow.x, y: crow.y }, { width: vw, height: vh }, 120)) {
 					crow.state = 'departed';
 					wingAngles[i] = 0;
 				}

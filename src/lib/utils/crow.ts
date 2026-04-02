@@ -188,6 +188,28 @@ export interface PerchLine {
   width: number;
 }
 
+/** Minimal rectangle shape used for element-based perch sampling */
+export interface PerchRectLike {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/** Options controlling how perch points are sampled along a rectangle top edge */
+export interface RectPerchSamplingOptions {
+  /** Approximate horizontal gap between sampled points in px */
+  spacingPx?: number;
+  /** Inset applied to both left and right sides before sampling */
+  insetPx?: number;
+  /** Vertical offset from rectangle top in px (negative lands above top edge) */
+  yOffsetPx?: number;
+  /** Minimum number of points to sample */
+  minCount?: number;
+  /** Maximum number of points to sample */
+  maxCount?: number;
+}
+
 /**
  * Distribute N crows evenly along a horizontal perch line.
  *
@@ -211,6 +233,69 @@ export function computePerchLinePositions(
     });
   }
   return positions;
+}
+
+/**
+ * Sample plausible perch points along the top edge of a rectangular element.
+ *
+ * This gives a lightweight approximation for where crows can land on buttons,
+ * headings, cards, and other UI surfaces without expensive glyph analysis.
+ */
+export function samplePerchSpotsFromRect(
+  rect: PerchRectLike,
+  options: RectPerchSamplingOptions = {},
+): Array<{ x: number; y: number; }> {
+  if (rect.width <= 0 || rect.height <= 0) return [];
+
+  const spacingPx = options.spacingPx ?? 72;
+  const insetPx = options.insetPx ?? 8;
+  const yOffsetPx = options.yOffsetPx ?? -1;
+  const minCount = options.minCount ?? 1;
+  const maxCount = options.maxCount ?? 7;
+
+  const usableWidth = Math.max(0, rect.width - insetPx * 2);
+  const baseCount = Math.max(1, Math.round(usableWidth / Math.max(1, spacingPx)));
+  const count = Math.max(minCount, Math.min(maxCount, baseCount));
+
+  const spots: Array<{ x: number; y: number; }> = [];
+  for (let i = 0; i < count; i++) {
+    const t = (i + 1) / (count + 1);
+    const jitter = Math.sin((i + 1) * 12.9898 + rect.left * 0.03) * 2;
+    spots.push({
+      x: rect.left + insetPx + t * usableWidth + jitter,
+      y: rect.top + yOffsetPx,
+    });
+  }
+  return spots;
+}
+
+/**
+ * Remove near-duplicate perch points while preserving input order.
+ * Useful when combining glyph-derived spots with rectangle-sampled spots.
+ */
+export function dedupePerchSpots(
+  spots: Array<{ x: number; y: number; }>,
+  minDistancePx: number,
+  maxSpots: number = Infinity,
+): Array<{ x: number; y: number; }> {
+  if (spots.length === 0) return [];
+
+  const deduped: Array<{ x: number; y: number; }> = [];
+  const minDistSq = minDistancePx * minDistancePx;
+
+  for (const spot of spots) {
+    const tooClose = deduped.some((existing) => {
+      const dx = existing.x - spot.x;
+      const dy = existing.y - spot.y;
+      return dx * dx + dy * dy < minDistSq;
+    });
+    if (!tooClose) {
+      deduped.push(spot);
+      if (deduped.length >= maxSpots) break;
+    }
+  }
+
+  return deduped;
 }
 
 /**
@@ -676,6 +761,54 @@ export function findTextNodeOffset(
   return null;
 }
 
+/** Character anchor used when deriving per-line perch spots */
+export interface TextCharAnchor {
+  index: number;
+  x: number;
+  y: number;
+}
+
+/**
+ * Convert line text slices (for example from Pretext layout output)
+ * into representative crow perch spots.
+ *
+ * For each matched line, this picks a centered non-whitespace character
+ * anchor and uses the minimum Y in that line so the perch stays on the
+ * top edge of the text run.
+ */
+export function derivePerchSpotsFromPretextLines(
+  fullText: string,
+  anchors: TextCharAnchor[],
+  lineTexts: string[],
+): Array<{ x: number; y: number; }> {
+  if (anchors.length === 0 || lineTexts.length === 0 || fullText.length === 0) {
+    return [];
+  }
+
+  const sortedAnchors = [...anchors].sort((a, b) => a.index - b.index);
+  const spots: Array<{ x: number; y: number; }> = [];
+  let cursor = 0;
+
+  for (const lineText of lineTexts) {
+    if (!lineText) continue;
+
+    const start = fullText.indexOf(lineText, cursor);
+    if (start === -1) continue;
+
+    const end = start + lineText.length;
+    cursor = end;
+
+    const lineAnchors = sortedAnchors.filter((a) => a.index >= start && a.index < end);
+    if (lineAnchors.length === 0) continue;
+
+    const centerAnchor = lineAnchors[Math.floor((lineAnchors.length - 1) / 2)];
+    const minY = Math.min(...lineAnchors.map((a) => a.y));
+    spots.push({ x: centerAnchor.x, y: minY });
+  }
+
+  return spots;
+}
+
 /** Items the crow can carry in its beak */
 const CARRIED_ITEMS = ['letter', 'flower', 'key', 'coin', 'twig'] as const;
 export type CarriedItem = (typeof CARRIED_ITEMS)[number];
@@ -885,6 +1018,7 @@ export interface FlockCrow {
   targetX: number;
   targetY: number;
   state: 'waiting' | 'flying' | 'perched' | 'departing' | 'departed';
+  perchEndTime?: number;
 }
 
 /**
@@ -972,6 +1106,59 @@ export function computeDepartureSchedule(count: number, totalDurationMs: number)
     schedule.push(Math.max(graceMs, Math.min(totalDurationMs, base + jitter)));
   }
   return schedule.sort((a, b) => a - b);
+}
+
+/**
+ * Determine whether a crow has fully exited the viewport plus a safety margin.
+ *
+ * Used to prevent crows from disappearing mid-flight while they are still
+ * visually near the screen edge.
+ */
+export function hasCrowExitedViewport(
+  crowPos: { x: number; y: number; },
+  viewport: { width: number; height: number; },
+  margin: number = 120,
+): boolean {
+  return (
+    crowPos.x < -margin ||
+    crowPos.x > viewport.width + margin ||
+    crowPos.y < -margin ||
+    crowPos.y > viewport.height + margin
+  );
+}
+
+/** Place a flock crow onto a perch and store its perch timeout explicitly. */
+export function startFlockCrowPerch(
+  crow: FlockCrow,
+  perchPos: { x: number; y: number; },
+  now: number,
+  durationMs: number,
+): void {
+  crow.state = 'perched';
+  crow.x = perchPos.x;
+  crow.y = perchPos.y;
+  crow.vx = 0;
+  crow.vy = 0;
+  crow.perchEndTime = now + durationMs;
+}
+
+/** Move a flock crow back into flight, clearing any perched-only state. */
+export function startFlockCrowFlight(
+  crow: FlockCrow,
+  target: { x: number; y: number; },
+  nextState: 'flying' | 'departing' = 'flying',
+): void {
+  crow.state = nextState;
+  crow.targetX = target.x;
+  crow.targetY = target.y;
+  crow.vx = 0;
+  crow.vy = 0;
+  crow.perchEndTime = undefined;
+}
+
+/** Whether a perched crow's dwell time has elapsed. */
+export function hasPerchExpired(crow: FlockCrow, now: number): boolean {
+  return crow.perchEndTime !== undefined && now >= crow.perchEndTime;
 }
 
 /**
