@@ -40,7 +40,13 @@ function rel(f: string) {
 }
 
 function read(f: string) {
-  return readFileSync(f, 'utf-8');
+  const content = readFileSync(f, 'utf-8');
+  // Strip <code>...</code> blocks so documentation examples in .svelte files
+  // don't trigger false positives (they're rendered HTML, not executed code).
+  if (f.endsWith('.svelte')) {
+    return content.replace(/<code[^>]*>[\s\S]*?<\/code>/g, '<code></code>');
+  }
+  return content;
 }
 
 function offenders(files: string[], pattern: RegExp): string[] {
