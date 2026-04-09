@@ -23,6 +23,7 @@ function createMockDB(rows: Record<string, Record<string, unknown>> = {}) {
   }
 
   return {
+    __store: store,
     prepare: vi.fn((sql: string) => ({
       bind: vi.fn((...args: unknown[]) => ({
         first: vi.fn(async () => {
@@ -55,6 +56,9 @@ function createMockPlatform(
       SPOTIFY_CLIENT_SECRET: 'test_client_secret',
       SPOTIFY_REFRESH_TOKEN: 'test_refresh_token',
       ...envOverrides
+    },
+    context: {
+      waitUntil: vi.fn()
     }
   };
 }
@@ -163,6 +167,617 @@ describe('Spotify API Route', () => {
     expect(data.recentlyPlayed[0].playedAt).toBe('2024-01-01T00:00:00Z');
     expect(data.topPlaylists).toEqual([]);
     expect(data.error).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should return stale D1 cache immediately and refresh it in the background', async () => {
+    const staleCachedData = {
+      currentlyPlaying: {
+        isPlaying: true,
+        track: {
+          id: 'stale-track',
+          name: 'Cached Song',
+          artists: [{ name: 'Cached Artist', external_urls: { spotify: '' } }],
+          album: { name: 'Cached Album', images: [], external_urls: { spotify: '' } },
+          external_urls: { spotify: '' },
+          duration_ms: 180000
+        },
+        progress_ms: 45000,
+        context: null
+      },
+      recentlyPlayed: [],
+      topPlaylists: [],
+      profileUrl: PROFILE_URL
+    };
+
+    const db = createMockDB({
+      'spotify:full-response': {
+        key: 'spotify:full-response',
+        data: JSON.stringify(staleCachedData),
+        cached_at: Date.now() - (10 * 60 * 1000)
+      }
+    });
+
+    const platform = createMockPlatform(
+      {
+        DB: db
+      },
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    const waitUntilPromises: Promise<unknown>[] = [];
+    platform.context.waitUntil = vi.fn((promise: Promise<unknown>) => {
+      waitUntilPromises.push(promise);
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url === 'https://api.spotify.com/v1/me/player/currently-playing') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              is_playing: true,
+              item: {
+                id: 'fresh-track',
+                name: 'Fresh Song',
+                artists: [{ name: 'Fresh Artist', external_urls: { spotify: '' } }],
+                album: { name: 'Fresh Album', images: [], external_urls: { spotify: '' } },
+                external_urls: { spotify: '' },
+                duration_ms: 200000
+              },
+              progress_ms: 90000,
+              context: null
+            })
+          });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/player/recently-played?limit=10') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ items: [] })
+          });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/playlists?limit=50') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ items: [] })
+          });
+        }
+
+        return Promise.resolve({ ok: false, status: 404 });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+
+    expect(data).toEqual(staleCachedData);
+    expect(response.headers.get('x-spotify-revalidating')).toBe('1');
+    expect(platform.context.waitUntil).toHaveBeenCalledTimes(1);
+    expect(waitUntilPromises).toHaveLength(1);
+
+    await Promise.all(waitUntilPromises);
+
+    const cachedRow = db.__store.get('spotify:full-response') as { data: string; };
+    expect(JSON.parse(cachedRow.data)).toMatchObject({
+      currentlyPlaying: {
+        track: {
+          id: 'fresh-track',
+          name: 'Fresh Song'
+        }
+      }
+    });
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should keep serving stale cache when background revalidation fails', async () => {
+    const staleCachedData = {
+      currentlyPlaying: null,
+      recentlyPlayed: [],
+      topPlaylists: [],
+      profileUrl: PROFILE_URL
+    };
+
+    const db = createMockDB({
+      'spotify:full-response': {
+        key: 'spotify:full-response',
+        data: JSON.stringify(staleCachedData),
+        cached_at: Date.now() - (10 * 60 * 1000)
+      }
+    });
+
+    const platform = createMockPlatform(
+      { DB: db },
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    const waitUntilPromises: Promise<unknown>[] = [];
+    platform.context.waitUntil = vi.fn((promise: Promise<unknown>) => {
+      waitUntilPromises.push(promise);
+    });
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Spotify offline')));
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+
+    expect(data).toEqual(staleCachedData);
+    expect(response.headers.get('x-spotify-revalidating')).toBe('1');
+    expect(waitUntilPromises).toHaveLength(1);
+
+    await Promise.all(waitUntilPromises);
+
+    const cachedRow = db.__store.get('spotify:full-response') as { data: string; };
+    expect(JSON.parse(cachedRow.data)).toEqual(staleCachedData);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should fetch live Spotify data when no D1 cache exists', async () => {
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url === 'https://api.spotify.com/v1/me/player/currently-playing') {
+          return Promise.resolve({ ok: true, status: 204 });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/player/recently-played?limit=10') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              items: [
+                {
+                  track: {
+                    id: 'live-track',
+                    name: 'Live Track',
+                    artists: [{ name: 'Artist', external_urls: { spotify: '' } }],
+                    album: { name: 'Album', images: [], external_urls: { spotify: '' } },
+                    external_urls: { spotify: '' },
+                    duration_ms: 120000
+                  },
+                  played_at: '2026-04-09T00:00:00Z'
+                }
+              ]
+            })
+          });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/playlists?limit=50') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ items: [] })
+          });
+        }
+
+        return Promise.resolve({ ok: false, status: 404 });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+
+    expect(data.recentlyPlayed).toHaveLength(1);
+    expect(data.recentlyPlayed[0].track.id).toBe('live-track');
+    expect(platform.context.waitUntil).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should not schedule duplicate background refreshes on rapid cached requests', async () => {
+    const cachedData = {
+      currentlyPlaying: null,
+      recentlyPlayed: [],
+      topPlaylists: [],
+      profileUrl: PROFILE_URL
+    };
+
+    const db = createMockDB({
+      'spotify:full-response': {
+        key: 'spotify:full-response',
+        data: JSON.stringify(cachedData),
+        cached_at: Date.now() - (10 * 60 * 1000)
+      }
+    });
+
+    const platform = createMockPlatform(
+      {
+        DB: db
+      },
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    const deferredRefresh = new Promise(() => { });
+    platform.context.waitUntil = vi.fn();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => deferredRefresh)
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response1 = await GET({ platform } as any);
+    expect(await response1.json()).toEqual(cachedData);
+
+    const response2 = await GET({ platform } as any);
+    expect(await response2.json()).toEqual(cachedData);
+
+    expect(platform.context.waitUntil).toHaveBeenCalledTimes(1);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should return cached data even when waitUntil context is unavailable', async () => {
+    const cachedData = {
+      currentlyPlaying: null,
+      recentlyPlayed: [],
+      topPlaylists: [],
+      profileUrl: PROFILE_URL
+    };
+
+    const platform = {
+      env: {
+        KV: createMockKV({
+          'spotify:tokens': {
+            accessToken: 'valid_token',
+            refreshToken: 'refresh',
+            expiresAt: Date.now() + 3600000
+          }
+        }),
+        DB: createMockDB({
+          'spotify:full-response': {
+            key: 'spotify:full-response',
+            data: JSON.stringify(cachedData),
+            cached_at: Date.now() - (10 * 60 * 1000)
+          }
+        }),
+        SPOTIFY_CLIENT_ID: 'test_client_id',
+        SPOTIFY_CLIENT_SECRET: 'test_client_secret',
+        SPOTIFY_REFRESH_TOKEN: 'test_refresh_token'
+      }
+    };
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, status: 204 })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    expect(await response.json()).toEqual(cachedData);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should short-circuit Spotify fetches while local rate-limit backoff is active', async () => {
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    let fetchCallCount = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => {
+        fetchCallCount++;
+        return Promise.resolve({
+          ok: false,
+          status: 429,
+          headers: new Headers({ 'Retry-After': '30' })
+        });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const firstResponse = await GET({ platform } as any);
+    const firstData = await firstResponse.json();
+    expect(firstData.error).toContain('temporarily unavailable');
+
+    const callsAfterFirstRequest = fetchCallCount;
+
+    const secondResponse = await GET({ platform } as any);
+    const secondData = await secondResponse.json();
+    expect(secondData.error).toContain('temporarily unavailable');
+    expect(fetchCallCount).toBe(callsAfterFirstRequest);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should reuse in-memory playlist cache after the full response cache expires', async () => {
+    const originalNow = Date.now;
+    let now = 1_000_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: now + 3600000
+        }
+      }
+    );
+
+    let playlistListFetches = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url === 'https://api.spotify.com/v1/me/player/currently-playing') {
+          return Promise.resolve({ ok: true, status: 204 });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/player/recently-played?limit=10') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ items: [] })
+          });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/playlists?limit=50') {
+          playlistListFetches++;
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              items: [
+                {
+                  id: 'pl-cache',
+                  name: 'Reusable Playlist',
+                  description: 'cached once',
+                  images: [],
+                  external_urls: { spotify: 'https://open.spotify.com/playlist/pl-cache' },
+                  tracks: { total: 1 },
+                  owner: { id: '12810003', display_name: 'User' },
+                  followers: { total: 10 },
+                  public: true
+                }
+              ]
+            })
+          });
+        }
+
+        if (url.includes('/playlists/pl-cache?fields=')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              id: 'pl-cache',
+              name: 'Reusable Playlist',
+              description: 'cached once',
+              images: [],
+              external_urls: { spotify: 'https://open.spotify.com/playlist/pl-cache' },
+              tracks: { total: 1 },
+              owner: { id: '12810003' },
+              followers: { total: 10 },
+              public: true
+            })
+          });
+        }
+
+        if (url.includes('/playlists/pl-cache/tracks')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              items: [{ track: { duration_ms: 180000 } }],
+              next: null
+            })
+          });
+        }
+
+        return Promise.resolve({ ok: false, status: 404 });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response1 = await GET({ platform } as any);
+    const data1 = await response1.json();
+    expect(data1.topPlaylists).toHaveLength(1);
+    expect(playlistListFetches).toBe(1);
+
+    now += 30_000;
+
+    const response2 = await GET({ platform } as any);
+    const data2 = await response2.json();
+    expect(data2.topPlaylists).toHaveLength(1);
+    expect(playlistListFetches).toBe(1);
+
+    Date.now = originalNow;
+    vi.unstubAllGlobals();
+  });
+
+  it('should still return an auth error when clearing invalid KV tokens fails', async () => {
+    const platform = createMockPlatform(
+      {
+        KV: {
+          ...createMockKV({
+            'spotify:tokens': {
+              accessToken: 'stale_token',
+              refreshToken: 'refresh',
+              expiresAt: Date.now() + 3600000
+            }
+          }),
+          delete: vi.fn().mockRejectedValue(new Error('KV delete failed'))
+        }
+      }
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve({ ok: false, status: 401, headers: new Headers() }))
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+
+    expect(data.error).toContain('token is invalid or expired');
+    expect(platform.env.KV.delete).toHaveBeenCalledWith('spotify:tokens');
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should fall back to Spotify when playlist KV cache read fails', async () => {
+    const baseKV = createMockKV({
+      'spotify:tokens': {
+        accessToken: 'valid_token',
+        refreshToken: 'refresh',
+        expiresAt: Date.now() + 3600000
+      }
+    });
+
+    const platform = createMockPlatform({
+      KV: {
+        ...baseKV,
+        get: vi.fn(async (key: string, type?: string) => {
+          if (key === 'spotify:playlist-cache') {
+            throw new Error('KV read failed');
+          }
+
+          return baseKV.get(key, type as any);
+        })
+      }
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url === 'https://api.spotify.com/v1/me/player/currently-playing') {
+          return Promise.resolve({ ok: true, status: 204 });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/player/recently-played?limit=10') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ items: [] })
+          });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/playlists?limit=50') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              items: [
+                {
+                  id: 'pl-fallback',
+                  name: 'Fallback Playlist',
+                  description: '',
+                  images: [],
+                  external_urls: { spotify: 'https://open.spotify.com/playlist/pl-fallback' },
+                  tracks: { total: 1 },
+                  owner: { id: '12810003', display_name: 'User' },
+                  followers: { total: 3 },
+                  public: true
+                }
+              ]
+            })
+          });
+        }
+
+        if (url.includes('/playlists/pl-fallback?fields=')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              id: 'pl-fallback',
+              name: 'Fallback Playlist',
+              description: '',
+              images: [],
+              external_urls: { spotify: 'https://open.spotify.com/playlist/pl-fallback' },
+              tracks: { total: 1 },
+              owner: { id: '12810003' },
+              followers: { total: 3 },
+              public: true
+            })
+          });
+        }
+
+        if (url.includes('/playlists/pl-fallback/tracks')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ items: [{ track: { duration_ms: 60000 } }], next: null })
+          });
+        }
+
+        return Promise.resolve({ ok: false, status: 404 });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+
+    expect(data.topPlaylists).toHaveLength(1);
+    expect(data.topPlaylists[0].id).toBe('pl-fallback');
 
     vi.unstubAllGlobals();
   });

@@ -1,5 +1,10 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import {
+		SPOTIFY_REVALIDATING_HEADER,
+		shouldSurfaceSpotifyLoadError,
+		shouldRetrySpotifyRevalidation
+	} from '$lib/utils/spotify-revalidation';
 
 	interface SpotifyTrack {
 		id: string;
@@ -46,10 +51,14 @@
 	/** Optional initial data for SSR/testing — skips fetch when provided */
 	export let initialData: SpotifyData | null = null;
 
+	const REVALIDATION_RETRY_DELAY_MS = 1000;
+	const MAX_REVALIDATION_RETRIES = 3;
+
 	let spotifyData: SpotifyData | null = initialData;
 	let loading = !initialData;
 	let error: string | null = initialData?.error ? initialData.error : null;
 	let refreshInterval: ReturnType<typeof setInterval> | null = null;
+	let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	function formatRelativeTime(timestamp: string): string {
 		const now = new Date();
@@ -65,7 +74,27 @@
 		return `${diffDays}d ago`;
 	}
 
-	async function fetchSpotifyData() {
+	function clearRefreshTimeout() {
+		if (refreshTimeout) {
+			clearTimeout(refreshTimeout);
+			refreshTimeout = null;
+		}
+	}
+
+	function scheduleRefreshRetry(retriesRemaining: number) {
+		clearRefreshTimeout();
+
+		if (retriesRemaining <= 0) {
+			return;
+		}
+
+		refreshTimeout = setTimeout(() => {
+			refreshTimeout = null;
+			void requestSpotifyData(retriesRemaining - 1, false);
+		}, REVALIDATION_RETRY_DELAY_MS);
+	}
+
+	async function requestSpotifyData(retriesRemaining: number, isInitialRequest: boolean) {
 		try {
 			const response = await fetch('/api/spotify');
 			if (!response.ok) {
@@ -73,24 +102,33 @@
 			}
 			const data = await response.json();
 			spotifyData = data;
+			error = data?.error ? data.error : null;
 			loading = false;
+
+			if (shouldRetrySpotifyRevalidation(response.headers.get(SPOTIFY_REVALIDATING_HEADER), retriesRemaining)) {
+				scheduleRefreshRetry(retriesRemaining);
+			} else {
+				clearRefreshTimeout();
+			}
 		} catch (err) {
-			console.error('Error loading Spotify data:', err);
-			error = 'Failed to load Spotify data';
-			loading = false;
+			console.error(
+				isInitialRequest ? 'Error loading Spotify data:' : 'Error refreshing Spotify data:',
+				err
+			);
+
+			if (shouldSurfaceSpotifyLoadError(isInitialRequest, !spotifyData)) {
+				error = 'Failed to load Spotify data';
+				loading = false;
+			}
 		}
 	}
 
 	async function refreshData() {
-		try {
-			const response = await fetch('/api/spotify');
-			if (response.ok) {
-				const data = await response.json();
-				spotifyData = data;
-			}
-		} catch (err) {
-			console.error('Error refreshing Spotify data:', err);
-		}
+		await requestSpotifyData(MAX_REVALIDATION_RETRIES, false);
+	}
+
+	async function fetchSpotifyData() {
+		await requestSpotifyData(MAX_REVALIDATION_RETRIES, true);
 	}
 
 	onMount(() => {
@@ -101,6 +139,14 @@
 		} else {
 			fetchSpotifyData();
 		}
+	});
+
+	onDestroy(() => {
+		if (refreshInterval) {
+			clearInterval(refreshInterval);
+		}
+
+		clearRefreshTimeout();
 	});
 
 	$: profileUrl = spotifyData?.profileUrl || 'https://open.spotify.com/user/12810003?si=7ba6ee05f9cb4e96';

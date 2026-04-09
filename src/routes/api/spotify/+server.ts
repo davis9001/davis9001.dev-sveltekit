@@ -2,7 +2,11 @@ import type { KVNamespace } from '@cloudflare/workers-types';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getValidAccessToken } from '$lib/utils/spotify-tokens';
-import { getSpotifyCache, setSpotifyCache } from '$lib/services/spotify-cache';
+import {
+  getSpotifyRevalidationHeaderValue,
+  SPOTIFY_REVALIDATING_HEADER
+} from '$lib/utils/spotify-revalidation';
+import { getSpotifyCacheStale, setSpotifyCache } from '$lib/services/spotify-cache';
 
 interface SpotifyTrack {
   id: string;
@@ -89,10 +93,18 @@ const MEMORY_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 // Full response cache to avoid repeated Spotify API calls on rapid polling
 let fullResponseCache: MemoryCache<SpotifyData> | null = null;
 const FULL_RESPONSE_CACHE_TTL_MS = 25 * 1000; // 25 seconds — widget polls every 30s
+let backgroundRefreshInFlight: Promise<void> | null = null;
+let lastBackgroundRefreshStartedAt = 0;
 
 // Rate limit tracking — if Spotify returns 429, back off for the specified duration
 let rateLimitedUntil = 0;
 const MAX_BACKOFF_SECONDS = 300; // Cap at 5 minutes — Spotify sometimes sends absurdly long Retry-After values
+
+interface RefreshResult {
+  data: SpotifyData | null;
+  error?: string;
+  status?: number;
+}
 
 /**
  * Exported for testing: reset all module-level caches and rate-limit state.
@@ -100,7 +112,18 @@ const MAX_BACKOFF_SECONDS = 300; // Cap at 5 minutes — Spotify sometimes sends
 export function _resetCacheForTesting(): void {
   playlistMemoryCache = null;
   fullResponseCache = null;
+  backgroundRefreshInFlight = null;
+  lastBackgroundRefreshStartedAt = 0;
   rateLimitedUntil = 0;
+}
+
+function makeSuccessResponse(data: SpotifyData, extraHeaders: Record<string, string> = {}) {
+  return json(data, {
+    headers: {
+      'Cache-Control': 'public, max-age=30',
+      ...extraHeaders
+    }
+  });
 }
 
 function makeErrorResponse(error: string, status = 200) {
@@ -352,104 +375,151 @@ async function resolveContext(
   }
 }
 
-export const GET: RequestHandler = async ({ platform }) => {
-  if (!platform) {
-    return makeErrorResponse('Platform not available', 500);
-  }
-
-  // Return in-memory cached response if still fresh (prevents excessive API calls from polling)
-  if (fullResponseCache && Date.now() < fullResponseCache.expiresAt) {
-    return json(fullResponseCache.data, {
-      headers: { 'Cache-Control': 'public, max-age=30' }
-    });
-  }
-
-  // Check global D1 cache (shared across all users, 5-minute TTL)
-  const dbCached = await getSpotifyCache(platform.env.DB);
-  if (dbCached) {
-    // Populate in-memory cache from D1 hit
-    fullResponseCache = { data: dbCached as SpotifyData, expiresAt: Date.now() + FULL_RESPONSE_CACHE_TTL_MS };
-    return json(dbCached, {
-      headers: { 'Cache-Control': 'public, max-age=30' }
-    });
-  }
-
+async function fetchFreshSpotifyData(platform: App.Platform): Promise<RefreshResult> {
   try {
     const accessToken = await getValidAccessToken(platform.env.KV, platform.env);
 
     if (!accessToken) {
-      return makeErrorResponse('Unable to authenticate with Spotify. Please complete setup.');
+      return {
+        data: null,
+        error: 'Unable to authenticate with Spotify. Please complete setup.'
+      };
     }
 
-    // Fetch all data in parallel
     const [currentlyPlayingResult, recentlyPlayedResult, topPlaylists] = await Promise.all([
       getCurrentlyPlaying(accessToken),
       getRecentlyPlayed(accessToken),
       getTopPlaylists(accessToken, platform.env.KV)
     ]);
 
-    // If both currently-playing and recently-played returned 401, the token is
-    // invalid despite KV thinking it was still valid.  Clear KV cache so the
-    // next request forces a refresh.
     const got401 =
       currentlyPlayingResult.status === 401 || recentlyPlayedResult.status === 401;
     if (got401) {
       console.warn('Spotify returned 401 — clearing cached tokens from KV');
-      fullResponseCache = null; // ensure next poll forces a fresh fetch
       try {
         await platform.env.KV.delete('spotify:tokens');
-      } catch { /* best-effort */ }
+      } catch {
+        // Best-effort token cleanup
+      }
     }
 
-    // Detect whether fetches failed vs returned legitimately empty data
     const allFetchesFailed =
       currentlyPlayingResult.failed && recentlyPlayedResult.failed && topPlaylists.length === 0;
 
     if (allFetchesFailed) {
-      const hint = got401
-        ? 'Spotify token is invalid or expired. Please re-authorize via the admin panel.'
-        : 'All Spotify API calls failed. The service may be temporarily unavailable.';
-      console.error(hint);
-      return makeErrorResponse(hint);
+      return {
+        data: null,
+        error: got401
+          ? 'Spotify token is invalid or expired. Please re-authorize via the admin panel.'
+          : 'All Spotify API calls failed. The service may be temporarily unavailable.'
+      };
     }
 
     const currentlyPlaying = currentlyPlayingResult.data;
     const recentlyPlayed = recentlyPlayedResult.data;
 
-    // Resolve playback context
     let resolvedContext: { type: string; name: string; url: string; } | null = null;
     if (currentlyPlaying?.context) {
       resolvedContext = await resolveContext(currentlyPlaying.context, accessToken);
     }
 
-    const data: SpotifyData = {
-      currentlyPlaying: currentlyPlaying
-        ? {
-          isPlaying: currentlyPlaying.is_playing,
-          track: currentlyPlaying.item,
-          progress_ms: currentlyPlaying.progress_ms || 0,
-          context: resolvedContext
-        }
-        : null,
-      recentlyPlayed: recentlyPlayed
-        ? recentlyPlayed.items.map((item) => ({
-          track: item.track,
-          playedAt: item.played_at
-        }))
-        : [],
-      topPlaylists,
-      profileUrl: PROFILE_URL
+    return {
+      data: {
+        currentlyPlaying: currentlyPlaying
+          ? {
+            isPlaying: currentlyPlaying.is_playing,
+            track: currentlyPlaying.item,
+            progress_ms: currentlyPlaying.progress_ms || 0,
+            context: resolvedContext
+          }
+          : null,
+        recentlyPlayed: recentlyPlayed
+          ? recentlyPlayed.items.map((item) => ({
+            track: item.track,
+            playedAt: item.played_at
+          }))
+          : [],
+        topPlaylists,
+        profileUrl: PROFILE_URL
+      }
     };
-
-    // Cache the full response in memory and D1 (global 5-minute cache)
-    fullResponseCache = { data, expiresAt: Date.now() + FULL_RESPONSE_CACHE_TTL_MS };
-    await setSpotifyCache(platform.env.DB, data as unknown as Record<string, unknown>);
-
-    return json(data, {
-      headers: { 'Cache-Control': 'public, max-age=30' }
-    });
   } catch (error) {
     console.error('Error in Spotify API handler:', error);
-    return makeErrorResponse('Internal server error', 500);
+    return {
+      data: null,
+      error: 'Internal server error',
+      status: 500
+    };
   }
+}
+
+async function refreshSpotifyCache(platform: App.Platform): Promise<RefreshResult> {
+  lastBackgroundRefreshStartedAt = Date.now();
+  const result = await fetchFreshSpotifyData(platform);
+
+  if (!result.data) {
+    return result;
+  }
+
+  fullResponseCache = {
+    data: result.data,
+    expiresAt: Date.now() + FULL_RESPONSE_CACHE_TTL_MS
+  };
+  await setSpotifyCache(platform.env.DB, result.data as unknown as Record<string, unknown>);
+
+  return result;
+}
+
+function scheduleBackgroundRefresh(platform: App.Platform): void {
+  const startedRecently = Date.now() - lastBackgroundRefreshStartedAt < FULL_RESPONSE_CACHE_TTL_MS;
+  if (backgroundRefreshInFlight || startedRecently) {
+    return;
+  }
+
+  const refreshPromise = (async () => {
+    await refreshSpotifyCache(platform);
+  })()
+    .catch((error) => {
+      console.error('Background Spotify refresh failed:', error);
+    })
+    .finally(() => {
+      backgroundRefreshInFlight = null;
+    });
+
+  backgroundRefreshInFlight = refreshPromise;
+  platform.context?.waitUntil(refreshPromise);
+}
+
+export const GET: RequestHandler = async ({ platform }) => {
+  if (!platform) {
+    return makeErrorResponse('Platform not available', 500);
+  }
+
+  // Return cached data immediately, then revalidate in the background.
+  if (fullResponseCache && Date.now() < fullResponseCache.expiresAt) {
+    scheduleBackgroundRefresh(platform);
+    return makeSuccessResponse(fullResponseCache.data, {
+      [SPOTIFY_REVALIDATING_HEADER]: getSpotifyRevalidationHeaderValue(!!backgroundRefreshInFlight)
+    });
+  }
+
+  const dbCached = await getSpotifyCacheStale(platform.env.DB);
+  if (dbCached) {
+    fullResponseCache = {
+      data: dbCached as SpotifyData,
+      expiresAt: Date.now() + FULL_RESPONSE_CACHE_TTL_MS
+    };
+    scheduleBackgroundRefresh(platform);
+    return makeSuccessResponse(dbCached as SpotifyData, {
+      [SPOTIFY_REVALIDATING_HEADER]: getSpotifyRevalidationHeaderValue(!!backgroundRefreshInFlight)
+    });
+  }
+
+  const result = await refreshSpotifyCache(platform);
+  if (result.data) {
+    return makeSuccessResponse(result.data);
+  }
+
+  fullResponseCache = null;
+  return makeErrorResponse(result.error || 'Internal server error', result.status || 500);
 };
