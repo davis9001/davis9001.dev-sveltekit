@@ -120,7 +120,7 @@
 			<div class="nav-links" class:open={mobileMenuOpen}>
 				<a
 					href="/updates"
-					class:active={$page.url.pathname.startsWith('/updates')}
+					class:active={$page.url.pathname.startsWith('/updates') || $page.url.pathname.startsWith('/update/')}
 					on:click={closeMobileMenu}
 				>
 					Blog

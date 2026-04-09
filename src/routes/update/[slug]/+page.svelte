@@ -23,7 +23,7 @@
 <SEO
 	title={post.title}
 	description={post.summary || 'A blog post by David Monaghan.'}
-	path="/updates/{post.slug}"
+	path="/update/{post.slug}"
 	type="article"
 	publishedAt={post.publishedAt || ''}
 />
@@ -216,29 +216,5 @@
 		height: auto;
 		border-radius: var(--radius-md);
 		margin: var(--spacing-md) 0;
-	}
-
-	.markdown-body :global(hr) {
-		border: none;
-		border-top: 1px solid var(--color-border);
-		margin: var(--spacing-xl) 0;
-	}
-
-	.markdown-body :global(table) {
-		width: 100%;
-		border-collapse: collapse;
-		margin-bottom: var(--spacing-md);
-	}
-
-	.markdown-body :global(th),
-	.markdown-body :global(td) {
-		border: 1px solid var(--color-border);
-		padding: var(--spacing-sm) var(--spacing-md);
-		text-align: left;
-	}
-
-	.markdown-body :global(th) {
-		background-color: var(--color-surface);
-		font-weight: 600;
 	}
 </style>

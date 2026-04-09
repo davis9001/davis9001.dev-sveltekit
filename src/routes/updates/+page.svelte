@@ -58,7 +58,7 @@
 			{#each posts as post}
 				<div class="md:p-3 m-1 sm:p-9 sm:m-3">
 					<div class="m-5 p-5 rounded-2xl">
-						<a class="text-accent" href="/updates/{post.slug}">
+						<a class="text-accent" href="/update/{post.slug}">
 							<h2 class="text-2xl font-bold">{post.title}</h2>
 							{#if post.publishedAt}
 								<div class="flex items-center gap-3 text-foreground/60">

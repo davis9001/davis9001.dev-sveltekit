@@ -31,13 +31,6 @@ describe('Sitemap XML Endpoint', () => {
   });
 
   it('should include blog post URLs from markdown files', async () => {
-    // Reset modules to get fresh import with our mocked data
-    vi.doMock('/src/updates/*.md', () => ({
-      '/src/updates/test-post.md': '---\ntitle: Test Post\n---\nContent',
-      '/src/updates/another-post.md': '---\ntitle: Another\n---\nContent'
-    }));
-
-    // Since import.meta.glob is resolved at build time, we test the URL patterns
     const { GET } = await import('../../src/routes/sitemap.xml/+server');
     const response = await GET({ url: new URL('https://davis9001.dev/sitemap.xml') } as any);
     const body = await response.text();
@@ -45,6 +38,8 @@ describe('Sitemap XML Endpoint', () => {
     // Static routes should always be present
     expect(body).toContain('<loc>https://davis9001.dev/</loc>');
     expect(body).toContain('<loc>https://davis9001.dev/portfolio</loc>');
+    expect(body).toContain('https://davis9001.dev/update/');
+    expect(body).not.toContain('https://davis9001.dev/updates/');
   });
 
   it('should produce well-formed XML with url elements', async () => {

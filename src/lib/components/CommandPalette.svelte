@@ -162,7 +162,7 @@
 			id: `blog-${post.slug}`,
 			label: post.title,
 			description: post.summary || 'Blog post',
-			action: () => goto(`/updates/${post.slug}`),
+			action: () => goto(`/update/${post.slug}`),
 			icon: '📄',
 			badge: 'Blog'
 		}))

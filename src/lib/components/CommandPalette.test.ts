@@ -554,7 +554,7 @@ describe('CommandPalette', () => {
 
 			await fireEvent.click(blogCommand);
 
-			expect(goto).toHaveBeenCalledWith('/updates/quantum-computing-ai');
+			expect(goto).toHaveBeenCalledWith('/update/quantum-computing-ai');
 		});
 
 		it('should render with empty blog posts', () => {

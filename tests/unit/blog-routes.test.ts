@@ -52,8 +52,16 @@ const mockError = vi.fn((status: number, message: string) => {
   throw err;
 });
 
+const mockRedirect = vi.fn((status: number, location: string) => {
+  const err = new Error(`Redirect to ${location}`) as Error & { status: number; location: string; };
+  err.status = status;
+  err.location = location;
+  throw err;
+});
+
 vi.mock('@sveltejs/kit', () => ({
-  error: (status: number, message: string) => mockError(status, message)
+  error: (status: number, message: string) => mockError(status, message),
+  redirect: (status: number, location: string) => mockRedirect(status, location)
 }));
 
 // Mock marked
@@ -173,6 +181,24 @@ describe('Blog Update Detail Page', () => {
       expect(post!.summary).toBe('This is the first test post.');
       expect(post!.tags).toEqual(['testing', 'blog']);
       expect(post!.content).toContain('First Post');
+    });
+  });
+});
+
+describe('Legacy Blog Update Route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
+  it('should redirect legacy /updates/[slug] URLs to /update/[slug]', async () => {
+    const { load } = await import('../../src/routes/updates/[slug]/+page.server');
+
+    await expect(
+      load({ params: { slug: 'first-test-post' } } as any)
+    ).rejects.toMatchObject({
+      status: 308,
+      location: '/update/first-test-post'
     });
   });
 });

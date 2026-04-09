@@ -498,7 +498,7 @@
 						<div class="text-base sm:text-xl">
 							{#each recentPosts as post}
 								<div class="text-left p-2">
-									<a href="/updates/{post.slug}" class="text-accent">
+									<a href="/update/{post.slug}" class="text-accent">
 										<em class="opacity-50">
 											{formatBlogDate(post.publishedAt)}
 										</em>

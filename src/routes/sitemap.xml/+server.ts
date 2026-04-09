@@ -38,7 +38,7 @@ export const GET: RequestHandler = async () => {
 
   const urls = [
     ...staticRoutes.map((route) => `${SITE_URL}${route}`),
-    ...blogSlugs.map((slug) => `${SITE_URL}/updates/${slug}`),
+    ...blogSlugs.map((slug) => `${SITE_URL}/update/${slug}`),
     ...projectSlugs.map((slug) => `${SITE_URL}/portfolio/project/${slug}`)
   ];
 
