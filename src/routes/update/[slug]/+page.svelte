@@ -6,7 +6,6 @@
 -->
 <script lang="ts">
 	import { page } from '$app/stores';
-	import ShareButtons from '$lib/components/ShareButtons.svelte';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import SocialLinks from '$lib/components/SocialLinks.svelte';
 	import Footer from '$lib/components/Footer.svelte';
@@ -70,8 +69,6 @@
 				</div>
 			{/if}
 
-			<ShareButtons url={$page.url.href} title={post.title} />
-
 			{#if post.summary}
 				<div class="mt-4 text-foreground">
 					<p>{post.summary}</p>
@@ -81,8 +78,6 @@
 			<div class="markdown-body p-2 md:p-9">
 				{@html post.content}
 			</div>
-
-			<ShareButtons url={$page.url.href} title={post.title} />
 		</div>
 	</main>
 
