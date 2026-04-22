@@ -53,6 +53,18 @@
 	--activity-2-bg: rgba(74, 222, 128, 1);
 	--activity-3-bg: rgba(34, 197, 94, 1);
 	--activity-4-bg: rgba(22, 163, 74, 1);
+
+	/* Spotify header render palette */
+	--spotify-header-bg-start: #4f25d3;
+	--spotify-header-bg-mid: #5324da;
+	--spotify-header-bg-end: #4520c4;
+	--spotify-header-title: #f7f1e4;
+	--spotify-header-subtitle: #f4e7cb;
+	--spotify-header-role: #efe7d3;
+	--spotify-header-matrix: rgba(255, 170, 47, 0.22);
+	--spotify-header-vignette: rgba(0, 0, 0, 0.24);
+	--spotify-header-crow-body: rgba(12, 14, 18, 0.96);
+	--spotify-header-crow-shadow: rgba(0, 0, 0, 0.55);
 }
 
 /* Dark theme */
@@ -80,6 +92,18 @@
 	--activity-2-bg: rgba(21, 128, 61, 1);
 	--activity-3-bg: rgba(22, 163, 74, 1);
 	--activity-4-bg: rgba(34, 197, 94, 1);
+
+	/* Spotify header render palette */
+	--spotify-header-bg-start: #4f25d3;
+	--spotify-header-bg-mid: #5324da;
+	--spotify-header-bg-end: #4520c4;
+	--spotify-header-title: #f7f1e4;
+	--spotify-header-subtitle: #f4e7cb;
+	--spotify-header-role: #efe7d3;
+	--spotify-header-matrix: rgba(255, 170, 47, 0.2);
+	--spotify-header-vignette: rgba(0, 0, 0, 0.28);
+	--spotify-header-crow-body: rgba(12, 14, 18, 0.96);
+	--spotify-header-crow-shadow: rgba(0, 0, 0, 0.55);
 }
 
 /* Reset and base styles */

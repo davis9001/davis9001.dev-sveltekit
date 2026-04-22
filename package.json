@@ -9,6 +9,7 @@
 		"build": "npm run screenshots && vite build",
 		"preview": "vite preview --host 0.0.0.0 --port 4242",
 		"screenshots": "node scripts/update-portfolio-screenshots.cjs",
+		"screenshot:spotify-header": "node scripts/capture-spotify-header.cjs",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"deploy": "npm run build && wrangler pages deploy .svelte-kit/cloudflare",
