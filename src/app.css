@@ -64,6 +64,10 @@
 	--spotify-header-matrix: rgba(255, 170, 47, 0.22);
 	--spotify-header-vignette: rgba(0, 0, 0, 0.24);
 	--spotify-header-crow-body: rgba(12, 14, 18, 0.96);
+	--spotify-header-crow-outline: rgba(112, 235, 188, 0.58);
+	--spotify-header-crow-highlight: rgba(146, 242, 205, 0.72);
+	--spotify-header-crow-beak: rgba(26, 29, 34, 0.98);
+	--spotify-header-crow-eye-glint: rgba(255, 255, 255, 0.88);
 	--spotify-header-crow-shadow: rgba(0, 0, 0, 0.55);
 }
 
@@ -103,6 +107,10 @@
 	--spotify-header-matrix: rgba(255, 170, 47, 0.2);
 	--spotify-header-vignette: rgba(0, 0, 0, 0.28);
 	--spotify-header-crow-body: rgba(12, 14, 18, 0.96);
+	--spotify-header-crow-outline: rgba(112, 235, 188, 0.58);
+	--spotify-header-crow-highlight: rgba(146, 242, 205, 0.72);
+	--spotify-header-crow-beak: rgba(26, 29, 34, 0.98);
+	--spotify-header-crow-eye-glint: rgba(255, 255, 255, 0.88);
 	--spotify-header-crow-shadow: rgba(0, 0, 0, 0.55);
 }
 
