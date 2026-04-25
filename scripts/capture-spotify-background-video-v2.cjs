@@ -23,10 +23,10 @@ const ROUTE_PATH = '/hidden/spotify-background-video-v2';
 const VIDEO_DIR = path.join(process.cwd(), 'test-outputs');
 const OUTPUT_PATH = path.join(process.cwd(), 'static', 'spotify-background-vertical-v2.mp4');
 const INITIAL_STABILIZE_MS = 350;
-const PRE_ROLL_MS = 3500;
+const PRE_ROLL_MS = 6000;
 const MOVE_DURATION_MS = 4000;
 const SETTLE_MS = 500;
-const OUTPUT_START_SECONDS = 2.8;
+const OUTPUT_START_SECONDS = 0.3;
 const OUTPUT_DURATION_SECONDS = 7;
 
 function clamp(value, min, max) {
@@ -49,17 +49,21 @@ function candidateUrls() {
 	];
 }
 
-async function openFirstReachablePage(browser, urls) {
+async function openFirstReachablePage(browser, urls, enableRecording = false) {
 	for (const url of urls) {
-		const context = await browser.newContext({
+		const contextOptions = {
 			viewport: { width: WIDTH, height: HEIGHT },
-			deviceScaleFactor: 1,
-			recordVideo: {
+			deviceScaleFactor: 1
+		};
+
+		if (enableRecording) {
+			contextOptions.recordVideo = {
 				dir: VIDEO_DIR,
 				size: { width: WIDTH, height: HEIGHT }
-			}
-		});
+			};
+		}
 
+		const context = await browser.newContext(contextOptions);
 		const page = await context.newPage();
 		try {
 			const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
@@ -143,19 +147,33 @@ function runFfmpeg(inputPath, outputPath) {
 	let page;
 
 	try {
-		const opened = await openFirstReachablePage(browser, candidateUrls());
-		if (!opened) {
+		// First, load and stabilize the page without recording
+		const preloadOpened = await openFirstReachablePage(browser, candidateUrls(), false);
+		if (!preloadOpened) {
 			throw new Error(
 				`Unable to open route ${ROUTE_PATH} on localhost:4220/4242/4243. ` +
 				'Set SPOTIFY_BG_VIDEO_V2_URL if your dev server uses a different host/port.'
 			);
 		}
 
+		console.log(`Loading from: ${preloadOpened.url}`);
+		// Wait for the page to fully stabilize before recording
+		await preloadOpened.page.waitForTimeout(INITIAL_STABILIZE_MS);
+		await preloadOpened.page.waitForTimeout(PRE_ROLL_MS);
+		const recordingUrl = preloadOpened.url;
+		await preloadOpened.context.close();
+
+		// Now create a fresh context with recording enabled and redraw
+		const opened = await openFirstReachablePage(browser, [recordingUrl], true);
+		if (!opened) {
+			throw new Error('Failed to reopen page for recording');
+		}
+
 		({ context, page } = opened);
 		console.log(`Recording from: ${opened.url}`);
 
+		// Page should load quickly since browser cache is warm
 		await page.waitForTimeout(INITIAL_STABILIZE_MS);
-		await page.waitForTimeout(PRE_ROLL_MS);
 		await drawShapeWithMouse(page);
 		await page.waitForTimeout(SETTLE_MS);
 
