@@ -24,10 +24,9 @@ const VIDEO_DIR = path.join(process.cwd(), 'test-outputs');
 const OUTPUT_PATH = path.join(process.cwd(), 'static', 'spotify-background-vertical-v2.mp4');
 const INITIAL_STABILIZE_MS = 1200;
 const PRE_ROLL_MS = 6000;
-const MOVE_DURATION_MS = 3000;
-const SETTLE_MS = 300;
-const OUTPUT_START_SECONDS = 1.2;
-const OUTPUT_DURATION_SECONDS = 9;
+const MOVE_DURATION_MS = 8500;
+const SETTLE_MS = 100;
+const OUTPUT_DURATION_SECONDS = 7.99;
 
 function clamp(value, min, max) {
 	return Math.max(min, Math.min(max, value));
@@ -85,34 +84,40 @@ async function drawShapeWithMouse(page) {
 	const centerY = HEIGHT * 0.45;
 	const radiusX = WIDTH * 0.24;
 	const radiusY = HEIGHT * 0.11;
-	const numPoints = 220;
+	const numPoints = 320;
 
 	// Start exactly at the intersection point (bird center).
 	const startX = Math.round(centerX);
 	const startY = Math.round(centerY);
 	await page.mouse.move(startX, startY);
-	await page.waitForTimeout(100);
+	await page.waitForTimeout(20);
 	await page.mouse.down();
 
-	for (let i = 0; i <= numPoints; i += 1) {
+	const drawStartMs = Date.now();
+	while (true) {
+		const elapsedMs = Date.now() - drawStartMs;
+		const progress = clamp(elapsedMs / MOVE_DURATION_MS, 0, 1);
+		const easedProgress = easeInOutSine(progress);
 		// Lemniscate of Gerono (sideways infinity): x = sin(t), y = sin(t)*cos(t)
-		const t = (i / numPoints) * 2 * Math.PI;
+		const t = easedProgress * 2 * Math.PI;
 		const x = Math.round(centerX + radiusX * Math.sin(t));
 		const y = Math.round(centerY + radiusY * Math.sin(t) * Math.cos(t));
 		await page.mouse.move(x, y);
-		await page.waitForTimeout(Math.round(MOVE_DURATION_MS / numPoints));
+		if (progress >= 1) break;
+		await page.waitForTimeout(8);
 	}
 
+	// Close the gesture exactly on the center intersection point.
+	await page.mouse.move(Math.round(centerX), Math.round(centerY));
 	await page.mouse.up();
-	await page.waitForTimeout(200);
 }
 
-function runFfmpeg(inputPath, outputPath) {
+function runFfmpeg(inputPath, outputPath, outputStartSeconds) {
 	const ffmpegPath = process.env.FFMPEG_PATH || 'ffmpeg';
 	const ffArgs = [
 		'-y',
 		'-ss',
-		`${OUTPUT_START_SECONDS}`,
+		`${outputStartSeconds.toFixed(3)}`,
 		'-i',
 		inputPath,
 		'-t',
@@ -172,9 +177,11 @@ function runFfmpeg(inputPath, outputPath) {
 
 		({ context, page } = opened);
 		console.log(`Recording from: ${opened.url}`);
+		const recordingStartMs = Date.now();
 
 		// Page should load quickly since browser cache is warm
 		await page.waitForTimeout(INITIAL_STABILIZE_MS);
+		const clipStartSeconds = (Date.now() - recordingStartMs) / 1000;
 		await drawShapeWithMouse(page);
 		await page.waitForTimeout(SETTLE_MS);
 
@@ -190,7 +197,7 @@ function runFfmpeg(inputPath, outputPath) {
 			throw new Error(`Recorded video file not found at ${rawPath}`);
 		}
 
-		runFfmpeg(rawPath, OUTPUT_PATH);
+		runFfmpeg(rawPath, OUTPUT_PATH, clipStartSeconds);
 		console.log(`Wrote ${OUTPUT_PATH}`);
 	} finally {
 		if (context) {
