@@ -24,10 +24,10 @@ const VIDEO_DIR = path.join(process.cwd(), 'test-outputs');
 const OUTPUT_PATH = path.join(process.cwd(), 'static', 'spotify-background-vertical-v2.mp4');
 const INITIAL_STABILIZE_MS = 350;
 const PRE_ROLL_MS = 6000;
-const MOVE_DURATION_MS = 4000;
+const MOVE_DURATION_MS = 2400;
 const SETTLE_MS = 500;
-const OUTPUT_START_SECONDS = 0.3;
-const OUTPUT_DURATION_SECONDS = 7;
+const OUTPUT_START_SECONDS = 1.2;
+const OUTPUT_DURATION_SECONDS = 9;
 
 function clamp(value, min, max) {
 	return Math.max(min, Math.min(max, value));
