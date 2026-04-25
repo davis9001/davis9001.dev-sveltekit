@@ -75,38 +75,31 @@ async function openFirstReachablePage(browser, urls) {
 	return null;
 }
 
-async function hoverAnimationPath(page) {
-	const yBands = [0.16, 0.26, 0.36, 0.47, 0.58, 0.69, 0.8, 0.9];
-	const leftX = Math.round(WIDTH * 0.08);
-	const rightX = Math.round(WIDTH * 0.92);
+async function drawShapeWithMouse(page) {
+	// Draw a large circle in the center of the screen
+	const centerX = WIDTH / 2;
+	const centerY = HEIGHT / 2;
+	const radius = Math.min(WIDTH, HEIGHT) * 0.25;
+	const numPoints = 100;
 
-	await page.mouse.move(leftX, Math.round(HEIGHT * yBands[0]));
+	// Start at top of circle
+	const startX = Math.round(centerX);
+	const startY = Math.round(centerY - radius);
+	await page.mouse.move(startX, startY);
+	await page.waitForTimeout(100);
 	await page.mouse.down();
 
-	const frames = Math.max(120, Math.round((MOVE_DURATION_MS / 1000) * 60));
-	for (let frame = 0; frame <= frames; frame += 1) {
-		const t = frame / frames;
-		const laneIndex = Math.min(
-			yBands.length - 2,
-			Math.floor(t * (yBands.length - 1))
-		);
-		const laneStart = yBands[laneIndex];
-		const laneEnd = yBands[laneIndex + 1];
-		const laneT = t * (yBands.length - 1) - laneIndex;
-		const easedLaneT = easeInOutSine(laneT);
-
-		const xBase = laneIndex % 2 === 0 ? leftX : rightX;
-		const xTarget = laneIndex % 2 === 0 ? rightX : leftX;
-		const x = Math.round(xBase + (xTarget - xBase) * easedLaneT);
-		const y = Math.round(HEIGHT * (laneStart + (laneEnd - laneStart) * easedLaneT));
-		const clampedX = clamp(x, 2, WIDTH - 2);
-		const clampedY = clamp(y, 2, HEIGHT - 2);
-
-		await page.mouse.move(clampedX, clampedY);
-		await page.waitForTimeout(16);
+	// Draw circle clockwise
+	for (let i = 0; i <= numPoints; i += 1) {
+		const angle = (i / numPoints) * 2 * Math.PI;
+		const x = Math.round(centerX + radius * Math.sin(angle));
+		const y = Math.round(centerY - radius * Math.cos(angle));
+		await page.mouse.move(x, y);
+		await page.waitForTimeout(Math.round(MOVE_DURATION_MS / numPoints));
 	}
 
 	await page.mouse.up();
+	await page.waitForTimeout(200);
 }
 
 function runFfmpeg(inputPath, outputPath) {
@@ -163,7 +156,7 @@ function runFfmpeg(inputPath, outputPath) {
 
 		await page.waitForTimeout(INITIAL_STABILIZE_MS);
 		await page.waitForTimeout(PRE_ROLL_MS);
-		await hoverAnimationPath(page);
+		await drawShapeWithMouse(page);
 		await page.waitForTimeout(SETTLE_MS);
 
 		await context.close();

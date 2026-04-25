@@ -44,7 +44,7 @@
 </script>
 
 <main class="spotify-background-video-v2-route" aria-label="Hidden Spotify 9:16 background video route v2">
-	<div class="ascii-layer fixed top-0 left-0 z-10 select-none font-mono items-center grid grid-cols-54 justify-center text-foreground text-center w-screen h-screen min-w-screen min-h-screen" aria-hidden="true">
+	<div class="ascii-layer fixed top-0 left-0 z-10 select-none font-mono items-center grid grid-cols-23 sm:grid-cols-42 lg:grid-cols-99 justify-center text-foreground text-center w-screen h-screen min-w-screen min-h-screen" aria-hidden="true">
 		{#each asciiCharacters as char}
 			<div class="inline-block w-5 text-secondary ascii-character">
 				{char}
