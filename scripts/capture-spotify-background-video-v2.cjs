@@ -80,24 +80,25 @@ async function openFirstReachablePage(browser, urls, enableRecording = false) {
 }
 
 async function drawShapeWithMouse(page) {
-	// Draw a large circle in the center of the screen
-	const centerX = WIDTH / 2;
-	const centerY = HEIGHT / 2;
-	const radius = Math.min(WIDTH, HEIGHT) * 0.25;
-	const numPoints = 100;
+	// Draw a sideways infinity sign with its intersection on the bird perch.
+	const centerX = WIDTH * 0.48;
+	const centerY = HEIGHT * 0.45;
+	const radiusX = WIDTH * 0.24;
+	const radiusY = HEIGHT * 0.11;
+	const numPoints = 220;
 
-	// Start at top of circle
+	// Start exactly at the intersection point (bird center).
 	const startX = Math.round(centerX);
-	const startY = Math.round(centerY - radius);
+	const startY = Math.round(centerY);
 	await page.mouse.move(startX, startY);
 	await page.waitForTimeout(100);
 	await page.mouse.down();
 
-	// Draw circle clockwise
 	for (let i = 0; i <= numPoints; i += 1) {
-		const angle = (i / numPoints) * 2 * Math.PI;
-		const x = Math.round(centerX + radius * Math.sin(angle));
-		const y = Math.round(centerY - radius * Math.cos(angle));
+		// Lemniscate of Gerono (sideways infinity): x = sin(t), y = sin(t)*cos(t)
+		const t = (i / numPoints) * 2 * Math.PI;
+		const x = Math.round(centerX + radiusX * Math.sin(t));
+		const y = Math.round(centerY + radiusY * Math.sin(t) * Math.cos(t));
 		await page.mouse.move(x, y);
 		await page.waitForTimeout(Math.round(MOVE_DURATION_MS / numPoints));
 	}
