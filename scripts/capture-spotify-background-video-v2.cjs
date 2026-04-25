@@ -22,10 +22,10 @@ const HEIGHT = 1920;
 const ROUTE_PATH = '/hidden/spotify-background-video-v2';
 const VIDEO_DIR = path.join(process.cwd(), 'test-outputs');
 const OUTPUT_PATH = path.join(process.cwd(), 'static', 'spotify-background-vertical-v2.mp4');
-const INITIAL_STABILIZE_MS = 350;
+const INITIAL_STABILIZE_MS = 1200;
 const PRE_ROLL_MS = 6000;
-const MOVE_DURATION_MS = 2400;
-const SETTLE_MS = 500;
+const MOVE_DURATION_MS = 3000;
+const SETTLE_MS = 300;
 const OUTPUT_START_SECONDS = 1.2;
 const OUTPUT_DURATION_SECONDS = 9;
 
