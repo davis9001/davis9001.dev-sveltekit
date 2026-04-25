@@ -44,6 +44,15 @@
 	/** ID of the target the crow should start perched on (defaults to first target) */
 	export let startingTargetId: string | undefined = undefined;
 
+	/** Optional: keep wings gently flapping while perched */
+	export let flapWhenPerched = false;
+
+	/** Perched flap amplitude in degrees */
+	export let perchedFlapAmplitude = 16;
+
+	/** Perched flap cycles per second */
+	export let perchedFlapFrequencyHz = 2.2;
+
 	let machine: CrowStateMachine | null = null;
 	let animFrameId: number;
 	let idleTimer: ReturnType<typeof setTimeout>;
@@ -57,6 +66,7 @@
 	let mouseY = -9999;
 	let scareCooldown = false; // Prevent rapid re-scaring
 	let currentZIndex = 45;
+	let perchedFlapping = false;
 	/** Base devicePixelRatio captured at mount — used to compensate for zoom */
 	let baseDPR = 1;
 	/** Zoom compensation factor: baseDPR / currentDPR */
@@ -209,6 +219,7 @@
 		const currentState = machine.getState();
 
 		if (currentState === 'flying') {
+			perchedFlapping = false;
 			const progress = machine.getFlightProgress();
 			pos = machine.getCurrentPosition();
 			const elapsed = Date.now() - animStartTime;
@@ -255,7 +266,14 @@
 			} else {
 				pos = machine.getCurrentPosition();
 			}
-			wingAngle = 0; // Wings folded when perched
+			if (flapWhenPerched) {
+				const elapsedSec = Date.now() / 1000;
+				wingAngle = Math.sin(elapsedSec * Math.PI * 2 * perchedFlapFrequencyHz) * perchedFlapAmplitude;
+				perchedFlapping = true;
+			} else {
+				wingAngle = 0; // Wings folded when perched
+				perchedFlapping = false;
+			}
 			idleAnim = getIdleAnimation(Date.now());
 			currentZIndex = machine.getCurrentZIndex();
 
@@ -323,7 +341,7 @@
 		xmlns="http://www.w3.org/2000/svg"
 		class="crow-svg"
 	>
-		{#if state === 'flying' || state === 'gliding' || state === 'soaring' || state === 'diving'}
+		{#if state === 'flying' || state === 'gliding' || state === 'soaring' || state === 'diving' || perchedFlapping}
 			<!-- ===== FLYING WINGS (spread: flapping, gliding, soaring, or diving) ===== -->
 			<!-- Left wing -->
 			<g

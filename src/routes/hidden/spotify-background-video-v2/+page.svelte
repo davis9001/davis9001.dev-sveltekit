@@ -59,6 +59,9 @@
 			minIdleSeconds={999}
 			maxIdleSeconds={999}
 			flightDurationMs={2600}
+			flapWhenPerched={true}
+			perchedFlapAmplitude={18}
+			perchedFlapFrequencyHz={2.4}
 		/>
 	{/if}
 </main>
