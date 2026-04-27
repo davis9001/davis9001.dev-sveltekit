@@ -36,6 +36,7 @@ function makeTrack(overrides: Record<string, unknown> = {}) {
 
 describe('SpotifyWidget', () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -501,7 +502,7 @@ describe('SpotifyWidget', () => {
       vi.fn().mockImplementation(() => new Promise(() => { }))
     );
 
-    render(SpotifyWidget, {
+    const { container } = render(SpotifyWidget, {
       props: {
         initialData: makeSpotifyData({
           recentlyPlayed: [
@@ -518,4 +519,28 @@ describe('SpotifyWidget', () => {
     expect(screen.queryByText('Loading Spotify data...')).not.toBeInTheDocument();
     expect(screen.getByText('Cached Track')).toBeInTheDocument();
   });
+
+  it('should show a refresh indicator while background revalidation is in-flight', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(() => new Promise(() => { }))
+    );
+
+    const { container } = render(SpotifyWidget, {
+      props: {
+        initialData: makeSpotifyData({
+          recentlyPlayed: [
+            {
+              track: makeTrack({ id: 'cached-spinner', name: 'Cached Spinner Track' }),
+              playedAt: new Date().toISOString()
+            }
+          ]
+        })
+      }
+    });
+
+    expect(screen.getByText('Cached Spinner Track')).toBeInTheDocument();
+    expect(container.querySelector('.spotify-revalidate-spinner')).toBeInTheDocument();
+  });
+
 });

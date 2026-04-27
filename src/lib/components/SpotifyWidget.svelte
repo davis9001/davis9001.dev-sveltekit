@@ -53,15 +53,18 @@
 
 	const REVALIDATION_RETRY_DELAY_MS = 1000;
 	const MAX_REVALIDATION_RETRIES = 3;
+	const RELATIVE_TIME_UPDATE_INTERVAL_MS = 60 * 1000;
 
 	let spotifyData: SpotifyData | null = initialData;
 	let loading = !initialData;
 	let error: string | null = initialData?.error ? initialData.error : null;
-	let refreshInterval: ReturnType<typeof setInterval> | null = null;
+	let relativeTimeInterval: ReturnType<typeof setInterval> | null = null;
 	let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
+	let nowTimestamp = Date.now();
+	let isRevalidating = !!initialData;
 
 	function formatRelativeTime(timestamp: string): string {
-		const now = new Date();
+		const now = new Date(nowTimestamp);
 		const played = new Date(timestamp);
 		const diffMs = now.getTime() - played.getTime();
 		const diffMins = Math.floor(diffMs / 60000);
@@ -95,6 +98,10 @@
 	}
 
 	async function requestSpotifyData(retriesRemaining: number, isInitialRequest: boolean) {
+		if (!isInitialRequest && !!spotifyData) {
+			isRevalidating = true;
+		}
+
 		try {
 			const response = await fetch('/api/spotify');
 			if (!response.ok) {
@@ -109,6 +116,7 @@
 				scheduleRefreshRetry(retriesRemaining);
 			} else {
 				clearRefreshTimeout();
+				isRevalidating = false;
 			}
 		} catch (err) {
 			console.error(
@@ -119,6 +127,10 @@
 			if (shouldSurfaceSpotifyLoadError(isInitialRequest, !spotifyData)) {
 				error = 'Failed to load Spotify data';
 				loading = false;
+			}
+
+			if (!isInitialRequest) {
+				isRevalidating = false;
 			}
 		}
 	}
@@ -132,6 +144,11 @@
 	}
 
 	onMount(() => {
+		nowTimestamp = Date.now();
+		relativeTimeInterval = setInterval(() => {
+			nowTimestamp = Date.now();
+		}, RELATIVE_TIME_UPDATE_INTERVAL_MS);
+
 		if (initialData) {
 			// Data was provided via SSR — show it immediately, then refresh
 			// in the background to pick up any updates
@@ -142,8 +159,8 @@
 	});
 
 	onDestroy(() => {
-		if (refreshInterval) {
-			clearInterval(refreshInterval);
+		if (relativeTimeInterval) {
+			clearInterval(relativeTimeInterval);
 		}
 
 		clearRefreshTimeout();
@@ -158,13 +175,22 @@
 
 <div class="mt-6 w-full">
 	<h3 class="text-xl sm:text-2xl font-black mb-4 flex items-center gap-2">
-		<svg
-			class="w-5 h-5 sm:w-6 sm:h-6 text-green-500"
-			viewBox="0 0 24 24"
-			fill="currentColor"
-		>
-			<path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-		</svg>
+		<span class="relative inline-flex w-5 h-5 sm:w-6 sm:h-6" aria-live="polite">
+			<svg
+				class="w-full h-full text-green-500"
+				viewBox="0 0 24 24"
+				fill="currentColor"
+				aria-hidden="true"
+			>
+				<path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+			</svg>
+			{#if isRevalidating}
+				<svg class="spotify-revalidate-spinner absolute inset-0 w-full h-full text-foreground pointer-events-none" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+					<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.3"></circle>
+					<path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+				</svg>
+			{/if}
+		</span>
 		<a
 			href={profileUrl}
 			target="_blank"
@@ -384,3 +410,21 @@
 		{/if}
 	{/if}
 </div>
+
+<style>
+	.spotify-revalidate-spinner {
+		animation: spotify-revalidate-spin 0.8s linear infinite;
+		transform-origin: center;
+		will-change: transform;
+	}
+
+	@keyframes spotify-revalidate-spin {
+		from {
+			transform: rotate(0deg);
+		}
+
+		to {
+			transform: rotate(360deg);
+		}
+	}
+</style>
