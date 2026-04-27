@@ -6,6 +6,7 @@
 	"author": "Davis Monaghan <monaghan.david@gmail.com>",
 	"scripts": {
 		"dev": "vite dev --host 0.0.0.0 --port 4242",
+		"dev:e2e": "svelte-kit sync && vite dev --host 0.0.0.0 --port 4220",
 		"build": "npm run screenshots && vite build",
 		"preview": "vite preview --host 0.0.0.0 --port 4242",
 		"screenshots": "node scripts/update-portfolio-screenshots.cjs",

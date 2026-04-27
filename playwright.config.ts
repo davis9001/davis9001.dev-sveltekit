@@ -2,7 +2,7 @@ import type { PlaywrightTestConfig } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
 	webServer: {
-		command: 'npm run dev',
+		command: 'npm run dev:e2e',
 		port: 4220,
 		reuseExistingServer: !process.env.CI
 	},
