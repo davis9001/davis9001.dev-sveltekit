@@ -17,8 +17,8 @@ test.describe('Homepage', () => {
 		const searchInput = page.locator('input[placeholder*="Search"]');
 		await searchInput.fill('blog');
 
-		// Click on the blog command
-		const blogCommand = page.locator('button:has-text("Blog")');
+		// Click on the blog command (the main Blog command, not blog posts)
+		const blogCommand = page.locator('[role="dialog"] .commands > button:has-text("Blog")').first();
 		await blogCommand.click();
 
 		await expect(page).toHaveURL('/updates');
