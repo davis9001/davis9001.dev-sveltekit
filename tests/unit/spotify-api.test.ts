@@ -404,6 +404,76 @@ describe('Spotify API Route', () => {
     vi.unstubAllGlobals();
   });
 
+  it('should fetch live Spotify data without a KV binding when env refresh credentials are present', async () => {
+    const platform = createMockPlatform({ KV: undefined });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url === 'https://accounts.spotify.com/api/token') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              access_token: 'env_refresh_token_access',
+              refresh_token: 'env_refresh_token_refresh',
+              expires_in: 3600
+            })
+          });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/player/currently-playing') {
+          return Promise.resolve({ ok: true, status: 204 });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/player/recently-played?limit=10') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              items: [
+                {
+                  track: {
+                    id: 'no-kv-track',
+                    name: 'No KV Track',
+                    artists: [{ name: 'Artist', external_urls: { spotify: '' } }],
+                    album: { name: 'Album', images: [], external_urls: { spotify: '' } },
+                    external_urls: { spotify: '' },
+                    duration_ms: 120000
+                  },
+                  played_at: '2026-04-27T00:00:00Z'
+                }
+              ]
+            })
+          });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/playlists?limit=50') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({ items: [] })
+          });
+        }
+
+        return Promise.resolve({ ok: false, status: 404 });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.recentlyPlayed).toHaveLength(1);
+    expect(data.recentlyPlayed[0].track.id).toBe('no-kv-track');
+    expect(data.error).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
   it('should not schedule duplicate background refreshes on rapid cached requests', async () => {
     const cachedData = {
       currentlyPlaying: null,

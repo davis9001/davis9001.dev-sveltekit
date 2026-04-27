@@ -11,12 +11,18 @@ interface SpotifyTokens {
   expiresAt: number; // Unix timestamp in ms
 }
 
+type SpotifyTokenStore = Pick<KVNamespace, 'get' | 'put'> | null | undefined;
+
 const TOKEN_KEY = 'spotify:tokens';
 
 /**
  * Get stored Spotify tokens from KV
  */
-export async function getStoredTokens(kv: KVNamespace): Promise<SpotifyTokens | null> {
+export async function getStoredTokens(kv: SpotifyTokenStore): Promise<SpotifyTokens | null> {
+  if (!kv?.get) {
+    return null;
+  }
+
   const raw = await kv.get(TOKEN_KEY, 'json');
   return raw as SpotifyTokens | null;
 }
@@ -24,7 +30,11 @@ export async function getStoredTokens(kv: KVNamespace): Promise<SpotifyTokens | 
 /**
  * Store Spotify tokens in KV
  */
-export async function storeTokens(kv: KVNamespace, tokens: SpotifyTokens): Promise<void> {
+export async function storeTokens(kv: SpotifyTokenStore, tokens: SpotifyTokens): Promise<void> {
+  if (!kv?.put) {
+    return;
+  }
+
   await kv.put(TOKEN_KEY, JSON.stringify(tokens));
 }
 
@@ -71,7 +81,7 @@ export async function refreshAccessToken(
  * Uses KV for caching and env vars for credentials.
  */
 export async function getValidAccessToken(
-  kv: KVNamespace,
+  kv: SpotifyTokenStore,
   env: {
     SPOTIFY_CLIENT_ID?: string;
     SPOTIFY_CLIENT_SECRET?: string;

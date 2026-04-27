@@ -225,7 +225,7 @@ async function getRecentlyPlayed(
 
 async function getTopPlaylists(
   accessToken: string,
-  kv: KVNamespace
+  kv?: KVNamespace
 ): Promise<SpotifyData['topPlaylists']> {
   // Check in-memory cache first (works on both local dev and production)
   if (playlistMemoryCache && Date.now() < playlistMemoryCache.expiresAt) {
@@ -233,16 +233,18 @@ async function getTopPlaylists(
   }
 
   // Check KV cache second
-  try {
-    const cached = await kv.get(PLAYLIST_CACHE_KEY, 'json');
-    if (cached) {
-      const result = cached as SpotifyData['topPlaylists'];
-      // Populate memory cache from KV
-      playlistMemoryCache = { data: result, expiresAt: Date.now() + MEMORY_CACHE_TTL_MS };
-      return result;
+  if (kv) {
+    try {
+      const cached = await kv.get(PLAYLIST_CACHE_KEY, 'json');
+      if (cached) {
+        const result = cached as SpotifyData['topPlaylists'];
+        // Populate memory cache from KV
+        playlistMemoryCache = { data: result, expiresAt: Date.now() + MEMORY_CACHE_TTL_MS };
+        return result;
+      }
+    } catch {
+      // Cache miss, continue
     }
-  } catch {
-    // Cache miss, continue
   }
 
   // If rate-limited, return empty rather than hammering the API
@@ -333,12 +335,14 @@ async function getTopPlaylists(
     playlistMemoryCache = { data: topPlaylists, expiresAt: Date.now() + MEMORY_CACHE_TTL_MS };
 
     // Cache in KV
-    try {
-      await kv.put(PLAYLIST_CACHE_KEY, JSON.stringify(topPlaylists), {
-        expirationTtl: PLAYLIST_CACHE_TTL
-      });
-    } catch {
-      // Cache write failure is non-critical
+    if (kv) {
+      try {
+        await kv.put(PLAYLIST_CACHE_KEY, JSON.stringify(topPlaylists), {
+          expirationTtl: PLAYLIST_CACHE_TTL
+        });
+      } catch {
+        // Cache write failure is non-critical
+      }
     }
 
     return topPlaylists;
@@ -396,10 +400,12 @@ async function fetchFreshSpotifyData(platform: App.Platform): Promise<RefreshRes
       currentlyPlayingResult.status === 401 || recentlyPlayedResult.status === 401;
     if (got401) {
       console.warn('Spotify returned 401 — clearing cached tokens from KV');
-      try {
-        await platform.env.KV.delete('spotify:tokens');
-      } catch {
-        // Best-effort token cleanup
+      if (platform.env.KV) {
+        try {
+          await platform.env.KV.delete('spotify:tokens');
+        } catch {
+          // Best-effort token cleanup
+        }
       }
     }
 
