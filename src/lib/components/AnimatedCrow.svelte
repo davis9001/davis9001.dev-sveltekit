@@ -53,6 +53,10 @@
 	/** Perched flap cycles per second */
 	export let perchedFlapFrequencyHz = 2.2;
 
+	/** Optional callback fired every animation frame with the crow's current pixel position.
+	 * Useful for pages that want to synthesise mouse events at the crow's location. */
+	export let onPositionTick: ((x: number, y: number) => void) | null = null;
+
 	let machine: CrowStateMachine | null = null;
 	let animFrameId: number;
 	let idleTimer: ReturnType<typeof setTimeout>;
@@ -290,7 +294,23 @@
 			}
 		}
 
+		if (onPositionTick) onPositionTick(pos.x, pos.y);
 		animFrameId = requestAnimationFrame(animate);
+	}
+
+	/**
+	 * Immediately start a flight from the current perch to the next target.
+	 * Intended for external triggering via bind:this — e.g. from a hidden canvas route
+	 * that dispatches a custom event to launch the crow at a precise moment.
+	 */
+	export function triggerFlight(): void {
+		if (!machine || machine.getState() !== 'perched') return;
+		if (idleTimer) clearTimeout(idleTimer);
+		refreshTargetPositions();
+		machine.setFlightDuration(flightDurationMs);
+		machine.startFlight();
+		state = 'flying';
+		animStartTime = Date.now();
 	}
 
 	onMount(() => {
