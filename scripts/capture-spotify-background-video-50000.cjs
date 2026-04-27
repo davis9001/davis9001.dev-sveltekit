@@ -2,11 +2,10 @@
  * Capture Spotify Background Video: 50,000 (9:16)
  *
  * Records a vertical video from the hidden song-specific route.
- * The crow flies from bottom-right to top-right and back (two legs of 3850 ms each).
+ * The crow starts at center, then traces a full-viewport vertical infinity path.
  * ASCII characters are highlighted by the crow position because the route fires
  * synthetic mousemove events on every animation frame via onPositionTick.
- * The clip is a frame-perfect loop: first and last frames both show the crow at
- * the bottom-right perch.
+ * The clip is a frame-perfect loop over one 7.7s infinity cycle.
  *
  * Usage:
  *   node scripts/capture-spotify-background-video-50000.cjs
@@ -26,7 +25,7 @@ const ROUTE_PATH = '/hidden/spotify-background-video/50000';
 const VIDEO_DIR = path.join(process.cwd(), 'test-outputs');
 const OUTPUT_PATH = path.join(process.cwd(), 'static', 'spotify-background-vertical-50000.mp4');
 
-// Each leg of the crow flight is 3850 ms; two legs = 7700 ms = perfect loop.
+// One full infinity cycle is 7700 ms for a perfect loop.
 const FLIGHT_LEG_MS = 3850;
 const INITIAL_STABILIZE_MS = 1400;
 const LOOP_DURATION_SECONDS = (FLIGHT_LEG_MS * 2) / 1000; // 7.7
@@ -119,27 +118,44 @@ function runFfmpeg(inputPath, outputPath, outputStartSeconds) {
 		await preloadOpened.context.close();
 
 		// Phase 2 - reopen with Playwright video recording active.
+		// recordingStartMs must be captured BEFORE context creation because
+		// Playwright starts the WebM recorder when the context is created, not
+		// when page.goto() resolves. If we measure after goto(), the WebM
+		// already has 1-2s of frames, making clipStartSeconds seek too early
+		// and the 7.7s trim window ends before the loop completes.
+		const recordingStartMs = Date.now();
 		const opened = await openFirstReachablePage(browser, [recordingUrl], true);
 		if (!opened) throw new Error('Failed to reopen page for recording');
 
 		({ context, page } = opened);
 		console.log(`Recording from: ${opened.url}`);
-		const recordingStartMs = Date.now();
 
-		// Wait for the page to stabilise (crow sits perched at bottom-right).
-		await page.waitForTimeout(INITIAL_STABILIZE_MS);
+		// Wait until the page confirms crow-loop wiring is ready.
+		await page.waitForFunction(() => window.__crowLoopReady50000 === true, null, {
+			timeout: 10000
+		});
 
-		// Capture clip-start offset before dispatching the event so ffmpeg trims
-		// precisely to the frame where the crow begins its first flight.
-		const clipStartSeconds = (Date.now() - recordingStartMs) / 1000;
+		// Fire the start event; the first rAF callback sets both
+		// __crowLoopStarted50000 and __crowLoopStartWallMs50000 = Date.now()
+		// from inside the browser — same system clock as Node.js Date.now().
+		await page.evaluate(() => {
+			document.dispatchEvent(new CustomEvent('start-crow-loop'));
+		});
+		await page.waitForFunction(() => window.__crowLoopStarted50000 === true, null, {
+			timeout: 5000
+		});
 
-		// Fire the start-crow-loop custom event. The route listener calls
-		// triggerFlight() and sets minIdleSeconds/maxIdleSeconds = 0 so the crow
-		// immediately shuttles back after landing at the top.
-		await page.evaluate(() => document.dispatchEvent(new CustomEvent('start-crow-loop')));
+		// Read the wall-clock timestamp set by the first animation frame.
+		// This avoids polling lag: the browser recorded the exact ms when
+		// t=0 occurred, so clipStartSeconds is accurate to ~1ms.
+		const loopStartWallMs = await page.evaluate(() => window.__crowLoopStartWallMs50000);
+		const clipStartSeconds = (loopStartWallMs - recordingStartMs) / 1000;
 
-		// Wait for both flight legs to complete with a small landing buffer.
-		await page.waitForTimeout(FLIGHT_LEG_MS * 2 + 400);
+		// Wait for one full cycle plus a generous buffer so the crow fully
+		// returns to center before ffmpeg trims. The 400ms buffer was too tight
+		// (recording overhead consumed it), leaving the clip ~70ms short of the
+		// loop completion. 2000ms ensures the full 7.7s cycle is always present.
+		await page.waitForTimeout(FLIGHT_LEG_MS * 2 + 2000);
 		await context.close();
 
 		const video = page.video();

@@ -57,6 +57,9 @@
 	 * Useful for pages that want to synthesise mouse events at the crow's location. */
 	export let onPositionTick: ((x: number, y: number) => void) | null = null;
 
+	/** Optional externally-driven crow position override. */
+	export let manualPosition: CrowPosition | null = null;
+
 	let machine: CrowStateMachine | null = null;
 	let animFrameId: number;
 	let idleTimer: ReturnType<typeof setTimeout>;
@@ -292,6 +295,13 @@
 			) {
 				fleeFromMouse();
 			}
+		}
+
+		if (manualPosition) {
+			pos = manualPosition;
+			state = 'flying';
+			perchedFlapping = false;
+			wingAngle = getWingFlapAngle('flapping', Date.now());
 		}
 
 		if (onPositionTick) onPositionTick(pos.x, pos.y);
