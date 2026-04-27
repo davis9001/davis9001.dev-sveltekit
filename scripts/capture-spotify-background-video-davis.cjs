@@ -1,15 +1,14 @@
 /*
- * Capture Spotify Background Video V2 (9:16)
+ * Capture Spotify Background Video: davis (9:16)
  *
- * Records a vertical video from the hidden v2 route while moving the mouse
- * across the ASCII grid to trigger hover animation, then transcodes the
- * recording to MP4.
+ * Records a vertical video from the hidden song-specific route while moving
+ * the mouse in an infinity path, then transcodes the recording to MP4.
  *
  * Usage:
- *   node scripts/capture-spotify-background-video-v2.cjs
+ *   node scripts/capture-spotify-background-video-davis.cjs
  *
  * Optional env vars:
- *   SPOTIFY_BG_VIDEO_V2_URL  Full URL to route (default tries localhost ports)
+ *   SPOTIFY_BG_VIDEO_DAVIS_URL  Full URL to route (default tries localhost ports)
  */
 
 const { chromium } = require('@playwright/test');
@@ -19,9 +18,9 @@ const path = require('path');
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
-const ROUTE_PATH = '/hidden/spotify-background-video-v2';
+const ROUTE_PATH = '/hidden/spotify-background-video/davis';
 const VIDEO_DIR = path.join(process.cwd(), 'test-outputs');
-const OUTPUT_PATH = path.join(process.cwd(), 'static', 'spotify-background-vertical-v2.mp4');
+const OUTPUT_PATH = path.join(process.cwd(), 'static', 'spotify-background-vertical-davis.mp4');
 const INITIAL_STABILIZE_MS = 1200;
 const PRE_ROLL_MS = 6000;
 const MOVE_DURATION_MS = 8500;
@@ -37,8 +36,8 @@ function easeInOutSine(t) {
 }
 
 function candidateUrls() {
-	if (process.env.SPOTIFY_BG_VIDEO_V2_URL) {
-		return [process.env.SPOTIFY_BG_VIDEO_V2_URL];
+	if (process.env.SPOTIFY_BG_VIDEO_DAVIS_URL) {
+		return [process.env.SPOTIFY_BG_VIDEO_DAVIS_URL];
 	}
 
 	return [
@@ -79,14 +78,12 @@ async function openFirstReachablePage(browser, urls, enableRecording = false) {
 }
 
 async function drawShapeWithMouse(page) {
-	// Draw a sideways infinity sign with its intersection on the bird perch.
+	// Draw a sideways infinity sign with intersection on the bird perch.
 	const centerX = WIDTH * 0.48;
 	const centerY = HEIGHT * 0.45;
 	const radiusX = WIDTH * 0.24;
 	const radiusY = HEIGHT * 0.11;
-	const numPoints = 320;
 
-	// Start exactly at the intersection point (bird center).
 	const startX = Math.round(centerX);
 	const startY = Math.round(centerY);
 	await page.mouse.move(startX, startY);
@@ -98,7 +95,6 @@ async function drawShapeWithMouse(page) {
 		const elapsedMs = Date.now() - drawStartMs;
 		const progress = clamp(elapsedMs / MOVE_DURATION_MS, 0, 1);
 		const easedProgress = easeInOutSine(progress);
-		// Lemniscate of Gerono (sideways infinity): x = sin(t), y = sin(t)*cos(t)
 		const t = easedProgress * 2 * Math.PI;
 		const x = Math.round(centerX + radiusX * Math.sin(t));
 		const y = Math.round(centerY + radiusY * Math.sin(t) * Math.cos(t));
@@ -107,7 +103,6 @@ async function drawShapeWithMouse(page) {
 		await page.waitForTimeout(8);
 	}
 
-	// Close the gesture exactly on the center intersection point.
 	await page.mouse.move(Math.round(centerX), Math.round(centerY));
 	await page.mouse.up();
 }
@@ -153,23 +148,20 @@ function runFfmpeg(inputPath, outputPath, outputStartSeconds) {
 	let page;
 
 	try {
-		// First, load and stabilize the page without recording
 		const preloadOpened = await openFirstReachablePage(browser, candidateUrls(), false);
 		if (!preloadOpened) {
 			throw new Error(
 				`Unable to open route ${ROUTE_PATH} on localhost:4220/4242/4243. ` +
-				'Set SPOTIFY_BG_VIDEO_V2_URL if your dev server uses a different host/port.'
+				'Set SPOTIFY_BG_VIDEO_DAVIS_URL if your dev server uses a different host/port.'
 			);
 		}
 
 		console.log(`Loading from: ${preloadOpened.url}`);
-		// Wait for the page to fully stabilize before recording
 		await preloadOpened.page.waitForTimeout(INITIAL_STABILIZE_MS);
 		await preloadOpened.page.waitForTimeout(PRE_ROLL_MS);
 		const recordingUrl = preloadOpened.url;
 		await preloadOpened.context.close();
 
-		// Now create a fresh context with recording enabled and redraw
 		const opened = await openFirstReachablePage(browser, [recordingUrl], true);
 		if (!opened) {
 			throw new Error('Failed to reopen page for recording');
@@ -179,7 +171,6 @@ function runFfmpeg(inputPath, outputPath, outputStartSeconds) {
 		console.log(`Recording from: ${opened.url}`);
 		const recordingStartMs = Date.now();
 
-		// Page should load quickly since browser cache is warm
 		await page.waitForTimeout(INITIAL_STABILIZE_MS);
 		const clipStartSeconds = (Date.now() - recordingStartMs) / 1000;
 		await drawShapeWithMouse(page);

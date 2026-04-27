@@ -12,7 +12,7 @@
 
 		crowTargets = [
 			{
-				id: 'center-perch-v2',
+				id: 'center-perch-davis',
 				x: Math.round(vw * 0.48),
 				y: Math.round(vh * 0.45),
 				scale: 2.45,
@@ -43,7 +43,7 @@
 	});
 </script>
 
-<main class="spotify-background-video-v2-route" aria-label="Hidden Spotify 9:16 background video route v2">
+<main class="spotify-background-video-davis-route" aria-label="Hidden Spotify 9:16 background video route davis">
 	<div class="ascii-layer fixed top-0 left-0 z-10 select-none font-mono items-center grid grid-cols-23 sm:grid-cols-42 lg:grid-cols-99 justify-center text-foreground text-center w-screen h-screen min-w-screen min-h-screen" aria-hidden="true">
 		{#each asciiCharacters as char}
 			<div class="inline-block w-5 text-secondary ascii-character">
@@ -55,7 +55,7 @@
 	{#if crowTargets.length > 0}
 		<AnimatedCrow
 			targets={crowTargets}
-			startingTargetId="center-perch-v2"
+			startingTargetId="center-perch-davis"
 			minIdleSeconds={999}
 			maxIdleSeconds={999}
 			flightDurationMs={2600}
@@ -67,7 +67,7 @@
 </main>
 
 <style>
-	.spotify-background-video-v2-route {
+	.spotify-background-video-davis-route {
 		position: relative;
 		width: 100vw;
 		height: 100vh;
@@ -89,7 +89,7 @@
 		pointer-events: none;
 	}
 
-	.spotify-background-video-v2-route::before {
+	.spotify-background-video-davis-route::before {
 		content: '';
 		position: absolute;
 		inset: 0;
@@ -113,7 +113,7 @@
 		opacity: 0.26;
 	}
 
-	.spotify-background-video-v2-route::after {
+	.spotify-background-video-davis-route::after {
 		content: '';
 		position: absolute;
 		inset: 0;
