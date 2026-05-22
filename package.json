@@ -14,6 +14,7 @@
 		"video:spotify-background": "node scripts/capture-spotify-background-video.cjs",
 		"video:spotify-background:davis": "node scripts/capture-spotify-background-video-davis.cjs",
 		"video:spotify-background:50000": "node scripts/capture-spotify-background-video-50000.cjs",
+		"video:spotify-background:answer-5": "node scripts/capture-spotify-background-video-answer-5-is-the-big-bang-theory-accurate.cjs",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"deploy": "npm run build && wrangler pages deploy .svelte-kit/cloudflare",
