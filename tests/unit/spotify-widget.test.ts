@@ -82,6 +82,31 @@ describe('SpotifyWidget', () => {
     expect(screen.queryByText('Loading Spotify data...')).not.toBeInTheDocument();
   });
 
+  it('should show data immediately when initialData arrives after initial render (reactive update)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(() => new Promise(() => { }))
+    );
+
+    // Start with no initialData (simulates SSR data not yet available)
+    const { rerender } = render(SpotifyWidget);
+    expect(screen.getByText('Loading Spotify data...')).toBeInTheDocument();
+
+    // Simulate initialData arriving (e.g. from SvelteKit reactive page data)
+    const data = makeSpotifyData({
+      currentlyPlaying: {
+        isPlaying: true,
+        track: makeTrack({ name: 'Late Arrival Song' }),
+        progress_ms: 0,
+        context: null
+      }
+    });
+    await rerender({ initialData: data });
+
+    expect(screen.queryByText('Loading Spotify data...')).not.toBeInTheDocument();
+    expect(screen.getByText('Late Arrival Song')).toBeInTheDocument();
+  });
+
   it('should render error state when data has error property', () => {
     render(SpotifyWidget, {
       props: {

@@ -63,6 +63,16 @@
 	let nowTimestamp = Date.now();
 	let isRevalidating = !!initialData;
 
+	// React to initialData changes — handles cases where the prop arrives or
+	// updates after component creation (e.g. SvelteKit client-side navigation,
+	// or any edge case where the server-side prop delivery is deferred).
+	$: if (initialData && loading) {
+		spotifyData = initialData;
+		loading = false;
+		error = initialData.error ?? null;
+		isRevalidating = true;
+	}
+
 	function formatRelativeTime(timestamp: string): string {
 		const now = new Date(nowTimestamp);
 		const played = new Date(timestamp);
@@ -149,9 +159,9 @@
 			nowTimestamp = Date.now();
 		}, RELATIVE_TIME_UPDATE_INTERVAL_MS);
 
-		if (initialData) {
-			// Data was provided via SSR — show it immediately, then refresh
-			// in the background to pick up any updates
+		if (spotifyData) {
+			// Data is already present (either from SSR initialData or the reactive
+			// statement above) — refresh in the background to pick up any updates
 			refreshData();
 		} else {
 			fetchSpotifyData();
