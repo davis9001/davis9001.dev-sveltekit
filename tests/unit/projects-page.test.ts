@@ -11,12 +11,24 @@ describe('Projects Page', () => {
 	it('should render top-level initiative groups', () => {
 		render(Page);
 		expect(screen.getByRole('heading', { name: /\*space/i })).toBeInTheDocument();
-		expect(screen.getByRole('heading', { name: /davis9001/i })).toBeInTheDocument();
+		expect(screen.getByRole('heading', { name: /personal/i })).toBeInTheDocument();
 	});
 
 	it('should include key active projects and tasks', () => {
 		render(Page);
-		expect(screen.getByText('starspace.group')).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: 'starspace.group' })).toHaveAttribute(
+			'href',
+			'https://starspace.group/'
+		);
+		expect(screen.getByRole('link', { name: 'NebulaKit' })).toHaveAttribute(
+			'href',
+			'https://nebulakit.starspace.group/'
+		);
+		expect(document.querySelector('a[href="https://github.com/starspacegroup/NebulaKit"]')).toBeInTheDocument();
+		expect(document.querySelector('a[href="https://github.com/starspacegroup/spacebot"]')).toBeInTheDocument();
+		expect(
+			document.querySelector('a[href="https://github.com/starspacegroup/NebulaKit"] svg')
+		).toBeInTheDocument();
 		expect(screen.getByText('Rebuild with NebulaKit')).toBeInTheDocument();
 		expect(screen.getByText('Fix Github and Google Analytics')).toBeInTheDocument();
 		expect(screen.getByText('Fix Spotify')).toBeInTheDocument();

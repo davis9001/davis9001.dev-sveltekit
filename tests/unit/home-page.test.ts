@@ -43,9 +43,9 @@ describe.skip('Home Page Hero', () => {
 
 	it('should render hero CTA links', () => {
 		render(Page);
-		expect(screen.getByText(/Currently building \*Space/)).toBeTruthy();
+		expect(screen.getByText(/Open Projects/)).toBeTruthy();
 		expect(screen.getByText('Portfolio of Projects')).toBeTruthy();
-		expect(screen.getByText('Send a message')).toBeTruthy();
+		expect(screen.getByText('Send a Message')).toBeTruthy();
 	});
 
 	it('should have hero section with banner role', () => {

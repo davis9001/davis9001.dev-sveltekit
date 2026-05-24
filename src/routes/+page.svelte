@@ -446,14 +446,14 @@
 			<p class="hero-role">Software and Community Architect</p>
 
 			<nav class="hero-ctas" aria-label="Quick links">
-				<a href="https://starspace.group" class="hero-cta hero-cta--special">
-					Currently building: *Space
+				<a href="/projects" class="hero-cta hero-cta--special">
+					Open Projects
 				</a>
 				<a href="/portfolio" class="hero-cta">
 					Portfolio of Projects
 				</a>
 				<a href="/send" class="hero-cta">
-					Send a message
+					Send a Message
 				</a>
 			</nav>
 
