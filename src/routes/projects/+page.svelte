@@ -41,8 +41,18 @@
 				},
 				{ name: 'Ammoura', primaryLink: 'https://ammoura.me/', tasks: ['Tenants'] },
 				{ name: 'Nabu', tasks: ['Content generation', 'Content publishing'] },
-				{ name: 'Dashboard', tasks: ['Fix Github and Google Analytics'] },
-				{ name: 'Game', tasks: ['Finish end-game', 'Fix glitches'] },
+				{
+					name: 'Dashboard',
+					primaryLink: 'https://dashboard.starspace.group',
+					links: [{ label: 'GitHub', href: 'https://github.com/starspacegroup/dashboard' }],
+					tasks: ['Fix GitHub and Google Analytics']
+				},
+				{
+					name: 'Game',
+					primaryLink: 'https://game.starspace.group',
+					links: [{ label: 'GitHub', href: 'https://github.com/starspacegroup/game' }],
+					tasks: ['Finish end-game', 'Fix glitches']
+				},
 				{ name: 'Guides', tasks: ['Finish 0.1 of guides and publish'] },
 				{ name: 'Convey.land', tasks: ['Initialize project with NebulaKit'] }
 			]

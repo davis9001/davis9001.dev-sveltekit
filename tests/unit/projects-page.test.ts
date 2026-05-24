@@ -20,17 +20,27 @@ describe('Projects Page', () => {
 			'href',
 			'https://starspace.group/'
 		);
+		expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
+			'href',
+			'https://dashboard.starspace.group'
+		);
+		expect(screen.getByRole('link', { name: 'Game' })).toHaveAttribute(
+			'href',
+			'https://game.starspace.group'
+		);
 		expect(screen.getByRole('link', { name: 'NebulaKit' })).toHaveAttribute(
 			'href',
 			'https://nebulakit.starspace.group/'
 		);
 		expect(document.querySelector('a[href="https://github.com/starspacegroup/NebulaKit"]')).toBeInTheDocument();
 		expect(document.querySelector('a[href="https://github.com/starspacegroup/spacebot"]')).toBeInTheDocument();
+		expect(document.querySelector('a[href="https://github.com/starspacegroup/dashboard"]')).toBeInTheDocument();
+		expect(document.querySelector('a[href="https://github.com/starspacegroup/game"]')).toBeInTheDocument();
 		expect(
 			document.querySelector('a[href="https://github.com/starspacegroup/NebulaKit"] svg')
 		).toBeInTheDocument();
 		expect(screen.getByText('Rebuild with NebulaKit')).toBeInTheDocument();
-		expect(screen.getByText('Fix Github and Google Analytics')).toBeInTheDocument();
+		expect(screen.getByText('Fix GitHub and Google Analytics')).toBeInTheDocument();
 		expect(screen.getByText('Fix Spotify')).toBeInTheDocument();
 		expect(
 			screen.getByText('Add AI feature: Describe synth/effect type and it will build it for you')
