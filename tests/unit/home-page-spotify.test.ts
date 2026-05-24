@@ -63,6 +63,22 @@ describe('Home Page Server Load - Spotify SSR', () => {
     vi.resetModules();
   });
 
+  function createMockFetch(spotifyResponse: unknown, ok = true) {
+    return vi.fn(async (url: string) => {
+      if (url !== '/api/spotify') {
+        return {
+          ok: false,
+          json: async () => ({})
+        };
+      }
+
+      return {
+        ok,
+        json: async () => spotifyResponse
+      };
+    });
+  }
+
   it('should return spotifyData when D1 has fresh cached data', async () => {
     const cachedAt = Date.now() - 60_000; // 1 minute ago
     const db = createMockDB({
@@ -106,6 +122,30 @@ describe('Home Page Server Load - Spotify SSR', () => {
     const { load } = await import('../../src/routes/+page.server');
     const result = await load({ platform } as any) as any;
 
+    expect(result.spotifyData).toBeNull();
+  });
+
+  it('should fetch spotifyData server-side when D1 cache is empty', async () => {
+    const db = createMockDB();
+    const platform = { env: { DB: db }, context: {}, caches: {} };
+    const fetch = createMockFetch(sampleSpotifyData);
+
+    const { load } = await import('../../src/routes/+page.server');
+    const result = await load({ platform, fetch } as any) as any;
+
+    expect(fetch).toHaveBeenCalledWith('/api/spotify');
+    expect(result.spotifyData).toEqual(sampleSpotifyData);
+  });
+
+  it('should keep spotifyData null when server-side spotify fetch fails', async () => {
+    const db = createMockDB();
+    const platform = { env: { DB: db }, context: {}, caches: {} };
+    const fetch = createMockFetch({ error: 'failed' }, false);
+
+    const { load } = await import('../../src/routes/+page.server');
+    const result = await load({ platform, fetch } as any) as any;
+
+    expect(fetch).toHaveBeenCalledWith('/api/spotify');
     expect(result.spotifyData).toBeNull();
   });
 

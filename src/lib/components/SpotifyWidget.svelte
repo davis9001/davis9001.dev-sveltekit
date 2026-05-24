@@ -209,6 +209,11 @@
 		>
 			Spotify
 		</a>
+		{#if isRevalidating}
+			<span class="text-xs sm:text-sm font-medium text-foreground/60" aria-live="polite">
+				Refreshing...
+			</span>
+		{/if}
 	</h3>
 
 	{#if loading}

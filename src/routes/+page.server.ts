@@ -13,7 +13,7 @@ import type { PageServerLoad } from './$types';
 // Load all markdown files at build time
 const modules = import.meta.glob('/src/updates/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
-export const load: PageServerLoad = async ({ platform }) => {
+export const load: PageServerLoad = async ({ platform, fetch }) => {
   const posts = processRawPosts(modules);
 
   // Return only metadata for the 5 most recent posts
@@ -28,6 +28,22 @@ export const load: PageServerLoad = async ({ platform }) => {
       getSpotifyCacheStale(platform.env.DB),
       getGitHubActivityCacheStale(platform.env.DB)
     ]);
+  }
+
+  // Fallback: if D1 cache is empty, fetch Spotify once server-side so first
+  // render still has data. The API route will persist successful responses to D1.
+  if (!spotifyData) {
+    try {
+      const response = await fetch('/api/spotify');
+      if (response.ok) {
+        const data = await response.json();
+        if (!data?.error) {
+          spotifyData = data;
+        }
+      }
+    } catch {
+      // Non-critical: keep spotifyData as null and let client-side widget load.
+    }
   }
 
   return {

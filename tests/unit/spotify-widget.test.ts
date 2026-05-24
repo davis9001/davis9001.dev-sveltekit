@@ -566,6 +566,7 @@ describe('SpotifyWidget', () => {
 
     expect(screen.getByText('Cached Spinner Track')).toBeInTheDocument();
     expect(container.querySelector('.spotify-revalidate-spinner')).toBeInTheDocument();
+    expect(screen.getByText('Refreshing...')).toBeInTheDocument();
   });
 
 });
