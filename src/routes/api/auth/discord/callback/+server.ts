@@ -1,4 +1,5 @@
 import { mergeAccounts } from '$lib/services/account-merge';
+import { getOwnerIdentity, matchesOwnerUsername } from '$lib/utils/owner';
 import { isRedirect, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -89,21 +90,10 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 		// Generate unique user ID with discord prefix
 		const userId = `discord_${discordUser.id}`;
 
-		// Check if user is the OAuth app owner
-		// First try environment variable, then fall back to KV
-		let appOwnerId = platform?.env?.GITHUB_OWNER_ID;
-
-		// Try to fetch from KV if environment variable not set
-		if (!appOwnerId && platform?.env?.KV) {
-			try {
-				const storedOwnerId = await platform.env.KV.get('github_owner_id');
-				if (storedOwnerId) {
-					appOwnerId = storedOwnerId;
-				}
-			} catch (err) {
-				console.error('Failed to fetch owner ID from KV:', err);
-			}
-		}
+		const { ownerId: appOwnerId, ownerUsername: appOwnerUsername } = await getOwnerIdentity(
+			platform
+		);
+		const isDiscordOwner = matchesOwnerUsername(discordUser.username, appOwnerUsername);
 
 		// Check for linking mode - if user is already logged in
 		const existingSessionCookie = cookies.get('session');
@@ -130,6 +120,19 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 		let isAdmin = false;
 		if (platform?.env?.DB) {
 			try {
+				const grantOwnerAdmin = async (userId: string) => {
+					if (!isDiscordOwner) {
+						return;
+					}
+
+					isAdmin = true;
+					await platform.env.DB.prepare(
+						'UPDATE users SET is_admin = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+					)
+						.bind(userId)
+						.run();
+				};
+
 				if (isLinkingMode && existingUser) {
 					// Link Discord account to existing user
 					// First check if this Discord account is already linked to another user
@@ -157,6 +160,8 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 							.bind(crypto.randomUUID(), existingUser.id, 'discord', discordUser.id, accessToken)
 							.run();
 					}
+
+					await grantOwnerAdmin(existingUser.id);
 
 					// Redirect back to profile with success
 					return new Response(null, {
@@ -205,6 +210,18 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 							}
 						}
 
+						if (!isOwner) {
+							isOwner = isDiscordOwner || matchesOwnerUsername(linkedUser.github_login, appOwnerUsername);
+						}
+
+						if (isOwner && linkedUser.is_admin !== 1) {
+							await platform.env.DB.prepare(
+								'UPDATE users SET is_admin = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+							)
+								.bind(linkedUser.id)
+								.run();
+						}
+
 						const sessionData = {
 							id: linkedUser.id,
 							login: linkedUser.github_login || discordUser.username,
@@ -235,7 +252,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 						return new Response(null, {
 							status: 302,
 							headers: {
-								Location: new URL('/', url.origin).toString(),
+								Location: new URL(isOwner ? '/admin' : '/', url.origin).toString(),
 								'Set-Cookie': cookieParts.join('; ')
 							}
 						});
@@ -251,7 +268,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 
 				if (existingUserRecord) {
 					// Update existing user
-					isAdmin = existingUserRecord.is_admin === 1;
+					isAdmin = existingUserRecord.is_admin === 1 || isDiscordOwner;
 					await platform.env.DB.prepare(
 						`UPDATE users 
 						SET name = ?, updated_at = CURRENT_TIMESTAMP 
@@ -275,18 +292,22 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 							.bind(crypto.randomUUID(), userId, 'discord', discordUser.id, accessToken)
 							.run();
 					}
+
+					await grantOwnerAdmin(userId);
 				} else {
 					// Create new user
 					await platform.env.DB.prepare(
-						`INSERT INTO users (id, email, name, created_at) 
-						VALUES (?, ?, ?, CURRENT_TIMESTAMP)`
+						`INSERT INTO users (id, email, name, is_admin, created_at) 
+						VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`
 					)
 						.bind(
 							userId,
 							discordUser.email || `${discordUser.username}@discord.local`,
-							discordUser.global_name || discordUser.username
+							discordUser.global_name || discordUser.username,
+							isDiscordOwner ? 1 : 0
 						)
 						.run();
+					isAdmin = isDiscordOwner;
 
 					// Also create OAuth account record for Discord
 					await platform.env.DB.prepare(
@@ -313,7 +334,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 			name: discordUser.global_name || discordUser.username,
 			email: discordUser.email,
 			avatarUrl,
-			isOwner: false, // Discord-only users can't be owner (owner is GitHub ID based)
+			isOwner: isDiscordOwner,
 			isAdmin
 		};
 
@@ -324,7 +345,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 			.replace(/=+$/, '');
 
 		// Redirect to home
-		const redirectUrl = '/';
+		const redirectUrl = isDiscordOwner ? '/admin' : '/';
 		const absoluteRedirectUrl = new URL(redirectUrl, url.origin).toString();
 
 		// Build cookie string manually for proper handling

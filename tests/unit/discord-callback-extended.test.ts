@@ -786,6 +786,86 @@ describe('Discord Callback Server - Extended Coverage', () => {
 			const response = await GET(mockEvent as any);
 			expect(response.status).toBe(302);
 		});
+
+		it('should promote owner username logging in with Discord to admin', async () => {
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ access_token: 'test-token' })
+			});
+			mockFetch.mockResolvedValueOnce({
+				ok: true,
+				json: () =>
+					Promise.resolve({
+						id: '987654321',
+						username: 'davis9001',
+						global_name: 'Davis',
+						email: 'davis@discord.com',
+						avatar: null
+					})
+			});
+
+			const mockDB = {
+				prepare: vi.fn().mockImplementation((sql: string) => {
+					if (sql.includes('oauth_accounts WHERE provider = ? AND provider_account_id')) {
+						return {
+							bind: vi.fn().mockReturnValue({
+								first: vi.fn().mockResolvedValue(null)
+							})
+						};
+					}
+					if (sql.includes('SELECT id, is_admin FROM users WHERE id')) {
+						return {
+							bind: vi.fn().mockReturnValue({
+								first: vi.fn().mockResolvedValue(null)
+							})
+						};
+					}
+					if (sql.includes('INSERT INTO users') || sql.includes('INSERT INTO oauth_accounts')) {
+						return {
+							bind: vi.fn().mockReturnValue({
+								run: vi.fn().mockResolvedValue({ success: true })
+							})
+						};
+					}
+					return { bind: vi.fn().mockReturnValue({ first: vi.fn(), run: vi.fn() }) };
+				})
+			};
+
+			const mockKV = {
+				get: vi.fn().mockImplementation((key: string) => {
+					if (key === 'github_owner_username') {
+						return 'davis9001';
+					}
+					return null;
+				})
+			};
+
+			const mockEvent = {
+				url: new URL('http://localhost/api/auth/discord/callback?code=test-code'),
+				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
+				platform: {
+					env: {
+						DISCORD_CLIENT_ID: 'client-id',
+						DISCORD_CLIENT_SECRET: 'client-secret',
+						DB: mockDB,
+						KV: mockKV
+					}
+				}
+			};
+
+			const { GET } = await import('../../src/routes/api/auth/discord/callback/+server');
+
+			const response = await GET(mockEvent as any);
+			const cookie = response.headers.get('Set-Cookie') ?? '';
+			const encodedSession = cookie.split('session=')[1]?.split(';')[0] ?? '';
+			const padded = encodedSession.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(encodedSession.length / 4) * 4, '=');
+			const session = JSON.parse(atob(padded));
+
+			expect(response.status).toBe(302);
+			expect(response.headers.get('Location')).toBe('http://localhost/admin');
+			expect(session.isOwner).toBe(true);
+			expect(session.isAdmin).toBe(true);
+		});
 	});
 
 	describe('Database error handling', () => {

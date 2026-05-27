@@ -475,6 +475,97 @@ describe('GitHub Auth API', () => {
 			expect(response.status).toBe(302);
 			expect(mockKVPut).toHaveBeenCalledWith('admin_first_login_completed', 'true');
 		});
+
+		it('should promote an existing owner-matching GitHub user to admin', async () => {
+			const mockDbRun = vi.fn().mockResolvedValue({});
+			const mockCookies = {
+				set: vi.fn(),
+				delete: vi.fn(),
+				get: vi.fn().mockReturnValue(null)
+			};
+
+			const mockPlatform = {
+				env: {
+					GITHUB_CLIENT_ID: 'test-client',
+					GITHUB_CLIENT_SECRET: 'test-secret',
+					GITHUB_OWNER_USERNAME: 'davis9001',
+					DB: {
+						prepare: vi.fn().mockImplementation((sql: string) => {
+							if (sql.includes('SELECT user_id FROM oauth_accounts WHERE provider = ? AND provider_account_id = ?')) {
+								return {
+									bind: vi.fn().mockReturnValue({
+										first: vi.fn().mockResolvedValue(null)
+									})
+								};
+							}
+							if (sql.includes('SELECT id, is_admin FROM users WHERE id = ?')) {
+								return {
+									bind: vi.fn().mockReturnValue({
+										first: vi.fn().mockResolvedValue({ id: '12345', is_admin: 0 })
+									})
+								};
+							}
+							if (sql.includes('SELECT id FROM oauth_accounts WHERE user_id = ? AND provider = ?')) {
+								return {
+									bind: vi.fn().mockReturnValue({
+										first: vi.fn().mockResolvedValue({ id: 'oauth-123' })
+									})
+								};
+							}
+							if (sql.includes('UPDATE users')) {
+								return {
+									bind: vi.fn().mockReturnValue({
+										run: mockDbRun
+									})
+								};
+							}
+							return {
+								bind: vi.fn().mockReturnValue({
+									first: vi.fn().mockResolvedValue(null),
+									run: mockDbRun
+								})
+							};
+						})
+					}
+				}
+			};
+
+			globalThis.fetch = vi
+				.fn()
+				.mockResolvedValueOnce({
+					ok: true,
+					json: vi.fn().mockResolvedValue({ access_token: 'valid-token' })
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: vi.fn().mockResolvedValue({
+						id: 12345,
+						login: 'davis9001',
+						name: 'Davis',
+						email: 'davis@example.com',
+						avatar_url: 'https://example.com/avatar.png'
+					})
+				});
+
+			const { GET } = await import('../../src/routes/api/auth/github/callback/+server');
+
+			const response = await GET({
+				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
+				cookies: mockCookies,
+				platform: mockPlatform
+			} as any);
+
+			const cookie = response.headers.get('Set-Cookie') ?? '';
+			const encodedSession = cookie.split('session=')[1]?.split(';')[0] ?? '';
+			const padded = encodedSession.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(encodedSession.length / 4) * 4, '=');
+			const session = JSON.parse(atob(padded));
+
+			expect(response.status).toBe(302);
+			expect(response.headers.get('Location')).toBe('http://localhost:4220/admin');
+			expect(session.isOwner).toBe(true);
+			expect(session.isAdmin).toBe(true);
+			expect(mockDbRun).toHaveBeenCalled();
+		});
 	});
 
 	describe('GET/POST /api/auth/logout', () => {
