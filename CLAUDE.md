@@ -1,5 +1,10 @@
 # CLAUDE.md - Instructions for Claude Code and AI Assistants
 
+## Package Manager - MANDATORY RULE
+
+- This project uses Bun as the package manager and script runner.
+- Use `bun` and `bun run ...` commands instead of `npm`/`npm run ...`.
+
 ## Database Migrations - MANDATORY RULES
 
 **NEVER modify migration files that have already been committed to `main`.**
@@ -11,7 +16,7 @@ Migration files in `migrations/` are immutable once applied. Cloudflare D1 track
 1. Find the highest-numbered migration in `migrations/`
 2. Create a NEW file: `migrations/NNNN_description.sql` (next number in sequence)
 3. Use `ALTER TABLE` to modify existing tables
-4. Test with `npm run db:migrate:local`
+4. Test with `bun run db:migrate:local`
 
 ### Never do this:
 
@@ -26,7 +31,7 @@ See `migrations/README.md` for the full migration guide.
 
 **Code coverage must NEVER drop below 95%. This is a hard floor.**
 
-- Before completing any task, run `npm run test:coverage` and confirm overall coverage is ≥ 95%
+- Before completing any task, run `bun run test:coverage` and confirm overall coverage is ≥ 95%
 - If your changes reduce coverage below 95%, you MUST write additional tests before finishing
 - 100% coverage is required on critical paths (auth, payments, data mutations)
 - Every new feature, bug fix, or refactor must include tests sufficient to maintain this threshold
@@ -35,7 +40,7 @@ See `migrations/README.md` for the full migration guide.
 ### Verification command:
 
 ```bash
-npm run test:coverage
+bun run test:coverage
 ```
 
 Check the summary output. If any category (Statements, Branches, Functions, Lines) falls below 95%, add tests until the threshold is met.
