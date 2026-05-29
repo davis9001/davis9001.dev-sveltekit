@@ -849,7 +849,7 @@
 <style>
 	/* Page Layout */
 	.cms-manage {
-		max-width: 1000px;
+		width: 100%;
 	}
 
 	.page-header {

@@ -297,7 +297,7 @@
 
 <style>
 	.spotify-admin {
-		padding: var(--spacing-xl);
+		width: 100%;
 	}
 
 	h1 {

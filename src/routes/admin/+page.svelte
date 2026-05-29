@@ -277,7 +277,7 @@
 
 <style>
 	.admin-home {
-		padding: var(--spacing-xl);
+		width: 100%;
 	}
 
 	h1 {

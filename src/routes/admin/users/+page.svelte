@@ -454,9 +454,7 @@
 
 <style>
 	.users-page {
-		padding: var(--spacing-xl);
-		max-width: 1400px;
-		margin: 0 auto;
+		width: 100%;
 	}
 
 	.page-header {

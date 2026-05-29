@@ -692,7 +692,7 @@
 <style>
 	/* ─── Dashboard Layout ──────────────────────────────────────────────────── */
 	.cms-dashboard {
-		max-width: 800px;
+		width: 100%;
 	}
 
 	.cms-dashboard-header {

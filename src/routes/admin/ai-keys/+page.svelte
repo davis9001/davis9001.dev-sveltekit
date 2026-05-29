@@ -867,7 +867,7 @@
 
 <style>
 	.ai-keys-page {
-		max-width: 1000px;
+		width: 100%;
 	}
 
 	.page-header {

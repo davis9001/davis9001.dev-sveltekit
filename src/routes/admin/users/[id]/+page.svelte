@@ -150,9 +150,7 @@
 
 <style>
 	.details-page {
-		max-width: 1100px;
-		margin: 0 auto;
-		padding: var(--spacing-xl);
+		width: 100%;
 		display: grid;
 		gap: var(--spacing-lg);
 	}
