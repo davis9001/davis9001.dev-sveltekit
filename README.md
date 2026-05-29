@@ -4,6 +4,7 @@
 
 [![Powered by Cloudflare](https://img.shields.io/badge/Powered%20by-Cloudflare-F38020?style=flat&logo=cloudflare)](https://www.cloudflare.com/)
 [![Built with SvelteKit](https://img.shields.io/badge/Built%20with-SvelteKit-FF3E00?style=flat&logo=svelte)](https://kit.svelte.dev/)
+[![Built from NebulaKit](https://img.shields.io/badge/Built%20from-NebulaKit-0EA5E9?style=flat)](https://github.com/starspacegroup/nebulakit)
 
 ## About
 
@@ -56,6 +57,10 @@ NebulaKit provides the baseline structure used here, including:
 - **Accessibility-first**: WCAG AA contrast targets and semantic markup patterns
 - **Consistent spacing and typography scale**: shared design tokens in global styles
 - **Component-driven UI**: reusable Svelte components for navigation, layout, and interaction
+
+## Built From
+
+- **[NebulaKit](https://github.com/starspacegroup/nebulakit)** — Starter foundation for SvelteKit + Cloudflare architecture, auth/admin workflows, and content-oriented project structure
 
 ## Tech Stack
 
