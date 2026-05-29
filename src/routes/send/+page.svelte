@@ -76,7 +76,7 @@
 					required
 					placeholder="Type your message here..."
 					bind:value={message}
-				/>
+				></textarea>
 			</div>
 
 			<div class="form-group">

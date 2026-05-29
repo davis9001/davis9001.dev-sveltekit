@@ -71,7 +71,7 @@
 			background-size: contain;
 			background-position: -9ch 18em;
 		"
-	/>
+	></div>
 
 	<div class="ascii-layer fixed top-0 left-0 z-10 select-none font-mono items-center grid grid-cols-23 sm:grid-cols-42 lg:grid-cols-99 justify-center text-foreground text-center w-screen h-screen min-w-screen min-h-screen" aria-hidden="true">
 		{#each asciiCharacters as char}

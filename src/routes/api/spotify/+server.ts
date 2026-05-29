@@ -291,8 +291,9 @@ async function getTopPlaylists(
       const cached = await kv.get(PLAYLIST_CACHE_KEY, 'json');
       if (cached) {
         const result = cached as SpotifyData['topPlaylists'];
+        const nextRefreshAt = Date.now() + MEMORY_CACHE_TTL_MS;
         // Populate memory cache from KV
-        playlistMemoryCache = { data: result, expiresAt: Date.now() + MEMORY_CACHE_TTL_MS };
+        playlistMemoryCache = { data: result, nextRefreshAt, expiresAt: nextRefreshAt };
         return result;
       }
     } catch {
@@ -385,7 +386,8 @@ async function getTopPlaylists(
     }
 
     // Cache in memory
-    playlistMemoryCache = { data: topPlaylists, expiresAt: Date.now() + MEMORY_CACHE_TTL_MS };
+    const nextRefreshAt = Date.now() + MEMORY_CACHE_TTL_MS;
+    playlistMemoryCache = { data: topPlaylists, nextRefreshAt, expiresAt: nextRefreshAt };
 
     // Cache in KV
     if (kv) {

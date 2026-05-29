@@ -403,8 +403,7 @@
 		font-weight: 500;
 	}
 
-	.info-section ol,
-	.info-section ul {
+	.info-section ol {
 		margin: var(--spacing-xs) 0;
 		padding-left: var(--spacing-lg);
 		color: var(--color-text);
@@ -412,15 +411,6 @@
 
 	.info-section li {
 		margin-bottom: var(--spacing-xs);
-	}
-
-	.info-section ul {
-		margin-top: var(--spacing-xs);
-		font-size: 0.9rem;
-	}
-
-	.info-section ul li {
-		margin-bottom: 4px;
 	}
 
 	.info-section a {

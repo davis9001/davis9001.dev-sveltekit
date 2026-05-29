@@ -450,7 +450,7 @@
 		<div class="modal-content" on:click|stopPropagation>
 			<div class="modal-header">
 				<h2>{editingTypeId ? 'Edit' : 'New'} Content Type</h2>
-				<button class="modal-close" on:click={closeEditor}>
+				<button class="modal-close" aria-label="Close content type editor" on:click={closeEditor}>
 					<svg
 						width="20"
 						height="20"
