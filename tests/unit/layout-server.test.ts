@@ -24,22 +24,27 @@ describe('Layout Server Load', () => {
 				isAdmin: false
 			};
 
-			const mockFetch = vi.fn().mockResolvedValue({
-				ok: true,
-				json: vi.fn().mockResolvedValue({ hasProviders: true })
-			});
-
 			const { load } = await import('../../src/routes/+layout.server');
 			const result = (await load({
 				locals: { user: mockUser },
-				fetch: mockFetch,
-				platform: mockPlatform()
+				platform: mockPlatform({
+					KV: {
+						get: async (key: string) => {
+							if (key === 'ai_keys_list') {
+								return JSON.stringify(['provider-1']);
+							}
+							if (key === 'ai_key:provider-1') {
+								return JSON.stringify({ enabled: true });
+							}
+							return null;
+						}
+					}
+				})
 			} as any)) as { user: typeof mockUser | null; hasAIProviders: boolean; hasAuthConfig: boolean; };
 
 			expect(result.user).toEqual(mockUser);
 			expect(result.hasAIProviders).toBe(true);
 			expect(result.hasAuthConfig).toBe(false);
-			expect(mockFetch).toHaveBeenCalledWith('/api/admin/ai-keys/status');
 		});
 
 		it('should return null user when not authenticated', async () => {
