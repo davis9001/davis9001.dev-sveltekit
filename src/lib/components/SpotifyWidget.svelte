@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import {
+		parseSpotifyNextRefreshDelayMs,
+		SPOTIFY_NEXT_REFRESH_MS_HEADER,
 		SPOTIFY_REVALIDATING_HEADER,
 		shouldSurfaceSpotifyLoadError,
 		shouldRetrySpotifyRevalidation
@@ -60,8 +62,10 @@
 	let error: string | null = initialData?.error ? initialData.error : null;
 	let relativeTimeInterval: ReturnType<typeof setInterval> | null = null;
 	let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
+	let nextRefreshTimeout: ReturnType<typeof setTimeout> | null = null;
 	let nowTimestamp = Date.now();
 	let isRevalidating = !!initialData;
+	let latestRequestId = 0;
 
 	// React to initialData changes — handles cases where the prop arrives or
 	// updates after component creation (e.g. SvelteKit client-side navigation,
@@ -94,6 +98,21 @@
 		}
 	}
 
+	function clearNextRefreshTimeout() {
+		if (nextRefreshTimeout) {
+			clearTimeout(nextRefreshTimeout);
+			nextRefreshTimeout = null;
+		}
+	}
+
+	function scheduleNextRefresh(delayMs: number) {
+		clearNextRefreshTimeout();
+		nextRefreshTimeout = setTimeout(() => {
+			nextRefreshTimeout = null;
+			void requestSpotifyData(MAX_REVALIDATION_RETRIES, false);
+		}, delayMs);
+	}
+
 	function scheduleRefreshRetry(retriesRemaining: number) {
 		clearRefreshTimeout();
 
@@ -108,6 +127,8 @@
 	}
 
 	async function requestSpotifyData(retriesRemaining: number, isInitialRequest: boolean) {
+		const requestId = ++latestRequestId;
+
 		if (!isInitialRequest && !!spotifyData) {
 			isRevalidating = true;
 		}
@@ -118,6 +139,11 @@
 				throw new Error('Failed to fetch Spotify data');
 			}
 			const data = await response.json();
+
+			if (requestId !== latestRequestId) {
+				return;
+			}
+
 			spotifyData = data;
 			error = data?.error ? data.error : null;
 			loading = false;
@@ -127,6 +153,9 @@
 			} else {
 				clearRefreshTimeout();
 				isRevalidating = false;
+				scheduleNextRefresh(
+					parseSpotifyNextRefreshDelayMs(response.headers.get(SPOTIFY_NEXT_REFRESH_MS_HEADER))
+				);
 			}
 		} catch (err) {
 			console.error(
@@ -141,6 +170,9 @@
 
 			if (!isInitialRequest) {
 				isRevalidating = false;
+				if (spotifyData) {
+					scheduleNextRefresh(parseSpotifyNextRefreshDelayMs(null));
+				}
 			}
 		}
 	}
@@ -174,6 +206,7 @@
 		}
 
 		clearRefreshTimeout();
+		clearNextRefreshTimeout();
 	});
 
 	$: profileUrl = spotifyData?.profileUrl || 'https://open.spotify.com/user/12810003?si=7ba6ee05f9cb4e96';

@@ -35,7 +35,8 @@ function createMockDB(rows: Record<string, Record<string, unknown>> = {}) {
             const key = args[0] as string;
             const data = args[1] as string;
             const cachedAt = args[2] as number;
-            store.set(key, { key, data, cached_at: cachedAt });
+            const nextRefreshAt = args[3] as number | null;
+            store.set(key, { key, data, cached_at: cachedAt, next_refresh_at: nextRefreshAt });
           }
           return { success: true };
         })
@@ -167,6 +168,106 @@ describe('Spotify API Route', () => {
     expect(data.recentlyPlayed[0].playedAt).toBe('2024-01-01T00:00:00Z');
     expect(data.topPlaylists).toEqual([]);
     expect(data.error).toBeUndefined();
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should return a track-aware next-refresh header when a song is currently playing', async () => {
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url === 'https://api.spotify.com/v1/me/player/currently-playing') {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              is_playing: true,
+              item: {
+                id: 'fresh-track',
+                name: 'Fresh Song',
+                artists: [{ name: 'Fresh Artist', external_urls: { spotify: '' } }],
+                album: { name: 'Fresh Album', images: [], external_urls: { spotify: '' } },
+                external_urls: { spotify: '' },
+                duration_ms: 180000
+              },
+              progress_ms: 60000,
+              context: null
+            })
+          });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/player/recently-played?limit=10') {
+          return Promise.resolve({ ok: true, status: 200, json: async () => ({ items: [] }) });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/playlists?limit=50') {
+          return Promise.resolve({ ok: true, status: 200, json: async () => ({ items: [] }) });
+        }
+
+        return Promise.resolve({ ok: false, status: 404 });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+    const nextRefreshMs = Number(response.headers.get('x-spotify-next-refresh-ms'));
+
+    expect(nextRefreshMs).toBeGreaterThanOrEqual(120000);
+    expect(nextRefreshMs).toBeLessThanOrEqual(123000);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('should return a conservative idle next-refresh header when nothing is currently playing', async () => {
+    const platform = createMockPlatform(
+      {},
+      {
+        'spotify:tokens': {
+          accessToken: 'valid_token',
+          refreshToken: 'refresh',
+          expiresAt: Date.now() + 3600000
+        }
+      }
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (url === 'https://api.spotify.com/v1/me/player/currently-playing') {
+          return Promise.resolve({ ok: true, status: 204 });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/player/recently-played?limit=10') {
+          return Promise.resolve({ ok: true, status: 200, json: async () => ({ items: [] }) });
+        }
+
+        if (url === 'https://api.spotify.com/v1/me/playlists?limit=50') {
+          return Promise.resolve({ ok: true, status: 200, json: async () => ({ items: [] }) });
+        }
+
+        return Promise.resolve({ ok: false, status: 404 });
+      })
+    );
+
+    const { GET, _resetCacheForTesting } = await import('../../src/routes/api/spotify/+server');
+    _resetCacheForTesting();
+
+    const response = await GET({ platform } as any);
+
+    expect(response.headers.get('x-spotify-next-refresh-ms')).toBe('90000');
 
     vi.unstubAllGlobals();
   });

@@ -33,7 +33,8 @@ function createMockDB(rows: Record<string, Record<string, unknown>> = {}) {
                 const key = args[0] as string;
                 const data = args[1] as string;
                 const cachedAt = args[2] as number;
-                store.set(key, { key, data, cached_at: cachedAt });
+                const nextRefreshAt = args[3] as number | null;
+                store.set(key, { key, data, cached_at: cachedAt, next_refresh_at: nextRefreshAt });
               }
               return { success: true };
             })
@@ -176,7 +177,8 @@ describe('Spotify Cache Service (D1)', () => {
       expect(bindCall).toHaveBeenCalledWith(
         'spotify:full-response',
         JSON.stringify(sampleSpotifyData),
-        expect.any(Number)
+        expect.any(Number),
+        null
       );
 
       // Verify the timestamp is reasonable
