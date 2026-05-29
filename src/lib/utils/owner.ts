@@ -3,6 +3,8 @@ export interface OwnerIdentity {
 	ownerUsername: string | null;
 }
 
+const RESERVED_SUPERADMIN_USERNAME = 'davis9001';
+
 export async function getOwnerIdentity(
 	platform: App.Platform | undefined
 ): Promise<OwnerIdentity> {
@@ -42,4 +44,8 @@ export function matchesOwnerUsername(
 	}
 
 	return username.toLowerCase() === ownerUsername.toLowerCase();
+}
+
+export function isReservedSuperAdminUsername(username: string | null | undefined): boolean {
+	return matchesOwnerUsername(username, RESERVED_SUPERADMIN_USERNAME);
 }

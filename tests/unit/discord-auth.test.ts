@@ -230,6 +230,61 @@ describe('Discord OAuth - Callback', () => {
 		expect(response.headers.get('Set-Cookie')).toContain('session=');
 	});
 
+	it('should grant admin access to davis9001 without owner env config', async () => {
+		const { GET } = await import('../../src/routes/api/auth/discord/callback/+server');
+
+		const mockDiscordUser = {
+			id: '999999999',
+			username: 'davis9001',
+			discriminator: '0',
+			email: 'davis9001@discord.com',
+			avatar: 'avatarhash'
+		};
+
+		vi.mocked(fetch)
+			.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve({ access_token: 'discord-access-token' })
+			} as any)
+			.mockResolvedValueOnce({
+				ok: true,
+				json: () => Promise.resolve(mockDiscordUser)
+			} as any);
+
+		const mockUrl = new URL('http://localhost/api/auth/discord/callback?code=test-code');
+		const mockCookies = {
+			set: vi.fn(),
+			get: vi.fn()
+		};
+		const mockPlatform = {
+			env: {
+				DISCORD_CLIENT_ID: 'test-client-id',
+				DISCORD_CLIENT_SECRET: 'test-client-secret'
+			}
+		};
+
+		const response = await GET({
+			url: mockUrl,
+			cookies: mockCookies,
+			platform: mockPlatform
+		} as any);
+
+		expect(response.status).toBe(302);
+		expect(response.headers.get('Location')).toBe('http://localhost/admin');
+
+		const cookie = response.headers.get('Set-Cookie');
+		expect(cookie).toContain('session=');
+
+		const encodedSession = cookie?.match(/session=([^;]+)/)?.[1] ?? '';
+		const base64 = encodedSession.replace(/-/g, '+').replace(/_/g, '/');
+		const paddedBase64 = `${base64}${'='.repeat((4 - (base64.length % 4)) % 4)}`;
+		const session = JSON.parse(atob(paddedBase64));
+
+		expect(session.login).toBe('davis9001');
+		expect(session.isOwner).toBe(true);
+		expect(session.isAdmin).toBe(true);
+	});
+
 	it('should handle token exchange failure', async () => {
 		const { GET } = await import('../../src/routes/api/auth/discord/callback/+server');
 

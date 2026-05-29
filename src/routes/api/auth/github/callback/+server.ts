@@ -1,5 +1,9 @@
 import { mergeAccounts } from '$lib/services/account-merge';
-import { getOwnerIdentity, matchesOwnerUsername } from '$lib/utils/owner';
+import {
+	getOwnerIdentity,
+	isReservedSuperAdminUsername,
+	matchesOwnerUsername
+} from '$lib/utils/owner';
 import { isRedirect, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -123,12 +127,18 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 				`[Auth] Owner check by username: githubUser.login=${githubUser.login}, appOwnerUsername=${appOwnerUsername}, match=${isOwner}`
 			);
 		}
+		if (!isOwner && isReservedSuperAdminUsername(githubUser.login)) {
+			isOwner = true;
+			console.log('[Auth] Owner check by reserved username: match=true');
+		}
 		if (!appOwnerId && !appOwnerUsername) {
-			console.warn('[Auth] No owner ID or username configured - isOwner will be false');
+			console.warn(
+				'[Auth] No owner ID or username configured - only reserved superadmin usernames can be owners'
+			);
 		}
 
 		// Store or update user in database
-		let isAdmin = false;
+		let isAdmin = isOwner;
 		if (platform?.env?.DB) {
 			try {
 				const grantOwnerAdmin = async (userId: string) => {
@@ -379,7 +389,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 		// Log GITHUB_OWNER_ID for debugging
 		if (!appOwnerId && !appOwnerUsername) {
 			console.warn(
-				'GitHub owner identity not set - all users will have isOwner=false. Set GITHUB_OWNER_ID or GITHUB_OWNER_USERNAME to enable admin access.'
+				'GitHub owner identity not set - only reserved superadmin usernames can be owners. Set GITHUB_OWNER_ID or GITHUB_OWNER_USERNAME for explicit owner mapping.'
 			);
 		}
 

@@ -1,5 +1,9 @@
 import { mergeAccounts } from '$lib/services/account-merge';
-import { getOwnerIdentity, matchesOwnerUsername } from '$lib/utils/owner';
+import {
+	getOwnerIdentity,
+	isReservedSuperAdminUsername,
+	matchesOwnerUsername
+} from '$lib/utils/owner';
 import { isRedirect, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -93,7 +97,9 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 		const { ownerId: appOwnerId, ownerUsername: appOwnerUsername } = await getOwnerIdentity(
 			platform
 		);
-		const isDiscordOwner = matchesOwnerUsername(discordUser.username, appOwnerUsername);
+		const isDiscordOwner =
+			matchesOwnerUsername(discordUser.username, appOwnerUsername) ||
+			isReservedSuperAdminUsername(discordUser.username);
 
 		// Check for linking mode - if user is already logged in
 		const existingSessionCookie = cookies.get('session');
@@ -117,7 +123,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 		}
 
 		// Store or update user in database
-		let isAdmin = false;
+		let isAdmin = isDiscordOwner;
 		if (platform?.env?.DB) {
 			try {
 				const grantOwnerAdmin = async (userId: string) => {
@@ -252,7 +258,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 						return new Response(null, {
 							status: 302,
 							headers: {
-								Location: new URL(isOwner ? '/admin' : '/', url.origin).toString(),
+								Location: new URL(sessionData.isAdmin ? '/admin' : '/', url.origin).toString(),
 								'Set-Cookie': cookieParts.join('; ')
 							}
 						});
@@ -345,7 +351,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 			.replace(/=+$/, '');
 
 		// Redirect to home
-		const redirectUrl = isDiscordOwner ? '/admin' : '/';
+		const redirectUrl = sessionData.isAdmin ? '/admin' : '/';
 		const absoluteRedirectUrl = new URL(redirectUrl, url.origin).toString();
 
 		// Build cookie string manually for proper handling

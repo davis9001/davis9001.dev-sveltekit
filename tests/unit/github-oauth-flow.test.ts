@@ -311,6 +311,61 @@ describe('GitHub Auth API', () => {
 			expect(response.headers.get('Location')).toBe('http://localhost:4220/'); // Non-owner goes to home
 		});
 
+		it('should grant admin access to davis9001 without owner env config', async () => {
+			const mockCookies = {
+				set: vi.fn(),
+				delete: vi.fn(),
+				get: vi.fn().mockReturnValue(null)
+			};
+
+			const mockPlatform = {
+				env: {
+					GITHUB_CLIENT_ID: 'test-client',
+					GITHUB_CLIENT_SECRET: 'test-secret'
+				}
+			};
+
+			globalThis.fetch = vi
+				.fn()
+				.mockResolvedValueOnce({
+					ok: true,
+					json: vi.fn().mockResolvedValue({ access_token: 'valid-token' })
+				})
+				.mockResolvedValueOnce({
+					ok: true,
+					json: vi.fn().mockResolvedValue({
+						id: 777,
+						login: 'davis9001',
+						name: 'Davis',
+						email: 'davis9001@example.com',
+						avatar_url: 'https://example.com/avatar.png'
+					})
+				});
+
+			const { GET } = await import('../../src/routes/api/auth/github/callback/+server');
+
+			const response = await GET({
+				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
+				cookies: mockCookies,
+				platform: mockPlatform
+			} as any);
+
+			expect(response.status).toBe(302);
+			expect(response.headers.get('Location')).toBe('http://localhost:4220/admin');
+
+			const cookie = response.headers.get('Set-Cookie');
+			expect(cookie).toContain('session=');
+
+			const encodedSession = cookie?.match(/session=([^;]+)/)?.[1] ?? '';
+			const base64 = encodedSession.replace(/-/g, '+').replace(/_/g, '/');
+			const paddedBase64 = `${base64}${'='.repeat((4 - (base64.length % 4)) % 4)}`;
+			const session = JSON.parse(atob(paddedBase64));
+
+			expect(session.login).toBe('davis9001');
+			expect(session.isOwner).toBe(true);
+			expect(session.isAdmin).toBe(true);
+		});
+
 		it('should store user in database when available', async () => {
 			const mockDbRun = vi.fn().mockResolvedValue({});
 			const mockCookies = {
