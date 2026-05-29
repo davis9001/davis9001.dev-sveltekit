@@ -43,12 +43,12 @@
 				class="fixed inset-0 bg-cover bg-center bg-no-repeat blur-sm opacity-20 z-10"
 				style="background-image:url('/davis9001-2.webp');background-size:contain;background-position:-9ch 18em;"
 			></div>
-			<div class="flex content-center justify-center relative z-50">
-				<h1 class="text-4xl font-bold flex space-x-3 heading-title">
+			<div class="flex content-center justify-center relative z-50 mx-auto max-w-5xl">
+				<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold flex flex-wrap items-center gap-3 heading-title">
 					<img
 						src="/logo-green-Icon-250.webp"
 						alt="davis9001 logo"
-						class="w-12 h-12 md:w-24 md:h-24"
+						class="w-10 h-10 shrink-0 sm:w-14 sm:h-14 lg:w-20 lg:h-20"
 					/>
 					Portfolio Projects
 				</h1>
@@ -56,18 +56,19 @@
 		</div>
 
 		<!-- Projects grid -->
-		<div class="md:p-5 grid md:grid-cols-2 lg:grid-cols-3 gap-20 relative z-50">
+		<div class="relative z-50 mx-auto grid max-w-7xl grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3 md:p-5 xl:gap-12">
 			{#each projects as project}
-				<div class="md:p-3 m-1 sm:p-9 sm:m-3">
+				<div class="w-full max-w-lg mx-auto">
 					<div class="rounded-2xl">
 						{#if project.meta.url}
-							<a class="text-accent" href="/portfolio/project/{project.slug}">
+							<a class="text-accent block" href="/portfolio/project/{project.slug}">
 								<img
 									src={safeFilename(project.meta.url)}
 									alt="Screenshot of {project.meta.title}"
 									loading="lazy"
+									class="mb-4 aspect-[16/9] w-full rounded-2xl object-cover object-center"
 								/>
-								<h2 class="text-2xl font-bold">{project.meta.title}</h2>
+								<h2 class="text-xl sm:text-2xl font-bold leading-tight">{project.meta.title}</h2>
 							</a>
 							<p class="text-foreground/60">
 								<a class="font-bold" href={project.meta.url} target="_blank" rel="noopener noreferrer">
@@ -75,7 +76,7 @@
 								</a>
 							</p>
 						{:else}
-							<h2 class="text-2xl font-bold">{project.meta.title}</h2>
+							<h2 class="text-xl sm:text-2xl font-bold leading-tight">{project.meta.title}</h2>
 						{/if}
 
 						{#if project.meta.latestContribution}
