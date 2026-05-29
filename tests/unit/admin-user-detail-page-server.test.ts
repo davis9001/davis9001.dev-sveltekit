@@ -19,10 +19,10 @@ describe('Admin User Detail Page Server Load', () => {
 		});
 
 		const { load } = await import('../../src/routes/admin/users/[id]/+page.server');
-		const result = await load({
+		const result = (await load({
 			params: { id: 'u1' },
 			fetch: mockFetch
-		} as any);
+		} as any)) as any;
 
 		expect(mockFetch).toHaveBeenCalledWith('/api/admin/users/u1');
 		expect(result.user.id).toBe('u1');

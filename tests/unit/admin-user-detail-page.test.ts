@@ -34,6 +34,10 @@ describe('Admin User Detail Page', () => {
 		render(Page.default, {
 			props: {
 				data: {
+					hasAIProviders: false,
+					portfolioItems: [],
+					blogPosts: [],
+					hasAuthConfig: false,
 					user: {
 						id: 'u1',
 						name: 'Legacy User',

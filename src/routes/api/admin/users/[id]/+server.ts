@@ -56,9 +56,11 @@ async function loadUserDetails(db: any, userId: string, legacyFallback = false) 
 			 WHERE id = ?`
 		)
 		.bind(userId)
-		.first<UserDetailRow>();
+		.first();
 
-	if (!user) {
+	const typedUser = user as UserDetailRow | null;
+
+	if (!typedUser) {
 		throw error(404, 'User not found');
 	}
 
@@ -107,15 +109,15 @@ async function loadUserDetails(db: any, userId: string, legacyFallback = false) 
 	const totalSessionsRow = await db
 		.prepare('SELECT COUNT(*) AS count FROM sessions WHERE user_id = ?')
 		.bind(userId)
-		.first<{ count: number }>();
+		.first();
 
 	const totalChatMessagesRow = await db
 		.prepare('SELECT COUNT(*) AS count FROM chat_messages WHERE user_id = ?')
 		.bind(userId)
-		.first<{ count: number }>();
+		.first();
 
 	return {
-		user,
+		user: typedUser,
 		oauthAccounts: oauthAccountsResult.results || [],
 		sessions: sessionsResult.results || [],
 		activityLogs: activityLogsResult.results || [],
