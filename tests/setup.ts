@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/svelte';
+import { cleanup } from '@testing-library/svelte/svelte5';
 import { afterEach } from 'vitest';
 
 // Cleanup after each test

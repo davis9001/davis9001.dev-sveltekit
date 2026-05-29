@@ -3,7 +3,7 @@
  * Validates that all social media icons render correctly with Tabler Icons style
  * (stroke-based, multi-path SVGs matching the old Fresh site).
  */
-import { render, screen } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte/svelte5';
 import { describe, expect, it } from 'vitest';
 import SocialLinks from '../../src/lib/components/SocialLinks.svelte';
 

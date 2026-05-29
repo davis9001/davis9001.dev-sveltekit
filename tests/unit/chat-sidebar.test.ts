@@ -1,6 +1,6 @@
 import ChatSidebar from '$lib/components/ChatSidebar.svelte';
 import { chatHistoryStore } from '$lib/stores/chatHistory';
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte/svelte5';
 import { get } from 'svelte/store';
 import { beforeEach, describe, expect, it } from 'vitest';
 

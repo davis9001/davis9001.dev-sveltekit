@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte/svelte5';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('Admin User Detail Page', () => {

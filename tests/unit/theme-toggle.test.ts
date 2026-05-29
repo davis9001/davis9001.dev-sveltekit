@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte/svelte5';
 import { get } from 'svelte/store';
 import { beforeEach, describe, expect, it } from 'vitest';
 import ThemeToggle from '../../src/lib/components/ThemeToggle.svelte';

@@ -1,6 +1,6 @@
 import { goto } from '$app/navigation';
 import { showCommandPalette } from '$lib/stores/commandPalette';
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen } from '@testing-library/svelte/svelte5';
 import { get } from 'svelte/store';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Page from '../../src/routes/+page.svelte';

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte';
+import { render, screen } from '@testing-library/svelte/svelte5';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import SpotifyWidget from '../../src/lib/components/SpotifyWidget.svelte';
 
