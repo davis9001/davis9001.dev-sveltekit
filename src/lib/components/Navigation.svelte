@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import ThemeSwitcher from './ThemeSwitcher.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
@@ -35,6 +36,8 @@
 		userDropdownOpen = false;
 	}
 
+	$: homeHref = base || '/';
+
 	// Close dropdown when clicking outside
 	function handleClickOutside(event: MouseEvent) {
 		const target = event.target as HTMLElement;
@@ -49,7 +52,7 @@
 <nav class="nav">
 	<div class="container">
 		<div class="nav-content">
-			<a href="/" class="logo" on:click={closeMobileMenu}>
+			<a href={homeHref} class="logo" on:click={closeMobileMenu}>
 				<img src="/logo-green-Icon-250.webp" alt="davis9001 logo" class="logo-icon" />
 				<span class="logo-text">davis9001</span>
 			</a>

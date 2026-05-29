@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import SEO from '$lib/components/SEO.svelte';
 
@@ -53,6 +54,7 @@
 		message: error?.message || 'An unexpected error occurred.',
 		icon: '❌'
 	};
+	$: homeHref = base || '/';
 </script>
 
 <SEO
@@ -91,7 +93,7 @@
 
 		<!-- Action buttons -->
 		<div class="error-actions">
-			<a href="/" class="btn btn-primary">
+			<a href={homeHref} class="btn btn-primary">
 				<svg
 					width="20"
 					height="20"

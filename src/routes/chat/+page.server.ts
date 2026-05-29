@@ -1,7 +1,10 @@
 import type { ServerLoad } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
+import { base } from '$app/paths';
 
 export const load: ServerLoad = async ({ platform, locals }) => {
+	const homePath = `${base}/`;
+
 	// Require authentication to use chat
 	if (!locals.user) {
 		throw redirect(302, '/auth/login?redirect=/chat');
@@ -17,7 +20,7 @@ export const load: ServerLoad = async ({ platform, locals }) => {
 			throw redirect(302, '/admin');
 		}
 		// Otherwise redirect to home
-		throw redirect(302, '/');
+		throw redirect(302, homePath);
 	}
 
 	// Check if voice chat is available from any provider

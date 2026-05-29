@@ -5,6 +5,7 @@
   and navigation back to the updates list. Matches live davis9001.dev styling.
 -->
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import SocialLinks from '$lib/components/SocialLinks.svelte';
@@ -17,6 +18,7 @@
 
 	$: post = data.post;
 	$: readingTime = getReadingTime(post.content);
+	$: homeHref = base || '/';
 </script>
 
 <SEO
@@ -31,7 +33,7 @@
 	<!-- Simple Header -->
 	<header class="flex justify-between items-center p-2 sm:p-4 mx-auto z-50 relative gap-2">
 		<nav class="flex-shrink-0">
-			<a href="/" class="internal-button text-sm px-3 py-2">« davis9001.dev</a>
+			<a href={homeHref} class="internal-button text-sm px-3 py-2">« davis9001.dev</a>
 		</nav>
 		<div class="flex items-center gap-4">
 			<ThemeSwitcher variant="inline" simpleToggle={true} />

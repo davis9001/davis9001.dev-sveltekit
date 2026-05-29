@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import type { PageData } from './$types';
 	import { safeFilename } from '$lib/utils/portfolio';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
@@ -9,6 +10,7 @@
 	export let data: PageData;
 
 	$: projects = data.projects;
+	$: homeHref = base || '/';
 
 	function formatDate(dateString: string | undefined): string {
 		if (!dateString) return '';
@@ -27,7 +29,7 @@
 	<!-- Simple Header -->
 	<header class="flex justify-between items-center p-2 sm:p-4 mx-auto z-50 relative gap-2">
 		<nav class="flex-shrink-0">
-			<a href="/" class="internal-button text-sm px-3 py-2">« davis9001.dev</a>
+			<a href={homeHref} class="internal-button text-sm px-3 py-2">« davis9001.dev</a>
 		</nav>
 		<div class="flex items-center gap-4">
 			<ThemeSwitcher variant="inline" simpleToggle={true} />
