@@ -22,6 +22,7 @@ declare global {
 				BUCKET: R2Bucket;
 				QUEUE: Queue;
 				TURNSTILE_SECRET_KEY: string;
+				EXPECTED_DB_APP_ID?: string;
 				GITHUB_CLIENT_ID?: string;
 				GITHUB_CLIENT_SECRET?: string;
 				GITHUB_OWNER_ID?: string;

@@ -122,31 +122,37 @@
 				<div class="conversation-group" in:slide={{ duration: 200 }}>
 					<div class="group-label">{group.label}</div>
 					{#each group.conversations as conversation (conversation.id)}
-						<button
+						<div
 							class="conversation-item"
 							class:selected={conversation.id === currentId}
 							data-conversation-id={conversation.id}
 							data-selected={conversation.id === currentId}
-							on:click={() => handleSelectConversation(conversation.id)}
-							aria-label="Select conversation: {conversation.title}"
-							title={conversation.title}
 							in:fly={{ x: -20, duration: 200, easing: quintOut }}
 						>
-							<svg
-								class="conversation-icon"
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-							</svg>
-							<span class="conversation-title">{conversation.title}</span>
 							<button
+								type="button"
+								class="conversation-select-button"
+								on:click={() => handleSelectConversation(conversation.id)}
+								aria-label="Select conversation: {conversation.title}"
+								title={conversation.title}
+							>
+								<svg
+									class="conversation-icon"
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+								</svg>
+								<span class="conversation-title">{conversation.title}</span>
+							</button>
+							<button
+								type="button"
 								class="delete-button"
 								on:click={(e) => handleDeleteConversation(e, conversation.id)}
 								aria-label="Delete conversation"
@@ -168,7 +174,7 @@
 									/>
 								</svg>
 							</button>
-						</button>
+						</div>
 					{/each}
 				</div>
 			{/each}
@@ -303,6 +309,19 @@
 		font-size: 0.875rem;
 		transition: all var(--transition-fast);
 		position: relative;
+	}
+
+	.conversation-select-button {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm);
+		flex: 1;
+		background: transparent;
+		border: none;
+		color: inherit;
+		padding: 0;
+		text-align: left;
+		cursor: pointer;
 	}
 
 	.conversation-item:hover {
