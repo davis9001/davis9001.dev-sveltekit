@@ -240,12 +240,29 @@ describe('Admin Users API', () => {
 		});
 
 		it('should update user admin status', async () => {
-			mockPlatform.env.DB.first.mockResolvedValueOnce({
-				id: '2',
-				email: 'user@test.com',
-				github_login: 'testuser'
-			});
-			mockPlatform.env.DB.run.mockResolvedValueOnce({ success: true });
+			mockPlatform.env.DB.first
+				.mockResolvedValueOnce({
+					id: '2',
+					email: 'user@test.com',
+					github_login: 'testuser',
+					is_admin: 0
+				})
+				.mockResolvedValueOnce({
+					id: '2',
+					email: 'user@test.com',
+					name: 'Test User',
+					is_admin: 1,
+					github_login: 'testuser',
+					github_avatar_url: null,
+					discord_username: null,
+					discord_avatar_url: null,
+					created_at: '2026-01-01',
+					updated_at: '2026-01-02'
+				})
+				.mockResolvedValueOnce({ count: 0 })
+				.mockResolvedValueOnce({ count: 0 });
+			mockPlatform.env.DB.all.mockResolvedValue({ results: [] });
+			mockPlatform.env.DB.run.mockResolvedValue({ success: true });
 
 			const { PATCH } = await import('../../src/routes/api/admin/users/[id]/+server.js');
 			const response = await PATCH({

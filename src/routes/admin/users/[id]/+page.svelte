@@ -3,14 +3,83 @@
 
 	export let data: PageData;
 
-	const user = data.user;
-	const oauthAccounts = data.oauthAccounts || [];
-	const sessions = data.sessions || [];
-	const activityLogs = data.activityLogs || [];
-	const stats = data.stats || { totalSessions: 0, totalChatMessages: 0 };
+	let user = data.user;
+	let oauthAccounts = data.oauthAccounts || [];
+	let sessions = data.sessions || [];
+	let activityLogs = data.activityLogs || [];
+	let stats = data.stats || { totalSessions: 0, totalChatMessages: 0 };
+
+	let name = user.name || '';
+	let email = user.email || '';
+	let githubLogin = user.github_login || '';
+	let githubAvatarUrl = user.github_avatar_url || '';
+	let discordUsername = user.discord_username || '';
+	let discordAvatarUrl = user.discord_avatar_url || '';
+	let isAdmin = Boolean(user.is_admin);
+	let isSaving = false;
+	let saveMessage = '';
+	let saveError = '';
 
 	function formatDate(value: string) {
 		return new Date(value).toLocaleString();
+	}
+
+	function formatMaybeDate(value: string | null | undefined) {
+		return value ? formatDate(value) : 'Not available';
+	}
+
+	function syncFormFromUser(nextUser: typeof user) {
+		name = nextUser.name || '';
+		email = nextUser.email || '';
+		githubLogin = nextUser.github_login || '';
+		githubAvatarUrl = nextUser.github_avatar_url || '';
+		discordUsername = nextUser.discord_username || '';
+		discordAvatarUrl = nextUser.discord_avatar_url || '';
+		isAdmin = Boolean(nextUser.is_admin);
+	}
+
+	async function saveUser() {
+		isSaving = true;
+		saveMessage = '';
+		saveError = '';
+
+		try {
+			const response = await fetch(`/api/admin/users/${user.id}`, {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					name,
+					email,
+					githubLogin,
+					githubAvatarUrl,
+					discordUsername,
+					discordAvatarUrl,
+					isAdmin
+				})
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				saveError = result.message || 'Failed to update user';
+				return;
+			}
+
+			user = result.user || user;
+			syncFormFromUser(user);
+			if (result.activityLog) {
+				activityLogs = [result.activityLog, ...activityLogs];
+			}
+			stats = {
+				...stats
+			};
+			saveMessage = result.message || 'User updated successfully';
+		} catch (error) {
+			console.error('Failed to save user:', error);
+			saveError = 'Failed to update user';
+		} finally {
+			isSaving = false;
+		}
 	}
 
 	function prettyProvider(provider: string) {
@@ -65,7 +134,63 @@
 			<p><strong>Discord:</strong> {user.discord_username || 'Not connected'}</p>
 			<p><strong>Role:</strong> {user.is_admin ? 'Admin' : 'User'}</p>
 			<p><strong>Joined:</strong> {formatDate(user.created_at)}</p>
+			<p><strong>Updated:</strong> {formatMaybeDate(user.updated_at)}</p>
 		</div>
+	</section>
+
+	<section class="card edit-card">
+		<div class="section-heading">
+			<h2>Edit user data</h2>
+			<p class="muted">Use this to backfill legacy records and normalize whatever profile data we already have.</p>
+		</div>
+
+		<form class="edit-form" on:submit|preventDefault={saveUser}>
+			<div class="form-grid">
+				<label>
+					<span>Full name</span>
+					<input bind:value={name} type="text" placeholder="Name from auth provider" />
+				</label>
+				<label>
+					<span>Email</span>
+					<input bind:value={email} type="email" placeholder="user@example.com" required />
+				</label>
+				<label>
+					<span>GitHub login</span>
+					<input bind:value={githubLogin} type="text" placeholder="octocat" />
+				</label>
+				<label>
+					<span>GitHub avatar URL</span>
+					<input bind:value={githubAvatarUrl} type="url" placeholder="https://avatars.githubusercontent.com/..." />
+				</label>
+				<label>
+					<span>Discord username</span>
+					<input bind:value={discordUsername} type="text" placeholder="discord-handle" />
+				</label>
+				<label>
+					<span>Discord avatar URL</span>
+					<input bind:value={discordAvatarUrl} type="url" placeholder="https://cdn.discordapp.com/..." />
+				</label>
+			</div>
+
+			<div class="form-footer">
+				<label class="checkbox">
+					<input bind:checked={isAdmin} type="checkbox" />
+					<span>Admin access</span>
+				</label>
+
+				<div class="form-actions">
+					{#if saveError}
+						<p class="form-feedback error">{saveError}</p>
+					{/if}
+					{#if saveMessage}
+						<p class="form-feedback success">{saveMessage}</p>
+					{/if}
+					<button class="save-button" type="submit" disabled={isSaving}>
+						{isSaving ? 'Saving…' : 'Save changes'}
+					</button>
+				</div>
+			</div>
+		</form>
 	</section>
 
 	<section class="grid">
@@ -177,10 +302,105 @@
 		padding: var(--spacing-lg);
 	}
 
+	.section-heading h2 {
+		margin: 0;
+	}
+
+	.section-heading p {
+		margin: var(--spacing-xs) 0 0;
+	}
+
 	.identity {
 		display: flex;
 		gap: var(--spacing-lg);
 		align-items: center;
+	}
+
+	.edit-card {
+		display: grid;
+		gap: var(--spacing-md);
+	}
+
+	.edit-form {
+		display: grid;
+		gap: var(--spacing-md);
+	}
+
+	.form-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--spacing-md);
+	}
+
+	.form-grid label,
+	.checkbox {
+		display: grid;
+		gap: var(--spacing-xs);
+		color: var(--color-text-secondary);
+		font-size: 0.95rem;
+	}
+
+	.form-grid input {
+		width: 100%;
+		padding: var(--spacing-sm) var(--spacing-md);
+		border-radius: var(--radius-md);
+		border: 1px solid var(--color-border);
+		background: var(--color-background);
+		color: var(--color-text);
+	}
+
+	.form-grid input:focus {
+		outline: 2px solid var(--color-primary);
+		outline-offset: 2px;
+	}
+
+	.form-footer {
+		display: flex;
+		justify-content: space-between;
+		gap: var(--spacing-md);
+		align-items: end;
+		flex-wrap: wrap;
+	}
+
+	.checkbox {
+		grid-auto-flow: column;
+		align-items: center;
+		justify-content: start;
+		color: var(--color-text);
+	}
+
+	.form-actions {
+		display: grid;
+		justify-items: end;
+		gap: var(--spacing-sm);
+	}
+
+	.form-feedback {
+		margin: 0;
+		font-size: 0.9rem;
+	}
+
+	.form-feedback.success {
+		color: var(--color-primary);
+	}
+
+	.form-feedback.error {
+		color: var(--color-danger, var(--color-text));
+	}
+
+	.save-button {
+		padding: var(--spacing-sm) var(--spacing-lg);
+		border: 0;
+		border-radius: var(--radius-md);
+		background: var(--color-primary);
+		color: var(--color-background);
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.save-button:disabled {
+		opacity: 0.7;
+		cursor: progress;
 	}
 
 	.avatar-wrap {
@@ -296,9 +516,17 @@
 			grid-template-columns: 1fr;
 		}
 
+		.form-grid {
+			grid-template-columns: 1fr;
+		}
+
 		.identity {
 			flex-direction: column;
 			align-items: flex-start;
+		}
+
+		.form-footer {
+			align-items: start;
 		}
 	}
 </style>
