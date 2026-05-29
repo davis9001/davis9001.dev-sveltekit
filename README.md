@@ -1,39 +1,61 @@
 # davis9001.dev
 
-> Personal website, portfolio, and blog of David William Monaghan (aka davis9001) — Software and Community Architect.
+> A SvelteKit and Cloudflare Workers website platform focused on content publishing, portfolio presentation, and interactive features.
 
 [![Powered by Cloudflare](https://img.shields.io/badge/Powered%20by-Cloudflare-F38020?style=flat&logo=cloudflare)](https://www.cloudflare.com/)
 [![Built with SvelteKit](https://img.shields.io/badge/Built%20with-SvelteKit-FF3E00?style=flat&logo=svelte)](https://kit.svelte.dev/)
 
 ## About
 
-[davis9001.dev](https://davis9001.dev) is my personal corner of the internet — a portfolio, dev blog, and playground for creative experiments. It's built with SvelteKit using [NebulaKit](https://github.com/starspacegroup/nebulakit) as the starting template, and runs on Cloudflare's edge network.
+This project is a production-ready website platform built with SvelteKit and deployed to Cloudflare's edge network. It started from [NebulaKit](https://github.com/starspacegroup/nebulakit), then extended into a custom implementation. The foundation combines static and dynamic pages, authenticated admin tooling, API endpoints, and a unified design system with accessible theming.
 
-## What's on the Site
+NebulaKit provides the baseline structure used here, including:
 
-### Portfolio
+- SvelteKit + Cloudflare-ready project scaffolding
+- Route and API organization conventions
+- Authentication and admin workflow foundations
+- Content and CMS-friendly architecture patterns
+- Theme-aware UI structure and reusable component patterns
 
-A showcase of projects I've built, including:
+## How It Works
 
-- **[starspace.group](https://starspace.group)** — Digital coworking community landing page
-- **[game.starspace.group](https://game.starspace.group)** — Multiplayer browser game
-- **[Trill Symbiont](https://trill-symbiont.starspace.group)** — Generative ambient music tool using the Web Audio API
-- **[AgapeVerse](https://agapeverse.app)** — AI-powered love poem generator
-- **[robbieschroeder.com](https://robbieschroeder.com)** — Artist/musician portfolio (freelance)
-- Open-source contributions to [Deno docs](https://docs.deno.com) and [Deno Fresh](https://fresh.deno.dev/docs) (dark theme)
-- Sample sites for restaurants and therapists
+### Architecture
 
-### Blog
+- **Framework**: SvelteKit with server routes and API endpoints
+- **Runtime**: Cloudflare Workers
+- **Data layer**: D1 (SQL), KV (configuration/cache), optional R2/Queues integrations
+- **Auth**: OAuth-based sign-in flows with server-side session handling
+- **Content model**: Markdown-backed content plus CMS-managed dynamic content types
 
-Posts on software engineering, open-source contributions, AI trends, creative coding, and occasional observations about crows in Maine.
+### Rendering Strategy
 
-### Chat
+- **Server-side rendering** for dynamic routes and authenticated areas
+- **Static-friendly content delivery** for documentation/blog-style pages
+- **Edge-first APIs** for low-latency interactions and integrations
 
-An AI chat interface with voice support and conversation history.
+### Content Flow
 
-### Life of a Stranger
+- Content is sourced from Markdown files and CMS-managed records.
+- Route loaders resolve data at request time.
+- Shared utilities normalize metadata for listing pages and detail pages.
+- Admin endpoints provide CRUD operations for managed content types.
 
-An interactive art installation experiment.
+## Core Features
+
+- Portfolio and project presentation pages
+- Blog/update publishing system with slug-based routing
+- Admin dashboard for configuration and content management
+- AI chat interface with optional voice session support
+- Command palette and keyboard-first navigation
+- OAuth authentication flows and protected routes
+- Responsive layout and mobile-first interaction patterns
+
+## Design System
+
+- **Theme system**: Light/dark themes implemented with CSS custom properties
+- **Accessibility-first**: WCAG AA contrast targets and semantic markup patterns
+- **Consistent spacing and typography scale**: shared design tokens in global styles
+- **Component-driven UI**: reusable Svelte components for navigation, layout, and interaction
 
 ## Tech Stack
 
@@ -46,20 +68,20 @@ An interactive art installation experiment.
 
 ## Features
 
-- Light/dark theme with WCAG AA contrast compliance
-- Command palette (Ctrl/Cmd + K)
-- Animated crow characters and ASCII art grid on the landing page
-- GitHub activity feed
+- Light/dark theming with WCAG AA contrast compliance
+- Command palette for quick navigation and actions
+- Edge API routes for integrations and dynamic data
 - Mobile-first responsive design
-- Content management system for blog posts and dynamic content
+- Content management capabilities for dynamic site sections
+- Comprehensive automated test coverage for core systems
 
 ## Development
 
 ```bash
-npm install        # Install dependencies
-npm run dev        # Start dev server on port 4242
-npm run build      # Production build
-npm run deploy     # Build and deploy to Cloudflare Pages
+bun install        # Install dependencies
+bun run dev        # Start dev server on port 4242
+bun run build      # Production build
+bun run deploy     # Build and deploy to Cloudflare Pages
 ```
 
 ### Testing
@@ -67,9 +89,9 @@ npm run deploy     # Build and deploy to Cloudflare Pages
 This project follows **Test-Driven Development** with 95%+ code coverage.
 
 ```bash
-npm run test              # Run unit tests
-npm run test:coverage     # Run with coverage report
-npm run test:e2e          # Run Playwright E2E tests
+bun run test              # Run unit tests
+bun run test:coverage     # Run with coverage report
+bun run test:e2e          # Run Playwright E2E tests
 ```
 
 ## Project Structure
