@@ -234,7 +234,7 @@
 
 	.nav-content {
 		display: grid;
-		grid-template-columns: 1fr auto 1fr;
+		grid-template-columns: 1fr auto;
 		align-items: center;
 		gap: var(--spacing-md);
 		height: 64px;
@@ -262,7 +262,7 @@
 	}
 
 	.nav-actions {
-		display: flex;
+		display: none;
 		align-items: center;
 		gap: var(--spacing-sm);
 	}
@@ -307,6 +307,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		justify-self: end;
 		width: 40px;
 		height: 40px;
 		color: var(--color-text);
@@ -320,6 +321,14 @@
 	}
 
 	@media (min-width: 768px) {
+		.nav-content {
+			grid-template-columns: 1fr auto 1fr;
+		}
+
+		.nav-actions {
+			display: flex;
+		}
+
 		.mobile-menu-btn {
 			display: none;
 		}
