@@ -76,6 +76,10 @@
 			'M18 16.302c1.391 .236 2.787 -.395 3.534 -1.689a3.474 3.474 0 0 0 -1.271 -4.745l-4.308 -2.514l-5.955 3.42'
 		]
 	};
+
+	function enforceSvgViewBox(node: SVGSVGElement) {
+		node.setAttribute('viewBox', '0 0 24 24');
+	}
 </script>
 
 <div class="flex flex-wrap justify-center gap-4 my-4 max-w-2xl mx-auto relative z-50">
@@ -88,6 +92,7 @@
 			class="text-foreground/55 hover:text-accent cursor-pointer relative z-50 transition-colors"
 		>
 			<svg
+				use:enforceSvgViewBox
 				class="w-8 h-8"
 				viewBox="0 0 24 24"
 				fill="none"

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
@@ -156,9 +155,14 @@
 		formData.voiceModels.includes(m.id)
 	);
 
-	onMount(() => {
-		loadOpenAIModels();
-	});
+	$: if (
+		showForm &&
+		formData.provider === 'openai' &&
+		openaiChatModels.length === 0 &&
+		!loadingModels
+	) {
+		void loadOpenAIModels();
+	}
 
 	function toggleModel(modelId: string) {
 		if (formData.models.includes(modelId)) {
@@ -189,6 +193,9 @@
 			voiceModels: []
 		};
 		errors = {};
+		if (openaiChatModels.length === 0 && !loadingModels) {
+			void loadOpenAIModels();
+		}
 	}
 
 	function openEditForm(key: any) {
@@ -207,6 +214,9 @@
 			voiceModels: existingVoiceModels
 		};
 		errors = {};
+		if (formData.provider === 'openai' && openaiChatModels.length === 0 && !loadingModels) {
+			void loadOpenAIModels();
+		}
 	}
 
 	function closeForm() {

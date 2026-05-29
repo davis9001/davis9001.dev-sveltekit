@@ -14,6 +14,16 @@
 	let hasExistingConfig = false;
 	let hasExistingAdmin = false;
 	let checkingConfig = true;
+	$: currentOrigin =
+		$page?.url?.origin || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+
+	function resolveApiUrl(path: string): string {
+		if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null') {
+			return new URL(path, window.location.origin).toString();
+		}
+
+		return `http://localhost${path}`;
+	}
 
 	// Check for error in URL params
 	$: if ($page.url.searchParams.get('error') === 'oauth_not_configured') {
@@ -23,7 +33,7 @@
 	// Check if configuration already exists
 	onMount(async () => {
 		try {
-			const response = await fetch('/api/setup');
+			const response = await fetch(resolveApiUrl('/api/setup'));
 			if (response.ok) {
 				const data = await response.json();
 				hasExistingConfig = data.hasConfig;
@@ -86,7 +96,7 @@
 				requestBody.clientSecret = formData.clientSecret;
 			}
 
-			const response = await fetch('/api/setup', {
+			const response = await fetch(resolveApiUrl('/api/setup'), {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
@@ -156,16 +166,12 @@
 					>
 				</li>
 				<li>Click <strong>"New OAuth App"</strong></li>
+				<li>Fill in the form:</li>
+				<li><strong>Application name:</strong> davis9001.dev (or your choice)</li>
+				<li><strong>Homepage URL:</strong> <code>{currentOrigin}</code></li>
 				<li>
-					Fill in the form:
-					<ul>
-						<li><strong>Application name:</strong> davis9001.dev (or your choice)</li>
-						<li><strong>Homepage URL:</strong> <code>{$page.url.origin}</code></li>
-						<li>
-							<strong>Authorization callback URL:</strong>
-							<code>{$page.url.origin}/api/auth/github/callback</code>
-						</li>
-					</ul>
+					<strong>Authorization callback URL:</strong>
+					<code>{currentOrigin}/api/auth/github/callback</code>
 				</li>
 				<li>Click <strong>"Register application"</strong></li>
 				<li>Copy your <strong>Client ID</strong> from the next page</li>

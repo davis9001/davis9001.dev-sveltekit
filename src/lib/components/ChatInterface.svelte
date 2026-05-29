@@ -58,6 +58,18 @@
 	$: canSend = input.trim().length > 0 && !isLoading && !isVoiceActive;
 	$: showCharCount = inputLength > MAX_INPUT_LENGTH * 0.8;
 
+	function resolveApiUrl(path: string): string {
+		if (/^https?:\/\//.test(path)) {
+			return path;
+		}
+
+		if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null') {
+			return new URL(path, window.location.origin).toString();
+		}
+
+		return `http://localhost${path}`;
+	}
+
 	onMount(() => {
 		scrollToBottom();
 		autoResizeTextarea();
@@ -67,7 +79,7 @@
 	async function fetchAvailableModels() {
 		isLoadingModels = true;
 		try {
-			const response = await fetch('/api/chat/models');
+			const response = await fetch(resolveApiUrl('/api/chat/models'));
 			if (response.ok) {
 				const data = await response.json();
 				availableModels = data.models;
@@ -144,7 +156,7 @@
 
 		try {
 			// Stream response from API with selected model
-			const response = await fetch('/api/chat/stream', {
+			const response = await fetch(resolveApiUrl('/api/chat/stream'), {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ messages: $currentMessages, model: selectedModel })
@@ -233,7 +245,7 @@
 	async function startVoiceChat() {
 		try {
 			// Get ephemeral token
-			const response = await fetch('/api/chat/voice/session', {
+			const response = await fetch(resolveApiUrl('/api/chat/voice/session'), {
 				method: 'POST'
 			});
 

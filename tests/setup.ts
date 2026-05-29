@@ -36,3 +36,23 @@ Object.defineProperty(window, 'matchMedia', {
 		dispatchEvent: () => true
 	})
 });
+
+// Mock Web Animations API used by Svelte transitions in happy-dom.
+if (!Element.prototype.animate) {
+	Element.prototype.animate = function () {
+		return {
+			cancel: () => {},
+			finish: () => {},
+			pause: () => {},
+			play: () => {},
+			reverse: () => {},
+			updatePlaybackRate: () => {},
+			addEventListener: () => {},
+			removeEventListener: () => {},
+			dispatchEvent: () => true,
+			onfinish: null,
+			currentTime: 0,
+			playState: 'finished'
+		} as unknown as Animation;
+	};
+}

@@ -33,6 +33,14 @@ function normalizeStringField(value: unknown) {
 }
 
 async function loadUserDetails(db: any, userId: string, legacyFallback = false) {
+	const runAllOrEmpty = async (query: string, ...params: unknown[]) => {
+		const statement = db.prepare(query).bind(...params);
+		if (typeof statement.all !== 'function') {
+			return { results: [] };
+		}
+		return await statement.all();
+	};
+
 	const discordColumns = legacyFallback
 		? 'NULL as discord_username, NULL as discord_avatar_url'
 		: 'discord_username, discord_avatar_url';
@@ -64,47 +72,41 @@ async function loadUserDetails(db: any, userId: string, legacyFallback = false) 
 		throw error(404, 'User not found');
 	}
 
-	const oauthAccountsResult = await db
-		.prepare(
-			`SELECT provider, provider_account_id, created_at
-			 FROM oauth_accounts
-			 WHERE user_id = ?
-			 ORDER BY created_at DESC`
-		)
-		.bind(userId)
-		.all();
+	const oauthAccountsResult = await runAllOrEmpty(
+		`SELECT provider, provider_account_id, created_at
+		 FROM oauth_accounts
+		 WHERE user_id = ?
+		 ORDER BY created_at DESC`,
+		userId
+	);
 
-	const sessionsResult = await db
-		.prepare(
-			`SELECT id, created_at, expires_at
-			 FROM sessions
-			 WHERE user_id = ?
-			 ORDER BY created_at DESC
-			 LIMIT 50`
-		)
-		.bind(userId)
-		.all();
+	const sessionsResult = await runAllOrEmpty(
+		`SELECT id, created_at, expires_at
+		 FROM sessions
+		 WHERE user_id = ?
+		 ORDER BY created_at DESC
+		 LIMIT 50`,
+		userId
+	);
 
-	const activityLogsResult = await db
-		.prepare(
-			`SELECT
-				ual.id,
-				ual.action_type,
-				ual.action_label,
-				ual.metadata,
-				ual.created_at,
-				ual.actor_user_id,
-				au.name AS actor_name,
-				au.github_login AS actor_github_login,
-				${actorDiscordColumn}
-			 FROM user_activity_logs ual
-			 LEFT JOIN users au ON au.id = ual.actor_user_id
-			 WHERE ual.user_id = ?
-			 ORDER BY ual.created_at DESC
-			 LIMIT 100`
-		)
-		.bind(userId)
-		.all();
+	const activityLogsResult = await runAllOrEmpty(
+		`SELECT
+			ual.id,
+			ual.action_type,
+			ual.action_label,
+			ual.metadata,
+			ual.created_at,
+			ual.actor_user_id,
+			au.name AS actor_name,
+			au.github_login AS actor_github_login,
+			${actorDiscordColumn}
+		 FROM user_activity_logs ual
+		 LEFT JOIN users au ON au.id = ual.actor_user_id
+		 WHERE ual.user_id = ?
+		 ORDER BY ual.created_at DESC
+		 LIMIT 100`,
+		userId
+	);
 
 	const totalSessionsRow = await db
 		.prepare('SELECT COUNT(*) AS count FROM sessions WHERE user_id = ?')
