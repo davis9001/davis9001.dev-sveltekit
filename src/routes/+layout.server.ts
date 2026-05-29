@@ -7,14 +7,25 @@ import type { LayoutServerLoad } from './$types';
 const blogModules = import.meta.glob('/src/updates/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 const projectModules = import.meta.glob('/src/projects/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
-export const load: LayoutServerLoad = async ({ locals, fetch, platform }) => {
-	// Check if AI providers are enabled
+export const load: LayoutServerLoad = async ({ locals, platform }) => {
+	// Check if AI providers are enabled (inline — avoids internal HTTP round-trip on every page load)
 	let hasAIProviders = false;
 	try {
-		const response = await fetch('/api/admin/ai-keys/status');
-		if (response.ok) {
-			const data = await response.json();
-			hasAIProviders = data.hasProviders || false;
+		if (platform?.env?.KV) {
+			const keysList = await platform.env.KV.get('ai_keys_list');
+			if (keysList) {
+				const keyIds = JSON.parse(keysList) as string[];
+				for (const keyId of keyIds) {
+					const keyData = await platform.env.KV.get(`ai_key:${keyId}`);
+					if (keyData) {
+						const key = JSON.parse(keyData) as { enabled?: boolean };
+						if (key.enabled !== false) {
+							hasAIProviders = true;
+							break;
+						}
+					}
+				}
+			}
 		}
 	} catch (error) {
 		console.error('Failed to check AI provider status:', error);
