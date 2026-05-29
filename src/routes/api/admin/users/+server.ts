@@ -1,4 +1,5 @@
 import { error, json } from '@sveltejs/kit';
+import { logUserActivity } from '$lib/services/user-activity';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ platform, locals }) => {
@@ -28,6 +29,8 @@ export const GET: RequestHandler = async ({ platform, locals }) => {
 				u.is_admin,
 				u.github_login,
 				u.github_avatar_url,
+				u.discord_username,
+				u.discord_avatar_url,
 				u.created_at,
 				oa.provider_account_id as github_id
 			FROM users u
@@ -80,6 +83,18 @@ export const POST: RequestHandler = async ({ platform, locals, request }) => {
 			)
 			.bind(userId, email, githubLogin)
 			.run();
+
+		await logUserActivity({
+			db,
+			userId,
+			actorUserId: locals.user.id,
+			actionType: 'admin.invite',
+			actionLabel: 'Invited by admin',
+			metadata: {
+				githubLogin,
+				email
+			}
+		});
 
 		return json({
 			success: true,

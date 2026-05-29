@@ -158,6 +158,10 @@
 	function formatDate(dateString: string) {
 		return new Date(dateString).toLocaleDateString();
 	}
+
+	function getDisplayAvatar(user: any) {
+		return user.github_avatar_url || user.discord_avatar_url || null;
+	}
 </script>
 
 <div class="users-page">
@@ -259,8 +263,8 @@
 							<tr>
 								<td>
 									<div class="user-cell">
-										{#if user.github_avatar_url}
-											<img src={user.github_avatar_url} alt={user.name || 'User'} class="avatar" />
+										{#if getDisplayAvatar(user)}
+											<img src={getDisplayAvatar(user)} alt={user.name || 'User'} class="avatar" />
 										{:else}
 											<div class="avatar-placeholder">
 												{(user.name || user.email).charAt(0).toUpperCase()}
@@ -293,6 +297,23 @@
 								<td>{formatDate(user.created_at)}</td>
 								<td>
 									<div class="actions">
+										<a
+											class="btn-icon"
+											href="/admin/users/{user.id}"
+											aria-label="View details for {user.name || user.email}"
+											title="View user details"
+										>
+											<svg
+												fill="none"
+												height="18"
+												stroke="currentColor"
+												stroke-width="2"
+												viewBox="0 0 24 24"
+												width="18"
+											>
+												<path d="M9 18l6-6-6-6" />
+											</svg>
+										</a>
 										<button
 											class="btn-icon"
 											class:disabled={user.id === data.user.id}
@@ -699,6 +720,13 @@
 		color: var(--color-text);
 		border-radius: var(--radius-sm);
 		transition: background-color var(--transition-fast);
+	}
+
+	a.btn-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		text-decoration: none;
 	}
 
 	.btn-icon:hover {

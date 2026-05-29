@@ -328,6 +328,68 @@ describe('Admin Users Page', () => {
 		expect(githubLink.closest('a')?.href).toContain('github.com/githubuser');
 	});
 
+	it('should render discord avatar when github avatar is not available', () => {
+		const mockUsers = [
+			{
+				id: 'discord_123',
+				name: 'Discord User',
+				email: 'discord@example.com',
+				github_login: null,
+				github_avatar_url: null,
+				discord_avatar_url: 'https://cdn.discordapp.com/avatars/123/hash.png',
+				is_admin: 0,
+				created_at: '2026-03-01'
+			}
+		];
+
+		render(UsersPage, {
+			props: {
+				data: {
+					user: mockUser,
+					hasAIProviders: false,
+					portfolioItems: [],
+					blogPosts: [],
+					hasAuthConfig: false,
+					users: mockUsers
+				}
+			}
+		});
+
+		const avatar = screen.getByAltText('Discord User') as HTMLImageElement;
+		expect(avatar).toBeTruthy();
+		expect(avatar.src).toContain('cdn.discordapp.com/avatars/123/hash.png');
+	});
+
+	it('should render user details link for each row', () => {
+		const mockUsers = [
+			{
+				id: '42',
+				name: 'Inspectable User',
+				email: 'inspect@example.com',
+				github_login: null,
+				is_admin: 0,
+				created_at: '2026-03-01'
+			}
+		];
+
+		render(UsersPage, {
+			props: {
+				data: {
+					user: mockUser,
+					hasAIProviders: false,
+					portfolioItems: [],
+					blogPosts: [],
+					hasAuthConfig: false,
+					users: mockUsers
+				}
+			}
+		});
+
+		const detailsLink = screen.getByRole('link', { name: /view details for inspectable user/i });
+		expect(detailsLink).toBeTruthy();
+		expect(detailsLink.getAttribute('href')).toBe('/admin/users/42');
+	});
+
 	it('should have promote button for regular users', () => {
 		const mockUsers = [
 			{

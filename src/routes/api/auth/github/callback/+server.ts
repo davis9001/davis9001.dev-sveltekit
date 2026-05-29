@@ -1,4 +1,5 @@
 import { mergeAccounts } from '$lib/services/account-merge';
+import { recordLoginActivity } from '$lib/services/user-activity';
 import {
 	getOwnerIdentity,
 	isReservedSuperAdminUsername,
@@ -228,6 +229,9 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 
 					if (linkedUser) {
 						const linkedUserIsOwner = isOwner || linkedUser.is_admin === 1;
+
+						await recordLoginActivity(platform.env.DB, linkedUser.id, 'github');
+
 						const sessionData = {
 							id: linkedUser.id,
 							login: linkedUser.github_login || githubUser.login,
@@ -356,6 +360,14 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 				}
 				console.error('Database error:', dbErr);
 				// Continue with auth even if DB fails
+			}
+		}
+
+		if (platform?.env?.DB) {
+			try {
+				await recordLoginActivity(platform.env.DB, githubUser.id.toString(), 'github');
+			} catch (logErr) {
+				console.error('Failed to record GitHub login activity:', logErr);
 			}
 		}
 

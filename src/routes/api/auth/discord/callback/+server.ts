@@ -1,4 +1,5 @@
 import { mergeAccounts } from '$lib/services/account-merge';
+import { recordLoginActivity } from '$lib/services/user-activity';
 import {
 	getOwnerIdentity,
 	isReservedSuperAdminUsername,
@@ -167,6 +168,14 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 							.run();
 					}
 
+					await platform.env.DB.prepare(
+						`UPDATE users
+						 SET name = ?, discord_username = ?, discord_avatar_url = ?, updated_at = CURRENT_TIMESTAMP
+						 WHERE id = ?`
+					)
+						.bind(discordUser.global_name || discordUser.username, discordUser.username, avatarUrl, existingUser.id)
+						.run();
+
 					await grantOwnerAdmin(existingUser.id);
 
 					// Redirect back to profile with success
@@ -199,6 +208,14 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 						}>();
 
 					if (linkedUser) {
+						await platform.env.DB.prepare(
+							`UPDATE users
+							 SET discord_username = ?, discord_avatar_url = ?, updated_at = CURRENT_TIMESTAMP
+							 WHERE id = ?`
+						)
+							.bind(discordUser.username, avatarUrl, linkedUser.id)
+							.run();
+
 						// Check if the linked user is the owner
 						// First check if user ID directly matches (for users who signed up with GitHub)
 						let isOwner = appOwnerId ? linkedUser.id === appOwnerId : false;
@@ -227,6 +244,8 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 								.bind(linkedUser.id)
 								.run();
 						}
+
+						await recordLoginActivity(platform.env.DB, linkedUser.id, 'discord');
 
 						const sessionData = {
 							id: linkedUser.id,
@@ -277,10 +296,10 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 					isAdmin = existingUserRecord.is_admin === 1 || isDiscordOwner;
 					await platform.env.DB.prepare(
 						`UPDATE users 
-						SET name = ?, updated_at = CURRENT_TIMESTAMP 
+						SET name = ?, discord_username = ?, discord_avatar_url = ?, updated_at = CURRENT_TIMESTAMP 
 						WHERE id = ?`
 					)
-						.bind(discordUser.global_name || discordUser.username, userId)
+						.bind(discordUser.global_name || discordUser.username, discordUser.username, avatarUrl, userId)
 						.run();
 
 					// Ensure Discord oauth_account record exists for existing users
@@ -303,14 +322,16 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 				} else {
 					// Create new user
 					await platform.env.DB.prepare(
-						`INSERT INTO users (id, email, name, is_admin, created_at) 
-						VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)`
+						`INSERT INTO users (id, email, name, is_admin, discord_username, discord_avatar_url, created_at) 
+						VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
 					)
 						.bind(
 							userId,
 							discordUser.email || `${discordUser.username}@discord.local`,
 							discordUser.global_name || discordUser.username,
-							isDiscordOwner ? 1 : 0
+							isDiscordOwner ? 1 : 0,
+							discordUser.username,
+							avatarUrl
 						)
 						.run();
 					isAdmin = isDiscordOwner;
@@ -330,6 +351,14 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 				}
 				console.error('Database error:', dbErr);
 				// Continue with auth even if DB fails
+			}
+		}
+
+		if (platform?.env?.DB) {
+			try {
+				await recordLoginActivity(platform.env.DB, userId, 'discord');
+			} catch (logErr) {
+				console.error('Failed to record Discord login activity:', logErr);
 			}
 		}
 
