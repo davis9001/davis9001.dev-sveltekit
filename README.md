@@ -1,6 +1,6 @@
 # davis9001.dev
 
-> Personal website, portfolio, and blog of Davis Monaghan — Software and Community Architect.
+> Personal website, portfolio, and blog of David William Monaghan (aka davis9001) — Software and Community Architect.
 
 [![Powered by Cloudflare](https://img.shields.io/badge/Powered%20by-Cloudflare-F38020?style=flat&logo=cloudflare)](https://www.cloudflare.com/)
 [![Built with SvelteKit](https://img.shields.io/badge/Built%20with-SvelteKit-FF3E00?style=flat&logo=svelte)](https://kit.svelte.dev/)
