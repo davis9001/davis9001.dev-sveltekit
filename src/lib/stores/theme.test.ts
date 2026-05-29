@@ -7,9 +7,24 @@ import {
 import { get } from 'svelte/store';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+function safeClearLocalStorage() {
+	if (typeof localStorage.clear === 'function') {
+		localStorage.clear();
+		return;
+	}
+
+	if (typeof localStorage.removeItem === 'function' && typeof localStorage.getItem === 'function') {
+		for (const key of ['theme-preference', 'theme']) {
+			if (localStorage.getItem(key) !== null) {
+				localStorage.removeItem(key);
+			}
+		}
+	}
+}
+
 describe('Theme Store', () => {
 	beforeEach(() => {
-		localStorage.clear();
+		safeClearLocalStorage();
 		// Reset stores to default state
 		themePreference.set('system');
 		systemTheme.set('light');

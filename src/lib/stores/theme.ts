@@ -4,9 +4,31 @@ import { derived, writable } from 'svelte/store';
 export type ThemePreference = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';
 
+function getStorage() {
+	if (!browser || typeof globalThis.localStorage === 'undefined') {
+		return null;
+	}
+
+	const storage = globalThis.localStorage as Partial<Storage>;
+	if (typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function') {
+		return null;
+	}
+
+	return storage;
+}
+
+function getThemeMediaQuery() {
+	if (!browser || typeof window.matchMedia !== 'function') {
+		return null;
+	}
+
+	return window.matchMedia('(prefers-color-scheme: dark)');
+}
+
 // Get system theme preference
 function getSystemTheme(): ResolvedTheme {
-	if (browser && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+	const mediaQuery = getThemeMediaQuery();
+	if (mediaQuery?.matches) {
 		return 'dark';
 	}
 	return 'light';
@@ -14,8 +36,9 @@ function getSystemTheme(): ResolvedTheme {
 
 // Initialize theme preference from localStorage
 function getInitialThemePreference(): ThemePreference {
-	if (browser) {
-		const stored = localStorage.getItem('theme-preference') as ThemePreference;
+	const storage = getStorage();
+	if (storage) {
+		const stored = storage.getItem?.('theme-preference') as ThemePreference;
 		if (stored === 'light' || stored === 'dark' || stored === 'system') {
 			return stored;
 		}
@@ -42,16 +65,19 @@ export const resolvedTheme = derived(
 
 // Subscribe to preference changes and update localStorage
 if (browser) {
+	const storage = getStorage();
 	themePreference.subscribe((value) => {
-		localStorage.setItem('theme-preference', value);
+		storage?.setItem?.('theme-preference', value);
 	});
 
 	// Listen for system theme changes
-	const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-	const handleChange = (e: MediaQueryListEvent) => {
-		systemTheme.set(e.matches ? 'dark' : 'light');
-	};
-	mediaQuery.addEventListener('change', handleChange);
+	const mediaQuery = getThemeMediaQuery();
+	if (mediaQuery && typeof mediaQuery.addEventListener === 'function') {
+		const handleChange = (e: MediaQueryListEvent) => {
+			systemTheme.set(e.matches ? 'dark' : 'light');
+		};
+		mediaQuery.addEventListener('change', handleChange);
+	}
 }
 
 // Legacy export for backward compatibility
