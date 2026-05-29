@@ -1,5 +1,19 @@
 import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
+import {
+	assertDatabaseIdentity,
+	shouldEnforceDatabaseIdentity
+} from '$lib/server/database-identity';
+
+const databaseIdentityHandler: Handle = async ({ event, resolve }) => {
+	if (shouldEnforceDatabaseIdentity(event.url.hostname)) {
+		await assertDatabaseIdentity(event.platform?.env?.DB, {
+			expectedAppId: event.platform?.env?.EXPECTED_DB_APP_ID
+		});
+	}
+
+	return resolve(event);
+};
 
 // Auth handling hook
 const authHandler: Handle = async ({ event, resolve }) => {
@@ -73,4 +87,4 @@ const securityHeadersHandler: Handle = async ({ event, resolve }) => {
 };
 
 // Combine all hooks
-export const handle = sequence(authHandler, securityHeadersHandler);
+export const handle = sequence(databaseIdentityHandler, authHandler, securityHeadersHandler);

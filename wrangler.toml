@@ -1,14 +1,14 @@
-name = "davis9001-dev"
+name = "davis9001-dev-sveltekit"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = ".svelte-kit/cloudflare"
 
 # D1 Database
-# Create with: wrangler d1 create davis9001-dev-db
+# Create with: wrangler d1 create davis9001-prod-db
 # Then replace the database_id below with the actual ID
 [[d1_databases]]
 binding = "DB"
-database_name = "davis9001-dev-db"
-database_id = "bd776be3-9823-4763-abb1-c18b40931456"
+database_name = "davis9001-prod-db"
+database_id = "bf633dda-4dc1-42b9-939d-162e948a7214"
 migrations_dir = "./migrations"
 
 # KV Namespace
@@ -36,6 +36,8 @@ bucket_name = "davis9001-dev-files"
 # For production, set these in Cloudflare Pages settings
 # For local dev, use .env file (see .env.example)
 [vars]
+# Request-time guard that prevents this app from serving against another app's D1 database.
+EXPECTED_DB_APP_ID = "davis9001.dev-sveltekit"
 # TURNSTILE_SECRET_KEY will be set via environment
 # GITHUB_OWNER_ID - Set this to your GitHub user ID to enable admin access
 # To find your GitHub ID: visit https://api.github.com/users/YOUR_USERNAME
