@@ -18,27 +18,63 @@ export const GET: RequestHandler = async ({ platform, locals }) => {
 			throw error(500, 'Database not available');
 		}
 
-		// Get all users with their OAuth info
-		const result = await db
-			.prepare(
-				`
-			SELECT 
-				u.id,
-				u.email,
-				u.name,
-				u.is_admin,
-				u.github_login,
-				u.github_avatar_url,
-				u.discord_username,
-				u.discord_avatar_url,
-				u.created_at,
-				oa.provider_account_id as github_id
-			FROM users u
-			LEFT JOIN oauth_accounts oa ON u.id = oa.user_id AND oa.provider = 'github'
-			ORDER BY u.created_at DESC
-		`
-			)
-			.all();
+		let result;
+
+		try {
+			// Preferred schema includes optional discord columns.
+			result = await db
+				.prepare(
+					`
+				SELECT 
+					u.id,
+					u.email,
+					u.name,
+					u.is_admin,
+					u.github_login,
+					u.github_avatar_url,
+					u.discord_username,
+					u.discord_avatar_url,
+					u.created_at,
+					oa.provider_account_id as github_id
+				FROM users u
+				LEFT JOIN oauth_accounts oa ON u.id = oa.user_id AND oa.provider = 'github'
+				ORDER BY u.created_at DESC
+			`
+				)
+				.all();
+		} catch (queryErr: any) {
+			const queryErrorMessage = String(queryErr?.message || queryErr || '');
+			const isLegacySchemaError =
+				queryErrorMessage.includes('no such column') &&
+				(queryErrorMessage.includes('discord_username') ||
+					queryErrorMessage.includes('discord_avatar_url'));
+
+			if (!isLegacySchemaError) {
+				throw queryErr;
+			}
+
+			// Fallback for legacy schema where discord columns were not added to users.
+			result = await db
+				.prepare(
+					`
+				SELECT 
+					u.id,
+					u.email,
+					u.name,
+					u.is_admin,
+					u.github_login,
+					u.github_avatar_url,
+					NULL as discord_username,
+					NULL as discord_avatar_url,
+					u.created_at,
+					oa.provider_account_id as github_id
+				FROM users u
+				LEFT JOIN oauth_accounts oa ON u.id = oa.user_id AND oa.provider = 'github'
+				ORDER BY u.created_at DESC
+			`
+				)
+				.all();
+		}
 
 		return json({
 			users: result.results || []

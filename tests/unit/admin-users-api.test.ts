@@ -87,6 +87,34 @@ describe('Admin Users API', () => {
 
 			expect(data.users).toEqual(mockUsers);
 		});
+
+		it('should fall back to legacy schema query when discord columns are missing', async () => {
+			const mockUsers = [
+				{
+					id: '1',
+					email: 'legacy@test.com',
+					name: 'Legacy User',
+					is_admin: 0,
+					github_login: 'legacy-user',
+					github_avatar_url: 'https://example.com/legacy.jpg',
+					discord_username: null,
+					discord_avatar_url: null,
+					created_at: '2024-01-01',
+					github_id: '123'
+				}
+			];
+
+			mockPlatform.env.DB.all
+				.mockRejectedValueOnce(new Error('no such column: u.discord_username'))
+				.mockResolvedValueOnce({ results: mockUsers });
+
+			const { GET } = await import('../../src/routes/api/admin/users/+server.js');
+			const response = await GET({ platform: mockPlatform, locals: mockLocals } as any);
+			const data = await response.json();
+
+			expect(data.users).toEqual(mockUsers);
+			expect(mockPlatform.env.DB.all).toHaveBeenCalledTimes(2);
+		});
 	});
 
 	describe('POST /api/admin/users', () => {
