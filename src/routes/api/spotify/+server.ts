@@ -166,8 +166,10 @@ function makeSuccessResponse(
   data: SpotifyData,
   options: { revalidating?: boolean; nextRefreshAt?: number; extraHeaders?: Record<string, string>; } = {}
 ) {
-  const nextRefreshAt = options.nextRefreshAt ?? computeNextRefreshAt(data);
-  const nextRefreshDelayMs = getRefreshDelayMs(nextRefreshAt);
+  // Use one timestamp to avoid 1ms drift between nextRefreshAt and delay calculation.
+  const now = Date.now();
+  const nextRefreshAt = options.nextRefreshAt ?? computeNextRefreshAt(data, now);
+  const nextRefreshDelayMs = getRefreshDelayMs(nextRefreshAt, now);
 
   return json(data, {
     headers: {
