@@ -13,38 +13,19 @@ import type { PageServerLoad } from './$types';
 // Load all markdown files at build time
 const modules = import.meta.glob('/src/updates/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
-export const load: PageServerLoad = async ({ platform, fetch }) => {
+export const load: PageServerLoad = async ({ platform }) => {
   const posts = processRawPosts(modules);
 
   // Return only metadata for the 5 most recent posts
   const recentPosts = posts.slice(0, 5).map(({ content, ...meta }) => meta);
 
-  // Load cached Spotify data from D1 for instant SSR rendering (stale OK —
-  // the widget refreshes from the API on mount to pick up any updates)
-  let spotifyData = null;
-  let githubActivityData = null;
-  if (platform?.env?.DB) {
-    [spotifyData, githubActivityData] = await Promise.all([
-      getSpotifyCacheStale(platform.env.DB),
-      getGitHubActivityCacheStale(platform.env.DB)
-    ]);
-  }
-
-  // Fallback: if D1 cache is empty, fetch Spotify once server-side so first
-  // render still has data. The API route will persist successful responses to D1.
-  if (!spotifyData) {
-    try {
-      const response = await fetch('/api/spotify');
-      if (response.ok) {
-        const data = await response.json();
-        if (!data?.error) {
-          spotifyData = data;
-        }
-      }
-    } catch {
-      // Non-critical: keep spotifyData as null and let client-side widget load.
-    }
-  }
+  // Stream non-critical widgets so first paint is never blocked by cache I/O.
+  const spotifyData = platform?.env?.DB
+    ? getSpotifyCacheStale(platform.env.DB).catch(() => null)
+    : null;
+  const githubActivityData = platform?.env?.DB
+    ? getGitHubActivityCacheStale(platform.env.DB).catch(() => null)
+    : null;
 
   return {
     recentPosts,

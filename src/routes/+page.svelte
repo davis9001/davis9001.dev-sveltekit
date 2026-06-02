@@ -20,10 +20,16 @@
 	export let data: PageData;
 
 	$: recentPosts = data.recentPosts || [];
-	$: githubActivityData = data.githubActivityData as any;
-	$: spotifyData = data.spotifyData as any;
+	$: githubActivityDataPromise = data.githubActivityData as Promise<any> | any;
+	$: spotifyDataPromise = data.spotifyData as Promise<any> | any;
 
 	let asciiCharacters: string[] = [];
+	let asciiGridReady = false;
+	let asciiGridProgress = 0;
+
+	const ASCII_CHAR_START = 42;
+	const ASCII_CHAR_END = 4200;
+	const ASCII_CHUNK_SIZE = 220;
 
 	// Crow landing targets — positions relative to viewport
 	// These are computed on mount and on resize to stay responsive
@@ -351,13 +357,44 @@
 		crowTargets = targets;
 	}
 
+	function populateAsciiCharactersProgressively() {
+		asciiCharacters = [];
+		asciiGridReady = false;
+		asciiGridProgress = 0;
+
+		const totalChars = ASCII_CHAR_END - ASCII_CHAR_START + 1;
+		let currentCodePoint = ASCII_CHAR_START;
+
+		const appendChunk = () => {
+			const chunk: string[] = [];
+			const maxCodePoint = Math.min(currentCodePoint + ASCII_CHUNK_SIZE - 1, ASCII_CHAR_END);
+
+			for (; currentCodePoint <= maxCodePoint; currentCodePoint++) {
+				chunk.push(String.fromCharCode(currentCodePoint));
+			}
+
+			asciiCharacters.push(...chunk);
+			asciiCharacters = asciiCharacters;
+
+			const loadedChars = currentCodePoint - ASCII_CHAR_START;
+			asciiGridProgress = Math.min(100, Math.round((loadedChars / totalChars) * 100));
+
+			if (currentCodePoint <= ASCII_CHAR_END) {
+				setTimeout(appendChunk, 0);
+				return;
+			}
+
+			asciiGridReady = true;
+		};
+
+		appendChunk();
+	}
+
 	onMount(() => {
-		// Generate ASCII characters (same as Fresh site)
-		const chars = [];
-		for (let i = 42; i <= 4200; i++) {
-			chars.push(String.fromCharCode(i));
-		}
-		asciiCharacters = chars;
+		// Build the heavy ASCII grid in chunks so first paint is immediate.
+		requestAnimationFrame(() => {
+			populateAsciiCharactersProgressively();
+		});
 		
 		// Load ASCII animation script
 		const script = document.createElement('script');
@@ -422,13 +459,20 @@
 	></div>
 
 	<!-- ASCII Animation Grid -->
-	<div class="fixed top-0 left-0 z-10 select-none font-mono items-center grid grid-cols-23 sm:grid-cols-42 lg:grid-cols-99 justify-center text-foreground text-center w-screen h-screen min-w-screen min-h-screen">
+	<div class="fixed top-0 left-0 z-10 select-none font-mono items-center grid grid-cols-23 sm:grid-cols-42 lg:grid-cols-99 justify-center text-foreground text-center w-screen h-screen min-w-screen min-h-screen" aria-busy={!asciiGridReady}>
 		{#each asciiCharacters as char}
 			<div class="inline-block w-5 text-secondary ascii-character">
 				{char}
 			</div>
 		{/each}
 	</div>
+
+	{#if !asciiGridReady}
+		<div class="ascii-loading-indicator" aria-live="polite">
+			<span class="ascii-loading-label">Loading signal field</span>
+			<span class="ascii-loading-progress">{asciiGridProgress}%</span>
+		</div>
+	{/if}
 
 	<!-- ===== HERO SECTION — Full viewport ===== -->
 	<section class="hero-section relative z-40 min-h-screen flex flex-col items-center justify-center" role="banner">
@@ -477,7 +521,19 @@
 		<div class="content-card bg-background/70 backdrop-blur-sm rounded-xl">
 			<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start">
 				<div class="w-full flex flex-col gap-4 lg:gap-6">
-					<GitHubActivityGrid initialData={githubActivityData} />
+					{#await githubActivityDataPromise}
+						<div class="content-loading-card" aria-live="polite">
+							<p class="content-loading-title">GitHub Activity</p>
+							<p class="content-loading-subtitle">Warming up contribution data...</p>
+							<div class="content-loading-bars" aria-hidden="true">
+								<span></span><span></span><span></span><span></span>
+							</div>
+						</div>
+					{:then githubActivityData}
+						<GitHubActivityGrid initialData={githubActivityData} />
+					{:catch}
+						<GitHubActivityGrid initialData={null} />
+					{/await}
 
 					<div class="w-full">
 						<h3 class="text-xl sm:text-2xl font-black mb-4 flex items-center gap-2">
@@ -516,7 +572,19 @@
 				</div>
 
 				<div class="w-full">
-					<SpotifyWidget initialData={spotifyData} />
+					{#await spotifyDataPromise}
+						<div class="content-loading-card" aria-live="polite">
+							<p class="content-loading-title">Spotify</p>
+							<p class="content-loading-subtitle">Syncing current listening status...</p>
+							<div class="content-loading-bars" aria-hidden="true">
+								<span></span><span></span><span></span><span></span>
+							</div>
+						</div>
+					{:then spotifyData}
+						<SpotifyWidget initialData={spotifyData} />
+					{:catch}
+						<SpotifyWidget initialData={null} />
+					{/await}
 				</div>
 			</div>
 
@@ -680,6 +748,104 @@
 		max-width: 64rem;
 		margin: 0 auto;
 		padding: 1rem;
+	}
+
+	.ascii-loading-indicator {
+		position: fixed;
+		right: 1rem;
+		bottom: 1rem;
+		z-index: 60;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.65rem;
+		padding: 0.5rem 0.75rem;
+		border-radius: 999px;
+		background: hsla(var(--background), 0.75);
+		border: 1px solid hsla(var(--foreground), 0.14);
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
+		box-shadow: 0 8px 20px hsla(var(--background), 0.3);
+	}
+
+	.ascii-loading-label {
+		font-size: 0.75rem;
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+		color: hsla(var(--foreground), 0.72);
+	}
+
+	.ascii-loading-progress {
+		font-weight: 700;
+		font-size: 0.75rem;
+		color: hsla(var(--accent), 1);
+	}
+
+	.content-loading-card {
+		padding: 1.1rem;
+		border-radius: 1rem;
+		border: 1px solid hsla(var(--foreground), 0.1);
+		background: linear-gradient(
+			125deg,
+			hsla(var(--background), 0.88) 0%,
+			hsla(var(--primary), 0.08) 50%,
+			hsla(var(--accent), 0.08) 100%
+		);
+		box-shadow: 0 12px 26px hsla(var(--background), 0.33);
+	}
+
+	.content-loading-title {
+		font-weight: 800;
+		font-size: 0.95rem;
+		letter-spacing: 0.01em;
+		color: hsla(var(--foreground), 0.9);
+		margin-bottom: 0.3rem;
+	}
+
+	.content-loading-subtitle {
+		font-size: 0.85rem;
+		color: hsla(var(--foreground), 0.65);
+		margin-bottom: 0.8rem;
+	}
+
+	.content-loading-bars {
+		display: grid;
+		gap: 0.5rem;
+	}
+
+	.content-loading-bars span {
+		display: block;
+		height: 0.5rem;
+		border-radius: 999px;
+		background: linear-gradient(
+			90deg,
+			hsla(var(--foreground), 0.08) 0%,
+			hsla(var(--foreground), 0.2) 50%,
+			hsla(var(--foreground), 0.08) 100%
+		);
+		background-size: 200% 100%;
+		animation: loading-sheen 1.2s linear infinite;
+	}
+
+	.content-loading-bars span:nth-child(2) {
+		width: 92%;
+	}
+
+	.content-loading-bars span:nth-child(3) {
+		width: 80%;
+	}
+
+	.content-loading-bars span:nth-child(4) {
+		width: 66%;
+	}
+
+	@keyframes loading-sheen {
+		0% {
+			background-position: 200% 0;
+		}
+
+		100% {
+			background-position: -200% 0;
+		}
 	}
 
 	/* ═══ Tablet+ (768px) ═══ */
