@@ -128,7 +128,94 @@ export const blogContentType: ContentTypeDefinition = {
  *
  * Then add it: `export const contentTypeRegistry = [blogContentType, faqContentType];`
  */
-export const contentTypeRegistry: ContentTypeDefinition[] = [blogContentType];
+export const openProjectsContentType: ContentTypeDefinition = {
+	slug: 'open-projects',
+	name: 'Open Projects',
+	description: 'Active projects and their open/completed tasks',
+	icon: 'rocket',
+	fields: [
+		{
+			name: 'group',
+			label: 'Group',
+			type: 'select',
+			required: true,
+			options: [
+				{ label: '*Space', value: '*Space' },
+				{ label: 'Personal', value: 'Personal' }
+			],
+			sortOrder: 1
+		},
+		{
+			name: 'project_name',
+			label: 'Project Name',
+			type: 'text',
+			required: true,
+			placeholder: 'e.g. NebulaKit',
+			sortOrder: 2
+		},
+		{
+			name: 'primary_link',
+			label: 'Primary Link',
+			type: 'url',
+			placeholder: 'https://example.com',
+			sortOrder: 3
+		},
+		{
+			name: 'extra_links',
+			label: 'Extra Links',
+			type: 'json',
+			helpText: 'Array of { label, href } objects',
+			sortOrder: 4
+		},
+		{
+			name: 'tasks',
+			label: 'Open Tasks',
+			type: 'json',
+			required: true,
+			helpText: 'Array of task strings',
+			sortOrder: 5
+		},
+		{
+			name: 'completed_tasks',
+			label: 'Completed Tasks',
+			type: 'json',
+			helpText: 'Array of completed task strings',
+			sortOrder: 6
+		},
+		{
+			name: 'status',
+			label: 'Status',
+			type: 'select',
+			options: [
+				{ label: 'Active', value: 'active' },
+				{ label: 'Paused', value: 'paused' },
+				{ label: 'Complete', value: 'complete' }
+			],
+			defaultValue: 'active',
+			sortOrder: 7
+		},
+		{
+			name: 'sort_order',
+			label: 'Sort Order',
+			type: 'number',
+			helpText: 'Display order within group (lower = first)',
+			sortOrder: 8
+		}
+	],
+	settings: {
+		hasDrafts: false,
+		hasTags: false,
+		hasSEO: false,
+		hasAuthor: false,
+		isPublic: true,
+		routePrefix: '/projects',
+		listPageSize: 100,
+		defaultSort: 'created_at',
+		defaultSortDirection: 'asc'
+	}
+};
+
+export const contentTypeRegistry: ContentTypeDefinition[] = [blogContentType, openProjectsContentType];
 
 /**
  * Look up a content type definition by slug.

@@ -1,81 +1,11 @@
 <script lang="ts">
 	import SEO from '$lib/components/SEO.svelte';
+	import type { PageData } from './$types';
+
+	export let data: PageData;
 
 	const githubIconPath =
 		'M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5';
-
-	type WorkItem = {
-		name: string;
-		tasks: string[];
-		primaryLink?: string;
-		links?: Array<{ label: string; href: string }>;
-	};
-
-	type WorkGroup = {
-		name: string;
-		items: WorkItem[];
-	};
-
-	const workGroups: WorkGroup[] = [
-		{
-			name: '*Space',
-			items: [
-				{ name: 'starspace.group', primaryLink: 'https://starspace.group/', tasks: ['Rebuild with NebulaKit'] },
-				{
-					name: 'NebulaKit',
-					primaryLink: 'https://nebulakit.starspace.group/',
-					links: [{ label: 'GitHub', href: 'https://github.com/starspacegroup/NebulaKit' }],
-					tasks: ['LLMs/Agents Use Agile and TDD']
-				},
-				{
-					name: 'Athena',
-					primaryLink: 'https://athena.starspace.group/',
-					links: [{ label: 'Whitepaper', href: 'https://athena.starspace.group/whitepaper' }],
-					tasks: ['v0.2 of Whitepaper']
-				},
-				{
-					name: 'SpaceBot',
-					primaryLink: 'https://spacebot.starspace.group/',
-					links: [{ label: 'GitHub', href: 'https://github.com/starspacegroup/spacebot' }],
-					tasks: ['Local Runners']
-				},
-				{ name: 'Ammoura', primaryLink: 'https://ammoura.me/', tasks: ['Tenants'] },
-				{ name: 'Nabu', tasks: ['Content generation', 'Content publishing'] },
-				{
-					name: 'Dashboard',
-					primaryLink: 'https://dashboard.starspace.group',
-					links: [{ label: 'GitHub', href: 'https://github.com/starspacegroup/dashboard' }],
-					tasks: ['Fix GitHub and Google Analytics']
-				},
-				{
-					name: 'Game',
-					primaryLink: 'https://game.starspace.group',
-					links: [{ label: 'GitHub', href: 'https://github.com/starspacegroup/game' }],
-					tasks: ['Finish end-game', 'Fix glitches']
-				},
-				{ name: 'Guides', tasks: ['Finish 0.1 of guides and publish'] },
-				{ name: 'Convey.land', tasks: ['Initialize project with NebulaKit'] }
-			]
-		},
-		{
-			name: 'Personal',
-			items: [
-				{
-					name: 'davis9001.dev',
-					primaryLink: 'https://davis9001.dev/',
-					links: [{ label: 'GitHub', href: 'https://github.com/starspacegroup/davis9001.dev-sveltekit' }],
-					tasks: ['Fix Spotify']
-				},
-				{ name: 'AgapeVerse', primaryLink: 'https://agapeverse.app/', tasks: ['Finish rebuild with SvelteKit'] },
-				{ name: 'Music (davis9001)', tasks: ['Create 11 songs'] },
-				{
-					name: 'Arizona Iced VST',
-					tasks: ['Add AI feature: Describe synth/effect type and it will build it for you']
-				},
-				{ name: 'Abbot', tasks: ['Build on Linux'] }
-			]
-		}
-	];
 </script>
 
 <SEO
@@ -92,11 +22,11 @@
 		</header>
 
 		<div class="groups" role="list" aria-label="Current work groups">
-			{#each workGroups as group}
+			{#each data.groups as group}
 				<section class="group" role="listitem" aria-label={group.name}>
 					<h2>{group.name}</h2>
 					<ul class="project-list">
-						{#each group.items as item}
+						{#each group.projects as item}
 							<li>
 								{#if item.primaryLink}
 									<a class="project-name" href={item.primaryLink} target="_blank" rel="noopener noreferrer">
@@ -105,9 +35,9 @@
 								{:else}
 									<strong class="project-name project-name--plain">{item.name}</strong>
 								{/if}
-								{#if item.links?.length}
+								{#if item.extraLinks?.length}
 									<ul class="item-links" aria-label={`${item.name} related links`}>
-										{#each item.links as link}
+										{#each item.extraLinks as link}
 											<li>
 												<a class:link-with-icon={link.label === 'GitHub'} href={link.href} target="_blank" rel="noopener noreferrer">
 													{#if link.label === 'GitHub'}
@@ -130,11 +60,20 @@
 										{/each}
 									</ul>
 								{/if}
-								<ul class="task-list">
-									{#each item.tasks as task}
-										<li>{task}</li>
-									{/each}
-								</ul>
+								{#if item.tasks?.length}
+									<ul class="task-list">
+										{#each item.tasks as task}
+											<li>{task}</li>
+										{/each}
+									</ul>
+								{/if}
+								{#if item.completedTasks?.length}
+									<ul class="task-list task-list--done" aria-label="Completed tasks">
+										{#each item.completedTasks as task}
+											<li>{task}</li>
+										{/each}
+									</ul>
+								{/if}
 							</li>
 						{/each}
 					</ul>
@@ -263,6 +202,11 @@
 		display: grid;
 		gap: calc(var(--spacing-xs) * 0.8);
 		color: var(--color-text-secondary);
+	}
+
+	.task-list--done li {
+		text-decoration: line-through;
+		opacity: 0.55;
 	}
 
 	@media (min-width: 768px) {
