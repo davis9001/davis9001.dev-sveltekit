@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
 	import SEO from '$lib/components/SEO.svelte';
+	import TaskListField from '$lib/components/TaskListField.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -71,6 +72,8 @@
 					defaults[field.name] = [];
 				} else if (field.type === 'number') {
 					defaults[field.name] = null;
+				} else if (field.type === 'tasklist') {
+					defaults[field.name] = [];
 				} else {
 					defaults[field.name] = '';
 				}
@@ -102,7 +105,26 @@
 		formTitle = item.title || '';
 		formSlug = item.slug || '';
 		formStatus = item.status || 'draft';
-		formFields = { ...getDefaultFields(), ...(item.fields || {}) };
+
+		const merged = { ...getDefaultFields(), ...(item.fields || {}) };
+
+		// Migrate legacy tasks: string[] → {text, done}[]; fold in completed_tasks
+		if (merged.tasks !== undefined) {
+			const rawTasks: any[] = Array.isArray(merged.tasks) ? merged.tasks : [];
+			const normalizedTasks = rawTasks.map((t: any) =>
+				typeof t === 'string' ? { text: t, done: false } : t
+			);
+			const completedRaw: any[] = Array.isArray(merged.completed_tasks)
+				? merged.completed_tasks
+				: [];
+			const completedTasks = completedRaw.map((t: any) =>
+				typeof t === 'string' ? { text: t, done: true } : { ...t, done: true }
+			);
+			merged.tasks = [...normalizedTasks, ...completedTasks];
+		}
+		delete merged.completed_tasks;
+
+		formFields = merged;
 		formSeoTitle = item.seoTitle || '';
 		formSeoDescription = item.seoDescription || '';
 		formSeoImage = item.seoImage || '';
@@ -699,6 +721,8 @@
 										bind:value={formFields[field.name]}
 										placeholder={field.placeholder || 'https://example.com/image.jpg'}
 									/>
+								{:else if field.type === 'tasklist'}
+									<TaskListField bind:value={formFields[field.name]} />
 								{:else if field.type === 'json'}
 									<textarea
 										id="field-{field.name}"

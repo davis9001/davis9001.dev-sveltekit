@@ -13,12 +13,6 @@
 
 import type { ContentTypeDefinition } from './types';
 
-/**
- * Blog content type definition.
- *
- * Example of a full-featured content type with rich text,
- * categories, tags, SEO, and author tracking.
- */
 export const blogContentType: ContentTypeDefinition = {
 	slug: 'blog',
 	name: 'Blog Posts',
@@ -90,48 +84,10 @@ export const blogContentType: ContentTypeDefinition = {
 	}
 };
 
-/**
- * The content type registry.
- *
- * Add new content types here. Each entry automatically gets:
- * - Database storage for items
- * - REST API endpoints at /api/cms/{slug}
- * - Public routes at /{routePrefix} and /{routePrefix}/{item-slug}
- * - Admin management UI at /admin/cms/{slug}
- *
- * Example of adding a new type:
- *
- * ```typescript
- * const faqContentType: ContentTypeDefinition = {
- *   slug: 'faq',
- *   name: 'FAQ',
- *   description: 'Frequently asked questions',
- *   icon: 'help-circle',
- *   fields: [
- *     { name: 'question', label: 'Question', type: 'text', required: true, sortOrder: 1 },
- *     { name: 'answer', label: 'Answer', type: 'richtext', required: true, sortOrder: 2 },
- *     { name: 'category', label: 'Category', type: 'select', options: [...], sortOrder: 3 }
- *   ],
- *   settings: {
- *     hasDrafts: true,
- *     hasTags: true,
- *     hasSEO: false,
- *     hasAuthor: false,
- *     routePrefix: '/faq',
- *     listPageSize: 50,
- *     defaultSort: 'sort_order',
- *     defaultSortDirection: 'asc',
- *     isPublic: true
- *   }
- * };
- * ```
- *
- * Then add it: `export const contentTypeRegistry = [blogContentType, faqContentType];`
- */
 export const openProjectsContentType: ContentTypeDefinition = {
 	slug: 'open-projects',
 	name: 'Open Projects',
-	description: 'Active projects and their open/completed tasks',
+	description: 'Active projects and their tasks, status, and blockers',
 	icon: 'rocket',
 	fields: [
 		{
@@ -154,52 +110,79 @@ export const openProjectsContentType: ContentTypeDefinition = {
 			sortOrder: 2
 		},
 		{
-			name: 'primary_link',
-			label: 'Primary Link',
-			type: 'url',
-			placeholder: 'https://example.com',
-			sortOrder: 3
-		},
-		{
-			name: 'extra_links',
-			label: 'Extra Links',
-			type: 'json',
-			helpText: 'Array of { label, href } objects',
-			sortOrder: 4
-		},
-		{
-			name: 'tasks',
-			label: 'Open Tasks',
-			type: 'json',
-			required: true,
-			helpText: 'Array of task strings',
-			sortOrder: 5
-		},
-		{
-			name: 'completed_tasks',
-			label: 'Completed Tasks',
-			type: 'json',
-			helpText: 'Array of completed task strings',
-			sortOrder: 6
-		},
-		{
 			name: 'status',
 			label: 'Status',
 			type: 'select',
 			options: [
 				{ label: 'Active', value: 'active' },
+				{ label: 'Planning', value: 'planning' },
 				{ label: 'Paused', value: 'paused' },
+				{ label: 'Blocked', value: 'blocked' },
 				{ label: 'Complete', value: 'complete' }
 			],
 			defaultValue: 'active',
+			sortOrder: 3
+		},
+		{
+			name: 'priority',
+			label: 'Priority',
+			type: 'select',
+			options: [
+				{ label: 'High', value: 'high' },
+				{ label: 'Medium', value: 'medium' },
+				{ label: 'Low', value: 'low' }
+			],
+			defaultValue: 'medium',
+			sortOrder: 4
+		},
+		{
+			name: 'description',
+			label: 'Description',
+			type: 'textarea',
+			placeholder: 'Short summary of what this project is...',
+			sortOrder: 5
+		},
+		{
+			name: 'primary_link',
+			label: 'Primary Link',
+			type: 'url',
+			placeholder: 'https://example.com',
+			sortOrder: 6
+		},
+		{
+			name: 'github_url',
+			label: 'GitHub URL',
+			type: 'url',
+			placeholder: 'https://github.com/org/repo',
 			sortOrder: 7
+		},
+		{
+			name: 'extra_links',
+			label: 'Extra Links',
+			type: 'json',
+			helpText: 'Array of { label, href } objects (for non-GitHub links)',
+			sortOrder: 8
+		},
+		{
+			name: 'tasks',
+			label: 'Tasks',
+			type: 'tasklist',
+			helpText: 'Check off tasks as they are completed',
+			sortOrder: 9
+		},
+		{
+			name: 'blockers',
+			label: 'Blockers / Notes',
+			type: 'textarea',
+			placeholder: 'Any current blockers or notes...',
+			sortOrder: 10
 		},
 		{
 			name: 'sort_order',
 			label: 'Sort Order',
 			type: 'number',
 			helpText: 'Display order within group (lower = first)',
-			sortOrder: 8
+			sortOrder: 11
 		}
 	],
 	settings: {

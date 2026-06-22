@@ -6,6 +6,29 @@
 
 	const githubIconPath =
 		'M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5';
+
+	type StatusKey = 'active' | 'planning' | 'paused' | 'blocked' | 'complete';
+	const STATUS_LABELS: Record<StatusKey, string> = {
+		active: 'Active',
+		planning: 'Planning',
+		paused: 'Paused',
+		blocked: 'Blocked',
+		complete: 'Complete'
+	};
+	const STATUS_COLORS: Record<StatusKey, string> = {
+		active: 'var(--color-success, #22c55e)',
+		planning: 'var(--color-primary)',
+		paused: 'var(--color-warning, #f59e0b)',
+		blocked: 'var(--color-danger, #ef4444)',
+		complete: 'var(--color-text-secondary)'
+	};
+
+	function statusColor(s: string): string {
+		return STATUS_COLORS[(s as StatusKey)] ?? STATUS_COLORS.active;
+	}
+	function statusLabel(s: string): string {
+		return STATUS_LABELS[(s as StatusKey)] ?? s;
+	}
 </script>
 
 <SEO
@@ -28,51 +51,62 @@
 					<ul class="project-list">
 						{#each group.projects as item}
 							<li>
-								{#if item.primaryLink}
-									<a class="project-name" href={item.primaryLink} target="_blank" rel="noopener noreferrer">
-										{item.name}
-									</a>
-								{:else}
-									<strong class="project-name project-name--plain">{item.name}</strong>
-								{/if}
-								{#if item.extraLinks?.length}
-									<ul class="item-links" aria-label={`${item.name} related links`}>
+								<div class="project-header">
+									{#if item.primaryLink}
+										<a class="project-name" href={item.primaryLink} target="_blank" rel="noopener noreferrer">
+											{item.name}
+										</a>
+									{:else}
+										<strong class="project-name project-name--plain">{item.name}</strong>
+									{/if}
+									<span
+										class="status-badge"
+										style="--badge-color: {statusColor(item.projectStatus)}"
+										title="Status: {statusLabel(item.projectStatus)}"
+									>
+										{statusLabel(item.projectStatus)}
+									</span>
+								</div>
+
+								{#if item.githubUrl || item.extraLinks?.length}
+									<ul class="item-links" aria-label="{item.name} related links">
+										{#if item.githubUrl}
+											<li>
+												<a class="link-with-icon" href={item.githubUrl} target="_blank" rel="noopener noreferrer">
+													<svg
+														class="github-icon"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														aria-hidden="true"
+													>
+														<path d={githubIconPath} />
+													</svg>
+													<span>GitHub</span>
+												</a>
+											</li>
+										{/if}
 										{#each item.extraLinks as link}
 											<li>
-												<a class:link-with-icon={link.label === 'GitHub'} href={link.href} target="_blank" rel="noopener noreferrer">
-													{#if link.label === 'GitHub'}
-														<svg
-															class="github-icon"
-															viewBox="0 0 24 24"
-															fill="none"
-															stroke="currentColor"
-															stroke-width="2"
-															stroke-linecap="round"
-															stroke-linejoin="round"
-															aria-hidden="true"
-														>
-															<path d={githubIconPath} />
-														</svg>
-													{/if}
-													<span>{link.label}</span>
-												</a>
+												<a href={link.href} target="_blank" rel="noopener noreferrer">{link.label}</a>
 											</li>
 										{/each}
 									</ul>
 								{/if}
+
 								{#if item.tasks?.length}
-									<ul class="task-list">
+									<ul class="task-list" aria-label="{item.name} tasks">
 										{#each item.tasks as task}
-											<li>{task}</li>
+											<li class:task-done={task.done}>{task.text}</li>
 										{/each}
 									</ul>
 								{/if}
-								{#if item.completedTasks?.length}
-									<ul class="task-list task-list--done" aria-label="Completed tasks">
-										{#each item.completedTasks as task}
-											<li>{task}</li>
-										{/each}
-									</ul>
+
+								{#if item.blockers}
+									<p class="blockers-note" title="Blockers">⚠ {item.blockers}</p>
 								{/if}
 							</li>
 						{/each}
@@ -139,21 +173,23 @@
 		margin-bottom: var(--spacing-md);
 	}
 
-	.project-list,
-	.task-list {
+	.project-list {
 		list-style: square;
 		padding-left: var(--spacing-xl);
-	}
-
-	.project-list {
 		display: grid;
 		gap: var(--spacing-sm);
 		color: var(--color-text);
 	}
 
+	.project-header {
+		display: flex;
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: var(--spacing-sm);
+	}
+
 	.project-name {
 		display: inline-block;
-		margin-right: var(--spacing-sm);
 		color: var(--color-primary);
 		text-decoration: none;
 	}
@@ -165,6 +201,21 @@
 	.project-name:hover {
 		text-decoration: underline;
 		text-underline-offset: 0.15em;
+	}
+
+	.status-badge {
+		display: inline-block;
+		padding: 0.1em 0.5em;
+		border-radius: 999px;
+		font-size: 0.7rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+		color: var(--badge-color);
+		background: color-mix(in srgb, var(--badge-color) 14%, transparent);
+		border: 1px solid color-mix(in srgb, var(--badge-color) 30%, transparent);
+		vertical-align: middle;
+		line-height: 1.6;
 	}
 
 	.item-links {
@@ -179,6 +230,7 @@
 	.item-links a {
 		color: var(--color-primary);
 		text-decoration: none;
+		font-size: 0.875rem;
 	}
 
 	.link-with-icon {
@@ -198,15 +250,27 @@
 	}
 
 	.task-list {
+		list-style: square;
+		padding-left: var(--spacing-xl);
 		margin-top: var(--spacing-xs);
 		display: grid;
 		gap: calc(var(--spacing-xs) * 0.8);
 		color: var(--color-text-secondary);
 	}
 
-	.task-list--done li {
+	.task-done {
 		text-decoration: line-through;
-		opacity: 0.55;
+		opacity: 0.5;
+	}
+
+	.blockers-note {
+		margin-top: var(--spacing-xs);
+		font-size: 0.8125rem;
+		color: var(--color-warning, #f59e0b);
+		padding: 0.25rem 0.5rem;
+		border-left: 2px solid var(--color-warning, #f59e0b);
+		background: color-mix(in srgb, var(--color-warning, #f59e0b) 8%, transparent);
+		border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 	}
 
 	@media (min-width: 768px) {

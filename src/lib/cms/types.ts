@@ -20,7 +20,8 @@ export type ContentFieldType =
 	| 'url'
 	| 'email'
 	| 'json'
-	| 'color';
+	| 'color'
+	| 'tasklist';
 
 /** Validation rules for a content field */
 export interface ContentFieldValidation {

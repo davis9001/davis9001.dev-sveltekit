@@ -11,51 +11,69 @@ const mockData: any = {
 				{
 					id: '1',
 					name: 'starspace.group',
-					status: 'active',
+					projectStatus: 'active',
+					priority: 'high',
+					description: '',
 					primaryLink: 'https://starspace.group/',
+					githubUrl: null,
 					extraLinks: [],
-					tasks: ['Rebuild with NebulaKit'],
-					completedTasks: [],
+					tasks: [{ text: 'Rebuild with NebulaKit', done: false }],
+					blockers: '',
 					sortOrder: 0
 				},
 				{
 					id: '2',
 					name: 'NebulaKit',
-					status: 'active',
+					projectStatus: 'active',
+					priority: 'high',
+					description: '',
 					primaryLink: 'https://nebulakit.starspace.group/',
-					extraLinks: [{ label: 'GitHub', href: 'https://github.com/starspacegroup/NebulaKit' }],
-					tasks: ['LLMs/Agents Use Agile and TDD'],
-					completedTasks: [],
+					githubUrl: 'https://github.com/starspacegroup/NebulaKit',
+					extraLinks: [],
+					tasks: [{ text: 'LLMs/Agents Use Agile and TDD', done: false }],
+					blockers: '',
 					sortOrder: 1
 				},
 				{
 					id: '3',
 					name: 'SpaceBot',
-					status: 'active',
+					projectStatus: 'paused',
+					priority: 'medium',
+					description: '',
 					primaryLink: 'https://spacebot.starspace.group/',
-					extraLinks: [{ label: 'GitHub', href: 'https://github.com/starspacegroup/spacebot' }],
-					tasks: ['Local Runners'],
-					completedTasks: [],
+					githubUrl: 'https://github.com/starspacegroup/spacebot',
+					extraLinks: [],
+					tasks: [{ text: 'Local Runners', done: false }],
+					blockers: 'Waiting on dependency',
 					sortOrder: 3
 				},
 				{
 					id: '4',
 					name: 'Dashboard',
-					status: 'active',
+					projectStatus: 'blocked',
+					priority: 'medium',
+					description: '',
 					primaryLink: 'https://dashboard.starspace.group',
-					extraLinks: [{ label: 'GitHub', href: 'https://github.com/starspacegroup/dashboard' }],
-					tasks: ['Fix GitHub and Google Analytics'],
-					completedTasks: [],
+					githubUrl: 'https://github.com/starspacegroup/dashboard',
+					extraLinks: [],
+					tasks: [{ text: 'Fix GitHub and Google Analytics', done: false }],
+					blockers: '',
 					sortOrder: 6
 				},
 				{
 					id: '5',
 					name: 'Game',
-					status: 'active',
+					projectStatus: 'active',
+					priority: 'medium',
+					description: '',
 					primaryLink: 'https://game.starspace.group',
-					extraLinks: [{ label: 'GitHub', href: 'https://github.com/starspacegroup/game' }],
-					tasks: ['Finish end-game', 'Fix glitches'],
-					completedTasks: [],
+					githubUrl: 'https://github.com/starspacegroup/game',
+					extraLinks: [],
+					tasks: [
+						{ text: 'Finish end-game', done: false },
+						{ text: 'Fix glitches', done: true }
+					],
+					blockers: '',
 					sortOrder: 7
 				}
 			]
@@ -66,26 +84,32 @@ const mockData: any = {
 				{
 					id: '6',
 					name: 'davis9001.dev',
-					status: 'active',
+					projectStatus: 'active',
+					priority: 'high',
+					description: '',
 					primaryLink: 'https://davis9001.dev/',
-					extraLinks: [
-						{
-							label: 'GitHub',
-							href: 'https://github.com/starspacegroup/davis9001.dev-sveltekit'
-						}
-					],
-					tasks: ['Fix Spotify'],
-					completedTasks: [],
+					githubUrl: 'https://github.com/starspacegroup/davis9001.dev-sveltekit',
+					extraLinks: [],
+					tasks: [{ text: 'Fix Spotify', done: false }],
+					blockers: '',
 					sortOrder: 0
 				},
 				{
 					id: '7',
 					name: 'Arizona Iced VST',
-					status: 'active',
+					projectStatus: 'planning',
+					priority: 'medium',
+					description: '',
 					primaryLink: null,
+					githubUrl: null,
 					extraLinks: [],
-					tasks: ['Add AI feature: Describe synth/effect type and it will build it for you'],
-					completedTasks: [],
+					tasks: [
+						{
+							text: 'Add AI feature: Describe synth/effect type and it will build it for you',
+							done: false
+						}
+					],
+					blockers: '',
 					sortOrder: 3
 				}
 			]
@@ -105,7 +129,7 @@ describe('Projects Page', () => {
 		expect(screen.getByRole('heading', { name: /personal/i })).toBeInTheDocument();
 	});
 
-	it('should include key active projects and tasks', () => {
+	it('should include key active projects and links', () => {
 		render(Page, { props: { data: mockData } });
 		expect(screen.getByRole('link', { name: 'starspace.group' })).toHaveAttribute(
 			'href',
@@ -123,6 +147,7 @@ describe('Projects Page', () => {
 			'href',
 			'https://nebulakit.starspace.group/'
 		);
+		// GitHub links via githubUrl field
 		expect(
 			document.querySelector('a[href="https://github.com/starspacegroup/NebulaKit"]')
 		).toBeInTheDocument();
@@ -135,9 +160,14 @@ describe('Projects Page', () => {
 		expect(
 			document.querySelector('a[href="https://github.com/starspacegroup/game"]')
 		).toBeInTheDocument();
+		// GitHub icon SVG rendered
 		expect(
 			document.querySelector('a[href="https://github.com/starspacegroup/NebulaKit"] svg')
 		).toBeInTheDocument();
+	});
+
+	it('should render tasks as list items', () => {
+		render(Page, { props: { data: mockData } });
 		expect(screen.getByText('Rebuild with NebulaKit')).toBeInTheDocument();
 		expect(screen.getByText('Fix GitHub and Google Analytics')).toBeInTheDocument();
 		expect(screen.getByText('Fix Spotify')).toBeInTheDocument();
@@ -151,29 +181,39 @@ describe('Projects Page', () => {
 		expect(document.querySelector('main')).toBeInTheDocument();
 	});
 
-	it('should render completed tasks with strikethrough styling', () => {
-		const dataWithCompleted: any = {
-			groups: [
-				{
-					name: '*Space',
-					projects: [
-						{
-							id: '1',
-							name: 'NebulaKit',
-							status: 'active',
-							primaryLink: 'https://nebulakit.starspace.group/',
-							extraLinks: [],
-							tasks: ['Current task'],
-							completedTasks: ['Finished task'],
-							sortOrder: 0
-						}
-					]
-				}
-			]
-		};
-		render(Page, { props: { data: dataWithCompleted } });
-		const doneList = document.querySelector('.task-list--done');
-		expect(doneList).toBeInTheDocument();
-		expect(doneList).toHaveTextContent('Finished task');
+	it('should show status badges for each project', () => {
+		render(Page, { props: { data: mockData } });
+		const badges = document.querySelectorAll('.status-badge');
+		expect(badges.length).toBeGreaterThan(0);
+		// active badge
+		expect(screen.getAllByText('Active').length).toBeGreaterThan(0);
+		// paused badge
+		expect(screen.getByText('Paused')).toBeInTheDocument();
+		// blocked badge
+		expect(screen.getByText('Blocked')).toBeInTheDocument();
+		// planning badge
+		expect(screen.getByText('Planning')).toBeInTheDocument();
+	});
+
+	it('should render done tasks with strikethrough class', () => {
+		render(Page, { props: { data: mockData } });
+		// "Fix glitches" is done: true in the mock
+		const doneItems = document.querySelectorAll('.task-done');
+		expect(doneItems.length).toBeGreaterThan(0);
+		const doneTexts = Array.from(doneItems).map((el) => el.textContent);
+		expect(doneTexts).toContain('Fix glitches');
+	});
+
+	it('should render open tasks without strikethrough', () => {
+		render(Page, { props: { data: mockData } });
+		// "Finish end-game" is done: false
+		const openTask = screen.getByText('Finish end-game');
+		expect(openTask).not.toHaveClass('task-done');
+	});
+
+	it('should show blockers note when blockers field is set', () => {
+		render(Page, { props: { data: mockData } });
+		expect(document.querySelector('.blockers-note')).toBeInTheDocument();
+		expect(screen.getByText(/waiting on dependency/i)).toBeInTheDocument();
 	});
 });
