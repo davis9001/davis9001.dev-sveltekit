@@ -24,9 +24,7 @@
 
 	// UI state
 	let showCreateModal = false;
-	let showEditModal = false;
 	let showDeleteConfirm = false;
-	let editingItem: any = null;
 	let deletingItem: any = null;
 	let isLoading = false;
 	let errors: Record<string, string> = {};
@@ -100,45 +98,9 @@
 		showCreateModal = true;
 	}
 
-	function openEditModal(item: any) {
-		editingItem = item;
-		formTitle = item.title || '';
-		formSlug = item.slug || '';
-		formStatus = item.status || 'draft';
-
-		const merged = { ...getDefaultFields(), ...(item.fields || {}) };
-
-		// Migrate legacy tasks: string[] → {text, done}[]; fold in completed_tasks
-		if (merged.tasks !== undefined) {
-			const rawTasks: any[] = Array.isArray(merged.tasks) ? merged.tasks : [];
-			const normalizedTasks = rawTasks.map((t: any) =>
-				typeof t === 'string' ? { text: t, done: false } : t
-			);
-			const completedRaw: any[] = Array.isArray(merged.completed_tasks)
-				? merged.completed_tasks
-				: [];
-			const completedTasks = completedRaw.map((t: any) =>
-				typeof t === 'string' ? { text: t, done: true } : { ...t, done: true }
-			);
-			merged.tasks = [...normalizedTasks, ...completedTasks];
-		}
-		delete merged.completed_tasks;
-
-		formFields = merged;
-		formSeoTitle = item.seoTitle || '';
-		formSeoDescription = item.seoDescription || '';
-		formSeoImage = item.seoImage || '';
-		formTagIds = item.tags?.map((t: any) => t.id) || [];
-		showSeoFields = !!(item.seoTitle || item.seoDescription || item.seoImage);
-		errors = {};
-		showEditModal = true;
-	}
-
 	function closeModals() {
 		showCreateModal = false;
-		showEditModal = false;
 		showDeleteConfirm = false;
-		editingItem = null;
 		deletingItem = null;
 	}
 
@@ -204,53 +166,6 @@
 			if (!res.ok) {
 				const errData = await res.json();
 				errors.general = errData.message || 'Failed to create item';
-				return;
-			}
-
-			closeModals();
-			await refreshItems();
-		} catch (err) {
-			errors.general = 'An unexpected error occurred';
-		} finally {
-			isLoading = false;
-		}
-	}
-
-	async function handleUpdate() {
-		errors = {};
-
-		if (!formTitle.trim()) {
-			errors.title = 'Title is required';
-			return;
-		}
-		if (!editingItem) return;
-
-		isLoading = true;
-		try {
-			const body: any = {
-				title: formTitle.trim(),
-				slug: formSlug.trim(),
-				status: formStatus,
-				fields: formFields
-			};
-			if (contentType.settings?.hasSEO) {
-				body.seoTitle = formSeoTitle || null;
-				body.seoDescription = formSeoDescription || null;
-				body.seoImage = formSeoImage || null;
-			}
-			if (contentType.settings?.hasTags) {
-				body.tagIds = formTagIds;
-			}
-
-			const res = await fetch(`/api/cms/${contentType.slug}/${editingItem.id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(body)
-			});
-
-			if (!res.ok) {
-				const errData = await res.json();
-				errors.general = errData.message || 'Failed to update item';
 				return;
 			}
 
@@ -500,7 +415,7 @@
 							<td class="td-date">{formatDate(item.createdAt)}</td>
 							<td class="td-date">{formatDate(item.updatedAt)}</td>
 							<td class="td-actions">
-								<button class="btn-icon" title="Edit" on:click={() => openEditModal(item)}>
+								<a class="btn-icon" href="/admin/cms/{contentType.slug}/{item.id}" title="Edit">
 									<svg
 										width="16"
 										height="16"
@@ -512,7 +427,7 @@
 										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
 										<path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" />
 									</svg>
-								</button>
+								</a>
 								<button
 									class="btn-icon btn-icon-danger"
 									title="Delete"
@@ -558,8 +473,8 @@
 	{/if}
 </div>
 
-<!-- Create/Edit Modal -->
-{#if showCreateModal || showEditModal}
+<!-- Create Modal -->
+{#if showCreateModal}
 	<div
 		class="modal-overlay"
 		on:click|self={closeModals}
@@ -570,10 +485,10 @@
 			class="modal"
 			role="dialog"
 			aria-modal="true"
-			aria-label="{showCreateModal ? 'Create' : 'Edit'} {contentType.name.replace(/s$/, '')}"
+			aria-label="Create {contentType.name.replace(/s$/, '')}"
 		>
 			<div class="modal-header">
-				<h2>{showCreateModal ? 'Create' : 'Edit'} {contentType.name.replace(/s$/, '')}</h2>
+				<h2>Create {contentType.name.replace(/s$/, '')}</h2>
 				<button class="btn-close" on:click={closeModals} aria-label="Close modal">&times;</button>
 			</div>
 			<div class="modal-body">
@@ -826,15 +741,9 @@
 				<button class="btn btn-secondary" on:click={closeModals} disabled={isLoading}>
 					Cancel
 				</button>
-				{#if showCreateModal}
-					<button class="btn btn-primary" on:click={handleCreate} disabled={isLoading}>
-						{isLoading ? 'Creating...' : 'Create'}
-					</button>
-				{:else}
-					<button class="btn btn-primary" on:click={handleUpdate} disabled={isLoading}>
-						{isLoading ? 'Saving...' : 'Save Changes'}
-					</button>
-				{/if}
+				<button class="btn btn-primary" on:click={handleCreate} disabled={isLoading}>
+					{isLoading ? 'Creating...' : 'Create'}
+				</button>
 			</div>
 		</div>
 	</div>
