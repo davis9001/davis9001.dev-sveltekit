@@ -29,6 +29,7 @@
 	$: isStandalonePage =
 		$page.url.pathname === '/' ||
 		$page.url.pathname === '/lifeofastranger' ||
+		$page.url.pathname === '/resume' ||
 		$page.url.pathname.startsWith('/hidden') ||
 		$page.url.pathname.startsWith('/updates') ||
 		$page.url.pathname.startsWith('/update') ||
