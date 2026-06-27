@@ -1,5 +1,5 @@
 <!--
-  Blog Post: Why My Workstation Is Named Dirac
+  Blog Post: Why Dirac is My Hostname
   A dedicated page (not markdown) because it has interactive canvas animations.
 -->
 <script lang="ts">
@@ -11,7 +11,7 @@
 	import SEO from '$lib/components/SEO.svelte';
 
 	const POST = {
-		title: 'Why My Workstation Is Named Dirac',
+		title: 'Why Dirac is My Hostname',
 		publishedAt: '2026-06-26T00:00:00Z',
 		summary:
 			"How I named my workstation after Paul Dirac when I installed Omarchy, and everything I've learned about the Dirac equation since — with interactive animations.",
@@ -692,7 +692,7 @@
 <SEO
 	title={POST.title}
 	description={POST.summary}
-	path="/update/why-my-workstation-is-named-dirac"
+	path="/update/why-dirac-is-my-hostname"
 	type="article"
 	publishedAt={POST.publishedAt}
 />
