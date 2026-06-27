@@ -24,14 +24,17 @@
 
 	function setupCanvas(canvas: HTMLCanvasElement): { ctx: CanvasRenderingContext2D; w: number; h: number } {
 		const dpr = window.devicePixelRatio || 1;
-		const rect = canvas.getBoundingClientRect();
 		const h = parseInt(canvas.getAttribute('data-height') || '300');
-		canvas.width = rect.width * dpr;
 		canvas.height = h * dpr;
 		canvas.style.height = h + 'px';
+		// Use parent clientWidth as fallback: getBoundingClientRect can return 0 at mount time
+		// on mobile before layout is fully computed.
+		const rect = canvas.getBoundingClientRect();
+		const w = rect.width || canvas.parentElement?.clientWidth || 300;
+		canvas.width = w * dpr;
 		const ctx = canvas.getContext('2d')!;
 		ctx.scale(dpr, dpr);
-		return { ctx, w: rect.width, h };
+		return { ctx, w, h };
 	}
 
 	onMount(() => {
@@ -186,11 +189,7 @@
 				if (complexRunning) t += 0.016;
 			}
 			function loop() { draw(); requestAnimationFrame(loop); }
-			window.addEventListener('resize', () => {
-				const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio || 1;
-				canvas.width = r.width * dpr; w = r.width;
-				ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr);
-			});
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			loop();
 		})();
 
@@ -244,7 +243,7 @@
 				ctx.textAlign = 'left'; t += 0.016;
 			}
 			function loop() { draw(); requestAnimationFrame(loop); }
-			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; w = r.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			loop();
 		})();
 
@@ -335,7 +334,7 @@
 				const midY2 = h * 0.42, seaTop2 = midY2 + 30, rowH2 = (h - seaTop2 - 20) / 5;
 				pairs.push({ t: 0, x: clickX, life: 0, holeCol: col, holeRow: 0, startY: seaTop2 + 24 + rowH2 / 2 });
 			});
-			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; w = r.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
@@ -533,7 +532,7 @@
 
 				if (beltRunning) angle += 0.008;
 			}
-			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; w = r.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
@@ -632,7 +631,7 @@
 
 				if (energyRunning) t += 0.016;
 			}
-			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; w = r.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
@@ -685,7 +684,7 @@
 				ctx.fillStyle = muted; ctx.font = '16px system-ui'; ctx.fillText('Oscillation: ~10²⁰ Hz (exaggerated)', ox + 4, pad + 38);
 				if (zittRunning) t += 0.016 * zittSpeed;
 			}
-			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; w = r.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
