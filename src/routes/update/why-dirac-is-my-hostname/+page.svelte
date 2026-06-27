@@ -832,8 +832,8 @@
 							<line x1="40" y1="94" x2="52" y2="94" stroke="var(--color-text-secondary)" stroke-width="0.9"/>
 							<line x1="24" y1="80" x2="36" y2="80" stroke="var(--color-text-secondary)" stroke-width="0.9"/>
 							<line x1="24" y1="87" x2="36" y2="87" stroke="var(--color-text-secondary)" stroke-width="0.9"/>
-							<text x="38" y="126" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-text)">Bristol</text>
-							<text x="38" y="138" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">Eng. 1921</text>
+							<text x="38" y="124" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-text)">Bristol</text>
+							<text x="38" y="134" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">Eng. 1921</text>
 							<!-- Milestone 1: BSc -->
 							<circle cx="128" cy="77" r="18" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5"/>
 							<text x="128" y="74" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-accent)">BSc</text>
@@ -844,7 +844,7 @@
 							<text x="210" y="104" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">1926</text>
 							<!-- Milestone 3: Lucasian -->
 							<circle cx="285" cy="90" r="18" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5"/>
-							<text x="285" y="87" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-accent)">Lucasian</text>
+							<text x="285" y="87" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-accent)" textLength="32" lengthAdjust="spacingAndGlyphs">Lucasian</text>
 							<text x="285" y="99" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">1932</text>
 							<!-- CAMBRIDGE — spire icon -->
 							<path d="M350,116 L350,62 L360,42 L370,62 L370,116" stroke="var(--color-text)" stroke-width="1.5" fill="var(--color-surface)" stroke-linecap="round" stroke-linejoin="round"/>
@@ -853,8 +853,8 @@
 							<rect x="362" y="74" width="7" height="9" fill="var(--color-accent)" fill-opacity="0.1" stroke="var(--color-text-secondary)" stroke-width="1"/>
 							<rect x="352" y="90" width="7" height="9" fill="var(--color-accent)" fill-opacity="0.1" stroke="var(--color-text-secondary)" stroke-width="1"/>
 							<rect x="362" y="90" width="7" height="9" fill="var(--color-accent)" fill-opacity="0.1" stroke="var(--color-text-secondary)" stroke-width="1"/>
-							<text x="360" y="126" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-text)">Cambridge</text>
-							<text x="360" y="138" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">St John's</text>
+							<text x="360" y="124" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-text)">Cambridge</text>
+							<text x="360" y="134" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">St John's</text>
 							<!-- title -->
 							<text x="200" y="22" text-anchor="middle" font-family="Georgia,serif" font-size="11" fill="var(--color-text-secondary)" font-style="italic">The road to the equation</text>
 						</svg>
@@ -1214,6 +1214,7 @@
 	}
 	.life-illo-wrap svg {
 		width: 100%;
+		height: auto;
 		max-width: 440px;
 		display: block;
 		margin: 0 auto;
