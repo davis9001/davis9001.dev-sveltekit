@@ -844,8 +844,8 @@
 							<text x="210" y="104" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">1926</text>
 							<!-- Milestone 3: Lucasian -->
 							<circle cx="285" cy="90" r="18" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5"/>
-							<text x="285" y="86" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-accent)">Lucasian</text>
-							<text x="285" y="97" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">1932</text>
+							<text x="285" y="87" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-accent)">Lucasian</text>
+							<text x="285" y="99" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">1932</text>
 							<!-- CAMBRIDGE — spire icon -->
 							<path d="M350,116 L350,62 L360,42 L370,62 L370,116" stroke="var(--color-text)" stroke-width="1.5" fill="var(--color-surface)" stroke-linecap="round" stroke-linejoin="round"/>
 							<path d="M348,63 L354,53 L360,42 L366,53 L372,63Z" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.5" stroke-linejoin="round"/>
