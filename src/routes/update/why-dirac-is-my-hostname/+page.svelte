@@ -1023,13 +1023,17 @@
 
 				<div class="viz-card eq-card">
 					<div class="viz-title">The Dirac Equation (1928)</div>
+					<div class="eq-unit-badge eq-unit-natural">Natural units &middot; ℏ = c = 1</div>
 					<canvas id="eqCanvas" data-height="280" style="width:100%;display:block;border-radius:8px;"></canvas>
-					<p class="viz-caption">The Dirac equation in natural units (ℏ = c = 1). γᵘ are the gamma matrices, ∂ᵤ is the four-gradient, m is rest mass, and ψ is the four-component Dirac spinor. First-order in all four spacetime coordinates simultaneously.</p>
+					<p class="viz-caption">γᵘ are the gamma matrices, ∂ᵤ is the four-gradient, m is rest mass, and ψ is the four-component Dirac spinor. First-order in all four spacetime coordinates simultaneously.</p>
 				</div>
 
-				<p>In normal units it is written as:</p>
-
-				<p class="eq-display">(iℏγᵘ∂<sub>μ</sub> - mc)ψ = 0</p>
+				<div class="viz-card eq-card">
+					<div class="viz-title">The Dirac Equation — SI / Standard Units</div>
+					<div class="eq-unit-badge eq-unit-si">SI units &middot; ℏ and c explicit</div>
+					<p class="eq-display">(iℏγᵘ∂<sub>μ</sub> &minus; mc)ψ = 0</p>
+					<p class="viz-caption">Setting ℏ&thinsp;=&thinsp;c&thinsp;=&thinsp;1 (natural units) absorbs both constants: ℏmc becomes m, and the equation above becomes the cleaner form shown in the visualization.</p>
+				</div>
 
 				<h3>What Is the <em>i</em> Out Front?</h3>
 				<p>
@@ -1288,6 +1292,27 @@
 		font-size: clamp(1.5rem, 4vw, 3rem);
 		letter-spacing: 0.05em;
 		padding: 1rem 0;
+	}
+
+	.eq-unit-badge {
+		display: inline-block;
+		font-size: 0.7rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		padding: 0.2rem 0.65rem;
+		border-radius: var(--radius-sm);
+		margin-bottom: 0.85rem;
+	}
+	.eq-unit-natural {
+		background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+		color: var(--color-accent);
+		border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
+	}
+	.eq-unit-si {
+		background: color-mix(in srgb, var(--color-text-secondary) 12%, transparent);
+		color: var(--color-text-secondary);
+		border: 1px solid color-mix(in srgb, var(--color-text-secondary) 30%, transparent);
 	}
 
 	/* ── Viz cards ── */
