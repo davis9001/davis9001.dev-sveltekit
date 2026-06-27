@@ -9,6 +9,17 @@
 		<script>
 			// Prevent FOUC by setting theme immediately
 			(function () {
+				// URL param overrides for headless PDF generation (?dark or ?light)
+				var params = new URLSearchParams(location.search);
+				if (params.has('dark')) {
+					document.documentElement.setAttribute('data-theme', 'dark');
+					return;
+				}
+				if (params.has('light')) {
+					document.documentElement.setAttribute('data-theme', 'light');
+					return;
+				}
+
 				var stored = localStorage.getItem('theme-preference');
 				var theme = 'light';
 

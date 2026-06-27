@@ -36,9 +36,17 @@
 		$page.url.pathname.startsWith('/portfolio');
 
 	// Subscribe to theme changes and apply to DOM
+	// URL params ?dark / ?light override for headless PDF generation
 	if (browser) {
+		const _printParams = new URLSearchParams(location.search);
+		const _forcedTheme = _printParams.has('dark') ? 'dark' : _printParams.has('light') ? 'light' : null;
+		if (_forcedTheme) {
+			document.documentElement.setAttribute('data-theme', _forcedTheme);
+		}
 		resolvedTheme.subscribe((theme) => {
-			document.documentElement.setAttribute('data-theme', theme);
+			if (!_forcedTheme) {
+				document.documentElement.setAttribute('data-theme', theme);
+			}
 		});
 	}
 

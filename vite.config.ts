@@ -4,6 +4,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [sveltekit(), svelteTesting()],
+	server: {
+		allowedHosts: ['dev.davis9001.dev']
+	},
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}', 'tests/**/*.{test,spec}.{js,ts}'],
 		exclude: ['node_modules', 'tests/e2e/**'],
