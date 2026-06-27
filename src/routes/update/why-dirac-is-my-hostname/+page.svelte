@@ -819,9 +819,9 @@
 
 					<!-- ── Life: Education ── -->
 					<div class="life-illo-wrap">
-						<svg viewBox="0 0 400 140" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Education timeline from Bristol to Cambridge">
-							<!-- Dashed journey path -->
-							<path d="M75,95 C 130,65 270,115 330,85" stroke="var(--color-text-secondary)" stroke-width="1.5" stroke-dasharray="5,3" fill="none" stroke-linecap="round" opacity="0.5"/>
+						<svg viewBox="0 0 400 152" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Education timeline from Bristol to Cambridge">
+							<!-- Dashed journey path — ends horizontally at arrowhead base (320,85) -->
+							<path d="M75,95 C 130,58 260,85 320,85" stroke="var(--color-text-secondary)" stroke-width="1.5" stroke-dasharray="5,3" fill="none" stroke-linecap="round" opacity="0.5"/>
 							<!-- Arrow head at Cambridge end -->
 							<polygon points="330,85 320,80 320,90" fill="var(--color-text-secondary)" opacity="0.5"/>
 							<!-- BRISTOL — book icon -->
