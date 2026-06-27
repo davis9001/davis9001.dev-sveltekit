@@ -28,6 +28,7 @@
 		const h = parseInt(canvas.getAttribute('data-height') || '300');
 		canvas.width = rect.width * dpr;
 		canvas.height = h * dpr;
+		canvas.style.height = h + 'px';
 		const ctx = canvas.getContext('2d')!;
 		ctx.scale(dpr, dpr);
 		return { ctx, w: rect.width, h };
@@ -187,7 +188,7 @@
 			function loop() { draw(); requestAnimationFrame(loop); }
 			window.addEventListener('resize', () => {
 				const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio || 1;
-				canvas.width = r.width * dpr; canvas.height = r.height * dpr; w = r.width; h = r.height;
+				canvas.width = r.width * dpr; w = r.width;
 				ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr);
 			});
 			loop();
@@ -243,7 +244,7 @@
 				ctx.textAlign = 'left'; t += 0.016;
 			}
 			function loop() { draw(); requestAnimationFrame(loop); }
-			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; canvas.height = r.height * dpr; w = r.width; h = r.height; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
+			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; w = r.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
 			loop();
 		})();
 
@@ -334,7 +335,7 @@
 				const midY2 = h * 0.42, seaTop2 = midY2 + 30, rowH2 = (h - seaTop2 - 20) / 5;
 				pairs.push({ t: 0, x: clickX, life: 0, holeCol: col, holeRow: 0, startY: seaTop2 + 24 + rowH2 / 2 });
 			});
-			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; canvas.height = r.height * dpr; w = r.width; h = r.height; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
+			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; w = r.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
@@ -532,6 +533,7 @@
 
 				if (beltRunning) angle += 0.008;
 			}
+			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; w = r.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
@@ -630,6 +632,7 @@
 
 				if (energyRunning) t += 0.016;
 			}
+			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; w = r.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
@@ -682,7 +685,7 @@
 				ctx.fillStyle = muted; ctx.font = '16px system-ui'; ctx.fillText('Oscillation: ~10²⁰ Hz (exaggerated)', ox + 4, pad + 38);
 				if (zittRunning) t += 0.016 * zittSpeed;
 			}
-			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; canvas.height = r.height * dpr; w = r.width; h = r.height; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
+			window.addEventListener('resize', () => { const r = canvas.getBoundingClientRect(); const dpr = window.devicePixelRatio||1; canvas.width = r.width * dpr; w = r.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr, dpr); });
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
