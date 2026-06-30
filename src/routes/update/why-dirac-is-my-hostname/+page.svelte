@@ -189,7 +189,7 @@
 				if (complexRunning) t += 0.016;
 			}
 			function loop() { draw(); requestAnimationFrame(loop); }
-			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; canvas.height = h*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			loop();
 		})();
 
@@ -243,7 +243,7 @@
 				ctx.textAlign = 'left'; t += 0.016;
 			}
 			function loop() { draw(); requestAnimationFrame(loop); }
-			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; canvas.height = h*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			loop();
 		})();
 
@@ -334,7 +334,7 @@
 				const midY2 = h * 0.42, seaTop2 = midY2 + 30, rowH2 = (h - seaTop2 - 20) / 5;
 				pairs.push({ t: 0, x: clickX, life: 0, holeCol: col, holeRow: 0, startY: seaTop2 + 24 + rowH2 / 2 });
 			});
-			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; canvas.height = h*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
@@ -532,7 +532,7 @@
 
 				if (beltRunning) angle += 0.008;
 			}
-			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; canvas.height = h*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
@@ -631,7 +631,7 @@
 
 				if (energyRunning) t += 0.016;
 			}
-			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; canvas.height = h*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
@@ -684,7 +684,7 @@
 				ctx.fillStyle = muted; ctx.font = '16px system-ui'; ctx.fillText('Oscillation: ~10²⁰ Hz (exaggerated)', ox + 4, pad + 38);
 				if (zittRunning) t += 0.016 * zittSpeed;
 			}
-			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; canvas.height = h*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			function loop() { draw(); requestAnimationFrame(loop); }
 			loop();
 		})();
