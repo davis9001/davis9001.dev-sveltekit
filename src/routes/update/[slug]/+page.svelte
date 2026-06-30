@@ -40,7 +40,7 @@
 		</div>
 	</header>
 
-	<main class="px-2 py-1 md:p-9 flex-1 relative max-w-2xl mx-auto">
+	<main class="px-2 py-1 md:p-9 flex-1 relative max-w-5xl mx-auto">
 		<!-- Background image (logo) -->
 		<div
 			class="fixed inset-0 bg-cover bg-center bg-no-repeat z-10 opacity-10 blur-xl"

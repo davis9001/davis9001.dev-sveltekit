@@ -709,7 +709,7 @@
 		</div>
 	</header>
 
-	<main class="px-2 py-1 md:p-9 flex-1 relative max-w-2xl mx-auto">
+	<main class="px-2 py-1 md:p-9 flex-1 relative max-w-5xl mx-auto">
 		<div class="fixed inset-0 bg-cover bg-center bg-no-repeat z-10 opacity-10 blur-xl"
 			style="background-image:url('/logo-green-Icon-250.webp');background-size:contain;background-position:-9ch -9em;"></div>
 

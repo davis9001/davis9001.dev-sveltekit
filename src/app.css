@@ -692,6 +692,7 @@ from, to { opacity: 0; }
 .max-w-md { max-width: 28rem; }
 .max-w-xl { max-width: 36rem; }
 .max-w-4xl { max-width: 56rem; }
+.max-w-5xl { max-width: 84rem; }
 .max-w-screen-sm { max-width: 640px; }
 .max-w-screen-md { max-width: 768px; }
 .aspect-square { aspect-ratio: 1 / 1; }
