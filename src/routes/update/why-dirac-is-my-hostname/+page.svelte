@@ -873,7 +873,7 @@
 							<!-- Date -->
 							<text x="200" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="12" fill="var(--color-text-secondary)" font-style="italic">London · 2 January 1937</text>
 							<!-- Note: sister of Wigner — sits clear above figures -->
-							<text x="200" y="32" text-anchor="middle" font-family="Georgia,serif" font-size="9.5" fill="var(--color-text-secondary)" opacity="0.7">née Wigner — sister of physicist Eugene Wigner</text>
+							<text x="200" y="32" text-anchor="middle" font-family="Georgia,serif" font-size="9.5" fill="var(--color-text-secondary)" opacity="0.7">born Margit Wigner · sister of physicist Eugene Wigner</text>
 							<!-- Paul figure (left, taller) — shifted down 20px to clear header text -->
 							<circle cx="148" cy="58" r="17" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.8"/>
 							<!-- body -->
