@@ -232,6 +232,10 @@ describe('Spotify API Route', () => {
   });
 
   it('should return a conservative idle next-refresh header when nothing is currently playing', async () => {
+    // Freeze time so computeNextRefreshAt and getRefreshDelayMs both see the same Date.now(),
+    // preventing a 1ms CI-timing slip from making the header read 89999 instead of 90000.
+    vi.useFakeTimers();
+
     const platform = createMockPlatform(
       {},
       {
@@ -270,6 +274,7 @@ describe('Spotify API Route', () => {
     expect(response.headers.get('x-spotify-next-refresh-ms')).toBe('90000');
 
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it('should return stale D1 cache immediately and refresh it in the background', async () => {
