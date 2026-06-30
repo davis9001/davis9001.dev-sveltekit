@@ -869,7 +869,7 @@
 
 					<!-- ── Life: Marriage ── -->
 					<div class="life-illo-wrap">
-						<svg viewBox="0 0 600 178" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width:600px" aria-label="Marriage timeline: Margit's first marriage, meeting Paul Dirac at Princeton, and their London wedding in 1937">
+						<svg viewBox="0 0 600 178" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Marriage timeline: Margit's first marriage, meeting Paul Dirac at Princeton, and their London wedding in 1937">
 
 							<!-- ── Scene dividers ── -->
 							<line x1="200" y1="5" x2="200" y2="174" stroke="var(--color-text-secondary)" stroke-width="0.7" stroke-dasharray="4,4" opacity="0.35"/>
@@ -1269,9 +1269,7 @@
 	.life-illo-wrap svg {
 		width: 100%;
 		height: auto;
-		max-width: 440px;
 		display: block;
-		margin: 0 auto;
 	}
 	.life-illo-caption {
 		text-align: center;
