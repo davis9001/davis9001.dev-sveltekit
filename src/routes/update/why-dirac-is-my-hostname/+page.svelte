@@ -51,7 +51,8 @@
 			function handleComplexDrag(clientX: number, clientY: number) {
 				const rect = canvas.getBoundingClientRect();
 				const mx = clientX - rect.left, my = clientY - rect.top;
-				const cx = w * 0.40, cy = h * 0.52;
+				const cx = w < 480 ? w * 0.5 : w * 0.40;
+				const cy = w < 480 ? 185 : h * 0.52;
 				const dx = mx - cx, dy = my - cy;
 				if (Math.sqrt(dx * dx + dy * dy) < 8) return;
 				t = -Math.atan2(dy, dx) / 0.6;
@@ -93,8 +94,10 @@
 				const muted = getVar('--color-text-secondary');
 				const surface = getVar('--color-surface');
 
-				const cx = w * 0.40, cy = h * 0.52;
-				const R = Math.min(cx - 20, cy - 24, h * 0.42);
+				const MOBILE = w < 480;
+				const cx = MOBILE ? w * 0.5 : w * 0.40;
+				const cy = MOBILE ? 185 : h * 0.52;
+				const R = Math.min(cx - 16, cy - 24, MOBILE ? 140 : h * 0.42);
 
 				ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
 				ctx.strokeStyle = muted + '44'; ctx.lineWidth = 1.5; ctx.stroke();
@@ -158,11 +161,13 @@
 				const imagStr = `${imagSign}${imagPart.toFixed(3)}i`;
 				const angleDeg = ((-vectorAngle * 180 / Math.PI) % 360 + 360) % 360;
 
-				const lx = w * 0.69, ly = h * 0.14;
-				ctx.fillStyle = surface + 'dd';
-				ctx.roundRect(lx - 8, ly - 8, w - lx, 210, 8); ctx.fill();
-				ctx.strokeStyle = getVar('--color-border'); ctx.lineWidth = 1; ctx.stroke();
-
+				const lx = MOBILE ? 16 : w * 0.69;
+				const ly = MOBILE ? cy + R + 36 : h * 0.14;
+				if (!MOBILE) {
+					ctx.fillStyle = surface + 'dd';
+					ctx.roundRect(lx - 8, ly - 8, w - lx, 210, 8); ctx.fill();
+					ctx.strokeStyle = getVar('--color-border'); ctx.lineWidth = 1; ctx.stroke();
+				}
 				ctx.fillStyle = muted; ctx.font = '13px system-ui'; ctx.textAlign = 'left';
 				ctx.fillText('current value:', lx, ly + 4);
 				ctx.fillStyle = fg; ctx.font = 'bold 15px system-ui';
@@ -189,7 +194,7 @@
 				if (complexRunning) t += 0.016;
 			}
 			function loop() { draw(); requestAnimationFrame(loop); }
-			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; canvas.width = e.contentRect.width*dpr; canvas.height = h*dpr; w = e.contentRect.width; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
+			new ResizeObserver(entries => { const e = entries[0]; if (!e || !e.contentRect.width) return; const dpr = window.devicePixelRatio||1; w = e.contentRect.width; h = w < 480 ? 540 : 300; canvas.width = w*dpr; canvas.height = h*dpr; canvas.style.height = h + 'px'; ctx = canvas.getContext('2d')!; ctx.scale(dpr,dpr); }).observe(canvas);
 			loop();
 		})();
 

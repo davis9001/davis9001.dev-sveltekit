@@ -21,14 +21,13 @@ describe('SocialLinks Component', () => {
       label: 'Spotify'
     },
     { href: 'https://soundcloud.com/davis9001', label: 'SoundCloud' },
-    { href: 'https://www.instagram.com/davis9k1/', label: 'Instagram' },
-    { href: 'https://sora.chatgpt.com/profile/davis9001', label: 'OpenAI' }
+    { href: 'https://www.instagram.com/davis9k1/', label: 'Instagram' }
   ];
 
-  it('should render all 11 social media links', () => {
+  it('should render all 10 social media links', () => {
     const { container } = render(SocialLinks);
     const links = container.querySelectorAll('a');
-    expect(links.length).toBe(11);
+    expect(links.length).toBe(10);
   });
 
   it('should render each link with correct href and aria-label', () => {
@@ -52,7 +51,7 @@ describe('SocialLinks Component', () => {
   it('should render SVGs with stroke-based Tabler Icons style (not filled)', () => {
     const { container } = render(SocialLinks);
     const svgs = container.querySelectorAll('svg');
-    expect(svgs.length).toBe(11);
+    expect(svgs.length).toBe(10);
 
     for (const svg of svgs) {
       expect(svg.getAttribute('fill')).toBe('none');
@@ -67,15 +66,15 @@ describe('SocialLinks Component', () => {
     const { container } = render(SocialLinks);
     const svgs = container.querySelectorAll('svg');
 
-    // Discord has 4 paths, Wikipedia has 6 paths, OpenAI has 6 paths
+    // Discord has 4 paths, Wikipedia has 6 paths
     const pathCounts: number[] = [];
     for (const svg of svgs) {
       pathCounts.push(svg.querySelectorAll('path').length);
     }
 
     // GitHub: 1, Discord: 4, Bluesky: 1, Mastodon: 2, Wikipedia: 6,
-    // X: 2, LinkedIn: 5, Spotify: 4, SoundCloud: 4, Instagram: 3, OpenAI: 6
-    expect(pathCounts).toEqual([1, 4, 1, 2, 6, 2, 5, 4, 4, 3, 6]);
+    // X: 2, LinkedIn: 5, Spotify: 4, SoundCloud: 4, Instagram: 3
+    expect(pathCounts).toEqual([1, 4, 1, 2, 6, 2, 5, 4, 4, 3]);
   });
 
   it('should have viewBox="0 0 24 24" on all SVGs', () => {
