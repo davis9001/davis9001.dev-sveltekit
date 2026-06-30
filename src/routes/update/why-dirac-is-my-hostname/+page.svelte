@@ -1040,12 +1040,12 @@
 							<path d="M312,42 Q316,24 324,20" stroke="var(--color-text)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
 							<path d="M312,42 Q298,30 288,34" stroke="var(--color-text)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
 							<path d="M312,42 Q298,52 294,46" stroke="var(--color-text)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-							<!-- Headstone / memorial marker -->
-							<path d="M185,110 L185,80 Q185,72 200,72 Q215,72 215,80 L215,110Z" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-							<text x="200" y="88" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" font-weight="bold" fill="var(--color-text)">P.A.M.</text>
-							<text x="200" y="98" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" font-weight="bold" fill="var(--color-text)">DIRAC</text>
-							<line x1="188" y1="101" x2="212" y2="101" stroke="var(--color-text-secondary)" stroke-width="0.8"/>
-							<text x="200" y="109" text-anchor="middle" font-family="Georgia,serif" font-size="7.5" fill="var(--color-text-secondary)">1902 – 1984</text>
+							<!-- Headstone / memorial marker — 56px wide so date text fits within stone bounds -->
+							<path d="M172,110 L172,76 Q172,64 200,64 Q228,64 228,76 L228,110Z" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+							<text x="200" y="86" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" font-weight="bold" fill="var(--color-text)">P.A.M.</text>
+							<text x="200" y="97" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" font-weight="bold" fill="var(--color-text)">DIRAC</text>
+							<line x1="176" y1="101" x2="224" y2="101" stroke="var(--color-text-secondary)" stroke-width="0.8"/>
+							<text x="200" y="108" text-anchor="middle" font-family="Georgia,serif" font-size="7.5" fill="var(--color-text-secondary)">1902 – 1984</text>
 							<!-- Date / location text -->
 							<text x="200" y="130" text-anchor="middle" font-family="Georgia,serif" font-size="11" fill="var(--color-text)" font-weight="bold">20 October 1984</text>
 							<text x="200" y="144" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text-secondary)" font-style="italic">Tallahassee, Florida</text>
