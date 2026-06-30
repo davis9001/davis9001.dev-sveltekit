@@ -869,32 +869,32 @@
 
 					<!-- ── Life: Marriage ── -->
 					<div class="life-illo-wrap">
-						<svg viewBox="0 0 400 148" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Marriage illustration — Paul and Margit Dirac">
-							<!-- Paul figure (left, taller) -->
-							<circle cx="148" cy="38" r="17" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.8"/>
-							<!-- body -->
-							<path d="M132,62 Q130,98 136,112 L160,112 Q166,98 164,62" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-							<!-- legs -->
-							<line x1="142" y1="112" x2="140" y2="136" stroke="var(--color-text)" stroke-width="2" stroke-linecap="round"/>
-							<line x1="156" y1="112" x2="158" y2="136" stroke="var(--color-text)" stroke-width="2" stroke-linecap="round"/>
-							<!-- arm reaching toward Margit -->
-							<path d="M163,70 Q185,80 196,88" stroke="var(--color-text)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-							<text x="148" y="144" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-text)">Paul</text>
-							<!-- Margit figure (right, slightly shorter) -->
-							<circle cx="252" cy="42" r="15" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.8"/>
-							<!-- body + dress -->
-							<path d="M240,65 Q238,96 234,112 L270,112 Q266,96 264,65" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-							<!-- dress flare at hem -->
-							<path d="M234,112 Q242,128 252,128 Q262,128 270,112" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.4" stroke-linecap="round"/>
-							<!-- arm reaching toward Paul -->
-							<path d="M241,70 Q220,78 204,88" stroke="var(--color-accent)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-							<text x="252" y="144" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-accent)">Margit</text>
-							<!-- Joined hands / small heart between them -->
-							<text x="200" y="95" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="var(--color-accent)" opacity="0.55">♡</text>
+						<svg viewBox="0 0 400 170" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Marriage illustration — Paul and Margit Dirac">
 							<!-- Date -->
 							<text x="200" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="12" fill="var(--color-text-secondary)" font-style="italic">London · 2 January 1937</text>
-							<!-- Note: sister of Wigner -->
+							<!-- Note: sister of Wigner — sits clear above figures -->
 							<text x="200" y="32" text-anchor="middle" font-family="Georgia,serif" font-size="9.5" fill="var(--color-text-secondary)" opacity="0.7">née Wigner — sister of physicist Eugene Wigner</text>
+							<!-- Paul figure (left, taller) — shifted down 20px to clear header text -->
+							<circle cx="148" cy="58" r="17" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.8"/>
+							<!-- body -->
+							<path d="M132,82 Q130,118 136,132 L160,132 Q166,118 164,82" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+							<!-- legs -->
+							<line x1="142" y1="132" x2="140" y2="156" stroke="var(--color-text)" stroke-width="2" stroke-linecap="round"/>
+							<line x1="156" y1="132" x2="158" y2="156" stroke="var(--color-text)" stroke-width="2" stroke-linecap="round"/>
+							<!-- arm reaching toward Margit -->
+							<path d="M163,90 Q185,100 196,108" stroke="var(--color-text)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+							<text x="148" y="164" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-text)">Paul</text>
+							<!-- Margit figure (right, slightly shorter) -->
+							<circle cx="252" cy="62" r="15" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.8"/>
+							<!-- body + dress -->
+							<path d="M240,85 Q238,116 234,132 L270,132 Q266,116 264,85" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+							<!-- dress flare at hem -->
+							<path d="M234,132 Q242,148 252,148 Q262,148 270,132" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.4" stroke-linecap="round"/>
+							<!-- arm reaching toward Paul -->
+							<path d="M241,90 Q220,98 204,108" stroke="var(--color-accent)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+							<text x="252" y="164" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-accent)">Margit</text>
+							<!-- Joined hands / small heart between them -->
+							<text x="200" y="115" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="var(--color-accent)" opacity="0.55">♡</text>
 						</svg>
 						<p class="life-illo-caption">Paul and Margit met at Princeton, where she was visiting her brother, the physicist Eugene Wigner. They married in London on 2 January 1937.</p>
 					</div>
