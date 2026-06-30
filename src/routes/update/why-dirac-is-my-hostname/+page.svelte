@@ -869,34 +869,86 @@
 
 					<!-- ── Life: Marriage ── -->
 					<div class="life-illo-wrap">
-						<svg viewBox="0 0 400 170" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Marriage illustration — Paul and Margit Dirac">
-							<!-- Date -->
-							<text x="200" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="12" fill="var(--color-text-secondary)" font-style="italic">London · 2 January 1937</text>
-							<!-- Note: sister of Wigner — sits clear above figures -->
-							<text x="200" y="32" text-anchor="middle" font-family="Georgia,serif" font-size="9.5" fill="var(--color-text-secondary)" opacity="0.7">born Margit Wigner · sister of physicist Eugene Wigner</text>
-							<!-- Paul figure (left, taller) — shifted down 20px to clear header text -->
-							<circle cx="148" cy="58" r="17" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.8"/>
-							<!-- body -->
-							<path d="M132,82 Q130,118 136,132 L160,132 Q166,118 164,82" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-							<!-- legs -->
-							<line x1="142" y1="132" x2="140" y2="156" stroke="var(--color-text)" stroke-width="2" stroke-linecap="round"/>
-							<line x1="156" y1="132" x2="158" y2="156" stroke="var(--color-text)" stroke-width="2" stroke-linecap="round"/>
-							<!-- arm reaching toward Margit -->
-							<path d="M163,90 Q185,100 196,108" stroke="var(--color-text)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-							<text x="148" y="164" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-text)">Paul</text>
-							<!-- Margit figure (right, slightly shorter) -->
-							<circle cx="252" cy="62" r="15" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.8"/>
-							<!-- body + dress -->
-							<path d="M240,85 Q238,116 234,132 L270,132 Q266,116 264,85" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-							<!-- dress flare at hem -->
-							<path d="M234,132 Q242,148 252,148 Q262,148 270,132" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.4" stroke-linecap="round"/>
-							<!-- arm reaching toward Paul -->
-							<path d="M241,90 Q220,98 204,108" stroke="var(--color-accent)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-							<text x="252" y="164" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-accent)">Margit</text>
-							<!-- Joined hands / small heart between them -->
-							<text x="200" y="115" text-anchor="middle" font-family="Georgia,serif" font-size="20" fill="var(--color-accent)" opacity="0.55">♡</text>
+						<svg viewBox="0 0 600 178" fill="none" xmlns="http://www.w3.org/2000/svg" style="max-width:600px" aria-label="Marriage timeline: Margit's first marriage, meeting Paul Dirac at Princeton, and their London wedding in 1937">
+
+							<!-- ── Scene dividers ── -->
+							<line x1="200" y1="5" x2="200" y2="174" stroke="var(--color-text-secondary)" stroke-width="0.7" stroke-dasharray="4,4" opacity="0.35"/>
+							<line x1="400" y1="5" x2="400" y2="174" stroke="var(--color-text-secondary)" stroke-width="0.7" stroke-dasharray="4,4" opacity="0.35"/>
+							<text x="200" y="94" text-anchor="middle" font-family="Georgia,serif" font-size="13" fill="var(--color-text-secondary)" opacity="0.4">→</text>
+							<text x="400" y="94" text-anchor="middle" font-family="Georgia,serif" font-size="13" fill="var(--color-text-secondary)" opacity="0.4">→</text>
+
+							<!-- ══════════════════════════════════
+							     SCENE 1 — First marriage
+							     ══════════════════════════════════ -->
+							<text x="100" y="16" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" fill="var(--color-text-secondary)" font-style="italic">first marriage</text>
+							<!-- Margit (left, accent, dress) -->
+							<circle cx="68" cy="68" r="13" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.6"/>
+							<path d="M56,85 Q54,108 56,118 L80,118 Q82,108 80,85" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M56,118 Q62,132 68,132 Q74,132 80,118" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.3" stroke-linecap="round"/>
+							<path d="M79,92 Q91,100 97,105" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+							<text x="68" y="148" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-accent)">Margit</text>
+							<text x="68" y="160" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)" font-style="italic">Wigner</text>
+							<!-- Balász (right, text-secondary) -->
+							<circle cx="132" cy="68" r="13" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.6"/>
+							<path d="M120,85 Q118,108 120,118 L144,118 Q146,108 144,85" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+							<line x1="124" y1="118" x2="122" y2="143" stroke="var(--color-text-secondary)" stroke-width="1.6" stroke-linecap="round"/>
+							<line x1="140" y1="118" x2="142" y2="143" stroke="var(--color-text-secondary)" stroke-width="1.6" stroke-linecap="round"/>
+							<path d="M121,92 Q109,100 103,105" stroke="var(--color-text-secondary)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+							<text x="132" y="148" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-text-secondary)">Balász</text>
+							<text x="132" y="160" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)" font-style="italic">first husband</text>
+							<!-- Divorce X (between the reaching arms) -->
+							<line x1="93" y1="96" x2="107" y2="110" stroke="var(--color-text-secondary)" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+							<line x1="107" y1="96" x2="93" y2="110" stroke="var(--color-text-secondary)" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+							<text x="100" y="171" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-text-secondary)" font-style="italic" opacity="0.8">divorced · children: Judith &amp; Gabriel</text>
+
+							<!-- ══════════════════════════════════
+							     SCENE 2 — Princeton meeting
+							     ══════════════════════════════════ -->
+							<text x="300" y="16" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" fill="var(--color-text-secondary)" font-style="italic">Princeton · 1934</text>
+							<!-- Eugene Wigner (connector, top centre, small) -->
+							<circle cx="300" cy="30" r="7" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.3"/>
+							<path d="M295,39 Q293,52 294,57 L306,57 Q307,52 305,39" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+							<text x="300" y="70" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)" font-style="italic">E. Wigner</text>
+							<!-- Dotted introduction lines -->
+							<path d="M292,48 Q268,68 251,89" stroke="var(--color-text-secondary)" stroke-width="1.2" stroke-dasharray="3,3" stroke-linecap="round" fill="none" opacity="0.6"/>
+							<path d="M308,48 Q332,68 349,89" stroke="var(--color-text-secondary)" stroke-width="1.2" stroke-dasharray="3,3" stroke-linecap="round" fill="none" opacity="0.6"/>
+							<!-- Margit (bottom left, accent, dress) -->
+							<circle cx="252" cy="100" r="11" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5"/>
+							<path d="M242,115 Q240,132 241,140 L263,140 Q264,132 262,115" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M241,140 Q247,150 252,150 Q257,150 263,140" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.2" stroke-linecap="round"/>
+							<text x="252" y="164" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" font-weight="bold" fill="var(--color-accent)">Margit</text>
+							<!-- Paul (bottom right, text) -->
+							<circle cx="348" cy="100" r="11" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.5"/>
+							<path d="M338,115 Q336,132 336,140 L360,140 Q360,132 358,115" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+							<line x1="342" y1="140" x2="340" y2="158" stroke="var(--color-text)" stroke-width="1.6" stroke-linecap="round"/>
+							<line x1="356" y1="140" x2="358" y2="158" stroke="var(--color-text)" stroke-width="1.6" stroke-linecap="round"/>
+							<text x="348" y="164" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" font-weight="bold" fill="var(--color-text)">Paul</text>
+
+							<!-- ══════════════════════════════════
+							     SCENE 3 — London wedding
+							     ══════════════════════════════════ -->
+							<text x="500" y="16" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" fill="var(--color-text-secondary)" font-style="italic">London · 2 January 1937</text>
+							<!-- Paul (left, text) -->
+							<circle cx="456" cy="65" r="14" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.7"/>
+							<path d="M443,83 Q441,108 443,120 L469,120 Q471,108 469,83" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+							<line x1="447" y1="120" x2="445" y2="146" stroke="var(--color-text)" stroke-width="1.8" stroke-linecap="round"/>
+							<line x1="465" y1="120" x2="467" y2="146" stroke="var(--color-text)" stroke-width="1.8" stroke-linecap="round"/>
+							<path d="M469,91 Q484,101 490,106" stroke="var(--color-text)" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+							<text x="456" y="158" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-text)">Paul</text>
+							<!-- Margit (right, accent, dress) -->
+							<circle cx="544" cy="65" r="14" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.7"/>
+							<path d="M532,83 Q530,108 526,120 L562,120 Q558,108 556,83" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M526,120 Q535,138 544,138 Q553,138 562,120" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.4" stroke-linecap="round"/>
+							<path d="M532,91 Q518,101 512,106" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+							<text x="544" y="158" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-accent)">Margit</text>
+							<text x="544" y="171" text-anchor="middle" font-family="Georgia,serif" font-size="9.5" fill="var(--color-text-secondary)" font-style="italic">now Dirac</text>
+							<!-- Heart and wedding rings -->
+							<text x="500" y="111" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="var(--color-accent)" opacity="0.55">♡</text>
+							<circle cx="493" cy="127" r="5.5" fill="none" stroke="var(--color-text)" stroke-width="1.3"/>
+							<circle cx="507" cy="127" r="5.5" fill="none" stroke="var(--color-accent)" stroke-width="1.3"/>
+
 						</svg>
-						<p class="life-illo-caption">Paul and Margit met at Princeton, where she was visiting her brother, the physicist Eugene Wigner. They married in London on 2 January 1937.</p>
+						<p class="life-illo-caption">Margit Wigner had been married before — a Hungarian named Balász, with whom she had two children, Judith and Gabriel. She met Paul at Princeton in 1934, while visiting her brother, the physicist Eugene Wigner. They married in London on 2 January 1937.</p>
 					</div>
 
 					<p>
