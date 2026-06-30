@@ -834,8 +834,8 @@
 							<line x1="40" y1="94" x2="52" y2="94" stroke="var(--color-text-secondary)" stroke-width="0.9"/>
 							<line x1="24" y1="80" x2="36" y2="80" stroke="var(--color-text-secondary)" stroke-width="0.9"/>
 							<line x1="24" y1="87" x2="36" y2="87" stroke="var(--color-text-secondary)" stroke-width="0.9"/>
-							<text x="38" y="124" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-text)">Bristol</text>
-							<text x="38" y="134" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">Eng. 1921</text>
+							<text x="38" y="131" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-text)">Bristol</text>
+							<text x="38" y="141" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">Eng. 1921</text>
 							<!-- Milestone 1: BSc -->
 							<circle cx="128" cy="77" r="18" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5"/>
 							<text x="128" y="74" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-accent)">BSc</text>
@@ -855,8 +855,8 @@
 							<rect x="362" y="74" width="7" height="9" fill="var(--color-accent)" fill-opacity="0.1" stroke="var(--color-text-secondary)" stroke-width="1"/>
 							<rect x="352" y="90" width="7" height="9" fill="var(--color-accent)" fill-opacity="0.1" stroke="var(--color-text-secondary)" stroke-width="1"/>
 							<rect x="362" y="90" width="7" height="9" fill="var(--color-accent)" fill-opacity="0.1" stroke="var(--color-text-secondary)" stroke-width="1"/>
-							<text x="360" y="124" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-text)">Cambridge</text>
-							<text x="360" y="134" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">St John's</text>
+							<text x="360" y="131" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-text)">Cambridge</text>
+							<text x="360" y="141" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)">St John's</text>
 							<!-- title -->
 							<text x="200" y="22" text-anchor="middle" font-family="Georgia,serif" font-size="11" fill="var(--color-text-secondary)" font-style="italic">The road to the equation</text>
 						</svg>
@@ -869,83 +869,87 @@
 
 					<!-- ── Life: Marriage ── -->
 					<div class="life-illo-wrap">
-						<svg viewBox="0 0 600 178" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Marriage timeline: Margit's first marriage, meeting Paul Dirac at Princeton, and their London wedding in 1937">
+						<svg viewBox="0 0 600 240" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Marriage timeline: Margit's first marriage, meeting Paul Dirac at Princeton, and their London wedding in 1937">
 
 							<!-- ── Scene dividers ── -->
-							<line x1="200" y1="5" x2="200" y2="174" stroke="var(--color-text-secondary)" stroke-width="0.7" stroke-dasharray="4,4" opacity="0.35"/>
-							<line x1="400" y1="5" x2="400" y2="174" stroke="var(--color-text-secondary)" stroke-width="0.7" stroke-dasharray="4,4" opacity="0.35"/>
-							<text x="200" y="94" text-anchor="middle" font-family="Georgia,serif" font-size="13" fill="var(--color-text-secondary)" opacity="0.4">→</text>
-							<text x="400" y="94" text-anchor="middle" font-family="Georgia,serif" font-size="13" fill="var(--color-text-secondary)" opacity="0.4">→</text>
+							<line x1="200" y1="5" x2="200" y2="230" stroke="var(--color-text-secondary)" stroke-width="0.7" stroke-dasharray="4,4" opacity="0.35"/>
+							<line x1="400" y1="5" x2="400" y2="230" stroke="var(--color-text-secondary)" stroke-width="0.7" stroke-dasharray="4,4" opacity="0.35"/>
+							<text x="200" y="125" text-anchor="middle" font-family="Georgia,serif" font-size="13" fill="var(--color-text-secondary)" opacity="0.4">→</text>
+							<text x="400" y="125" text-anchor="middle" font-family="Georgia,serif" font-size="13" fill="var(--color-text-secondary)" opacity="0.4">→</text>
 
 							<!-- ══════════════════════════════════
 							     SCENE 1 — First marriage
 							     ══════════════════════════════════ -->
-							<text x="100" y="16" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" fill="var(--color-text-secondary)" font-style="italic">first marriage</text>
-							<!-- Margit (left, accent, dress) -->
-							<circle cx="68" cy="68" r="13" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.6"/>
-							<path d="M56,85 Q54,108 56,118 L80,118 Q82,108 80,85" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M56,118 Q62,132 68,132 Q74,132 80,118" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.3" stroke-linecap="round"/>
-							<path d="M79,92 Q91,100 97,105" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-							<text x="68" y="148" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-accent)">Margit</text>
-							<text x="68" y="160" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)" font-style="italic">Wigner</text>
-							<!-- Balász (right, text-secondary) -->
-							<circle cx="132" cy="68" r="13" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.6"/>
-							<path d="M120,85 Q118,108 120,118 L144,118 Q146,108 144,85" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-							<line x1="124" y1="118" x2="122" y2="143" stroke="var(--color-text-secondary)" stroke-width="1.6" stroke-linecap="round"/>
-							<line x1="140" y1="118" x2="142" y2="143" stroke="var(--color-text-secondary)" stroke-width="1.6" stroke-linecap="round"/>
-							<path d="M121,92 Q109,100 103,105" stroke="var(--color-text-secondary)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-							<text x="132" y="148" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-text-secondary)">Balász</text>
-							<text x="132" y="160" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)" font-style="italic">first husband</text>
-							<!-- Divorce X (between the reaching arms) -->
-							<line x1="93" y1="96" x2="107" y2="110" stroke="var(--color-text-secondary)" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
-							<line x1="107" y1="96" x2="93" y2="110" stroke="var(--color-text-secondary)" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
-							<text x="100" y="171" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-text-secondary)" font-style="italic" opacity="0.8">divorced · children: Judith &amp; Gabriel</text>
+							<text x="100" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" fill="var(--color-text-secondary)" font-style="italic">first marriage</text>
+							<!-- Margit (left, accent, dress) cx=68 cy=86 r=13 -->
+							<circle cx="68" cy="86" r="13" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.6"/>
+							<path d="M56,103 Q54,126 56,136 L80,136 Q82,126 80,103" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M56,136 Q62,150 68,150 Q74,150 80,136" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.3" stroke-linecap="round"/>
+							<path d="M79,110 Q91,118 97,123" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+							<!-- Balász (right, text-secondary) cx=132 cy=86 r=13 -->
+							<circle cx="132" cy="86" r="13" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.6"/>
+							<path d="M120,103 Q118,126 120,136 L144,136 Q146,126 144,103" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+							<line x1="124" y1="136" x2="122" y2="161" stroke="var(--color-text-secondary)" stroke-width="1.6" stroke-linecap="round"/>
+							<line x1="140" y1="136" x2="142" y2="161" stroke="var(--color-text-secondary)" stroke-width="1.6" stroke-linecap="round"/>
+							<path d="M121,110 Q109,118 103,123" stroke="var(--color-text-secondary)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+							<!-- Divorce X (between reaching arms) -->
+							<line x1="93" y1="114" x2="107" y2="128" stroke="var(--color-text-secondary)" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+							<line x1="107" y1="114" x2="93" y2="128" stroke="var(--color-text-secondary)" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+							<!-- Scene 1 labels — generous gap below figures -->
+							<text x="68" y="176" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-accent)">Margit</text>
+							<text x="68" y="190" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)" font-style="italic">Wigner</text>
+							<text x="132" y="176" text-anchor="middle" font-family="Georgia,serif" font-size="11" font-weight="bold" fill="var(--color-text-secondary)">Balász</text>
+							<text x="132" y="190" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)" font-style="italic">first husband</text>
+							<!-- Note — well below labels -->
+							<text x="100" y="214" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-text-secondary)" font-style="italic" opacity="0.8">divorced · children: Judith &amp; Gabriel</text>
 
 							<!-- ══════════════════════════════════
 							     SCENE 2 — Princeton meeting
 							     ══════════════════════════════════ -->
-							<text x="300" y="16" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" fill="var(--color-text-secondary)" font-style="italic">Princeton · 1934</text>
-							<!-- Eugene Wigner (connector, top centre, small) -->
-							<circle cx="300" cy="30" r="7" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.3"/>
-							<path d="M295,39 Q293,52 294,57 L306,57 Q307,52 305,39" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
-							<text x="300" y="70" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)" font-style="italic">E. Wigner</text>
-							<!-- Dotted introduction lines -->
-							<path d="M292,48 Q268,68 251,89" stroke="var(--color-text-secondary)" stroke-width="1.2" stroke-dasharray="3,3" stroke-linecap="round" fill="none" opacity="0.6"/>
-							<path d="M308,48 Q332,68 349,89" stroke="var(--color-text-secondary)" stroke-width="1.2" stroke-dasharray="3,3" stroke-linecap="round" fill="none" opacity="0.6"/>
-							<!-- Margit (bottom left, accent, dress) -->
-							<circle cx="252" cy="100" r="11" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5"/>
-							<path d="M242,115 Q240,132 241,140 L263,140 Q264,132 262,115" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M241,140 Q247,150 252,150 Q257,150 263,140" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.2" stroke-linecap="round"/>
-							<text x="252" y="164" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" font-weight="bold" fill="var(--color-accent)">Margit</text>
-							<!-- Paul (bottom right, text) -->
-							<circle cx="348" cy="100" r="11" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.5"/>
-							<path d="M338,115 Q336,132 336,140 L360,140 Q360,132 358,115" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-							<line x1="342" y1="140" x2="340" y2="158" stroke="var(--color-text)" stroke-width="1.6" stroke-linecap="round"/>
-							<line x1="356" y1="140" x2="358" y2="158" stroke="var(--color-text)" stroke-width="1.6" stroke-linecap="round"/>
-							<text x="348" y="164" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" font-weight="bold" fill="var(--color-text)">Paul</text>
+							<text x="300" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" fill="var(--color-text-secondary)" font-style="italic">Princeton · 1934</text>
+							<!-- Eugene Wigner (small, top centre) cx=300 cy=40 r=7 -->
+							<circle cx="300" cy="40" r="7" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.3"/>
+							<path d="M295,49 Q293,62 294,67 L306,67 Q307,62 305,49" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+							<text x="300" y="83" text-anchor="middle" font-family="Georgia,serif" font-size="9" fill="var(--color-text-secondary)" font-style="italic">E. Wigner</text>
+							<!-- Dotted introduction lines — end well above figure heads -->
+							<path d="M293,59 Q266,92 252,108" stroke="var(--color-text-secondary)" stroke-width="1.2" stroke-dasharray="3,3" stroke-linecap="round" fill="none" opacity="0.6"/>
+							<path d="M307,59 Q334,92 348,108" stroke="var(--color-text-secondary)" stroke-width="1.2" stroke-dasharray="3,3" stroke-linecap="round" fill="none" opacity="0.6"/>
+							<!-- Margit (bottom left) cx=252 cy=119 r=11 -->
+							<circle cx="252" cy="119" r="11" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5"/>
+							<path d="M242,134 Q240,150 241,158 L263,158 Q264,150 262,134" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M241,158 Q247,168 252,168 Q257,168 263,158" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.2" stroke-linecap="round"/>
+							<!-- Paul (bottom right) cx=348 cy=119 r=11 -->
+							<circle cx="348" cy="119" r="11" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.5"/>
+							<path d="M338,134 Q336,150 336,158 L360,158 Q360,150 358,134" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+							<line x1="342" y1="158" x2="340" y2="176" stroke="var(--color-text)" stroke-width="1.6" stroke-linecap="round"/>
+							<line x1="356" y1="158" x2="358" y2="176" stroke="var(--color-text)" stroke-width="1.6" stroke-linecap="round"/>
+							<!-- Scene 2 labels -->
+							<text x="252" y="193" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" font-weight="bold" fill="var(--color-accent)">Margit</text>
+							<text x="348" y="193" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" font-weight="bold" fill="var(--color-text)">Paul</text>
 
 							<!-- ══════════════════════════════════
 							     SCENE 3 — London wedding
 							     ══════════════════════════════════ -->
-							<text x="500" y="16" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" fill="var(--color-text-secondary)" font-style="italic">London · 2 January 1937</text>
-							<!-- Paul (left, text) -->
-							<circle cx="456" cy="65" r="14" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.7"/>
-							<path d="M443,83 Q441,108 443,120 L469,120 Q471,108 469,83" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-							<line x1="447" y1="120" x2="445" y2="146" stroke="var(--color-text)" stroke-width="1.8" stroke-linecap="round"/>
-							<line x1="465" y1="120" x2="467" y2="146" stroke="var(--color-text)" stroke-width="1.8" stroke-linecap="round"/>
-							<path d="M469,91 Q484,101 490,106" stroke="var(--color-text)" stroke-width="1.7" stroke-linecap="round" fill="none"/>
-							<text x="456" y="158" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-text)">Paul</text>
-							<!-- Margit (right, accent, dress) -->
-							<circle cx="544" cy="65" r="14" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.7"/>
-							<path d="M532,83 Q530,108 526,120 L562,120 Q558,108 556,83" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-							<path d="M526,120 Q535,138 544,138 Q553,138 562,120" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.4" stroke-linecap="round"/>
-							<path d="M532,91 Q518,101 512,106" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" fill="none"/>
-							<text x="544" y="158" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-accent)">Margit</text>
-							<text x="544" y="171" text-anchor="middle" font-family="Georgia,serif" font-size="9.5" fill="var(--color-text-secondary)" font-style="italic">now Dirac</text>
+							<text x="500" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="10.5" fill="var(--color-text-secondary)" font-style="italic">London · 2 January 1937</text>
+							<!-- Paul (left) cx=456 cy=84 r=14 -->
+							<circle cx="456" cy="84" r="14" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.7"/>
+							<path d="M443,102 Q441,127 443,138 L469,138 Q471,127 469,102" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+							<line x1="447" y1="138" x2="445" y2="163" stroke="var(--color-text)" stroke-width="1.8" stroke-linecap="round"/>
+							<line x1="465" y1="138" x2="467" y2="163" stroke="var(--color-text)" stroke-width="1.8" stroke-linecap="round"/>
+							<path d="M469,110 Q484,120 490,125" stroke="var(--color-text)" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+							<!-- Margit (right) cx=544 cy=84 r=14 -->
+							<circle cx="544" cy="84" r="14" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.7"/>
+							<path d="M532,102 Q530,127 526,138 L562,138 Q558,127 556,102" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+							<path d="M526,138 Q535,157 544,157 Q553,157 562,138" fill="var(--color-accent)" fill-opacity="0.08" stroke="var(--color-accent)" stroke-width="1.4" stroke-linecap="round"/>
+							<path d="M532,110 Q518,120 512,125" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" fill="none"/>
 							<!-- Heart and wedding rings -->
-							<text x="500" y="111" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="var(--color-accent)" opacity="0.55">♡</text>
-							<circle cx="493" cy="127" r="5.5" fill="none" stroke="var(--color-text)" stroke-width="1.3"/>
-							<circle cx="507" cy="127" r="5.5" fill="none" stroke="var(--color-accent)" stroke-width="1.3"/>
+							<text x="500" y="130" text-anchor="middle" font-family="Georgia,serif" font-size="22" fill="var(--color-accent)" opacity="0.55">♡</text>
+							<circle cx="493" cy="146" r="5.5" fill="none" stroke="var(--color-text)" stroke-width="1.3"/>
+							<circle cx="507" cy="146" r="5.5" fill="none" stroke="var(--color-accent)" stroke-width="1.3"/>
+							<!-- Scene 3 labels -->
+							<text x="456" y="186" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-text)">Paul</text>
+							<text x="544" y="186" text-anchor="middle" font-family="Georgia,serif" font-size="12" font-weight="bold" fill="var(--color-accent)">Margit</text>
+							<text x="544" y="201" text-anchor="middle" font-family="Georgia,serif" font-size="9.5" fill="var(--color-text-secondary)" font-style="italic">now Dirac</text>
 
 						</svg>
 						<p class="life-illo-caption">Margit Wigner had been married before — a Hungarian named Balász, with whom she had two children, Judith and Gabriel. She met Paul at Princeton in 1934, while visiting her brother, the physicist Eugene Wigner. They married in London on 2 January 1937.</p>
@@ -957,15 +961,15 @@
 
 					<!-- ── Life: Children ── -->
 					<div class="life-illo-wrap">
-						<svg viewBox="0 0 400 148" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Family tree illustration showing Paul, Margit, and their four children">
+						<svg viewBox="0 0 400 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Family tree illustration showing Paul, Margit, and their four children">
 							<!-- Title -->
 							<text x="200" y="16" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text-secondary)" font-style="italic">The Dirac family</text>
 							<!-- Parent: Paul -->
 							<circle cx="160" cy="32" r="12" fill="var(--color-surface)" stroke="var(--color-text)" stroke-width="1.5"/>
-							<text x="160" y="56" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text)">Paul</text>
+							<text x="160" y="62" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text)">Paul</text>
 							<!-- Parent: Margit -->
 							<circle cx="240" cy="32" r="12" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="1.5"/>
-							<text x="240" y="56" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-accent)">Margit</text>
+							<text x="240" y="62" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-accent)">Margit</text>
 							<!-- Connecting line between parents -->
 							<line x1="172" y1="32" x2="228" y2="32" stroke="var(--color-text-secondary)" stroke-width="1.2" stroke-linecap="round"/>
 							<!-- Trunk line down -->
@@ -979,25 +983,25 @@
 							<line x1="328" y1="68" x2="328" y2="90" stroke="var(--color-text-secondary)" stroke-width="1.2" stroke-linecap="round"/>
 							<!-- Child 1: Judith (Margit's) -->
 							<circle cx="72" cy="100" r="11" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.3" stroke-dasharray="3,2"/>
-							<text x="72" y="122" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text)">Judith</text>
-							<text x="72" y="134" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-text-secondary)" font-style="italic">Margit's</text>
+							<text x="72" y="128" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text)">Judith</text>
+							<text x="72" y="140" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-text-secondary)" font-style="italic">Margit's</text>
 							<!-- Child 2: Gabriel (Margit's) -->
 							<circle cx="178" cy="100" r="11" fill="var(--color-surface)" stroke="var(--color-text-secondary)" stroke-width="1.3" stroke-dasharray="3,2"/>
-							<text x="178" y="122" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text)">Gabriel</text>
-							<text x="178" y="134" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-text-secondary)" font-style="italic">Margit's</text>
+							<text x="178" y="128" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text)">Gabriel</text>
+							<text x="178" y="140" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-text-secondary)" font-style="italic">Margit's</text>
 							<!-- Child 3: Mary (Paul & Margit's) -->
 							<circle cx="252" cy="100" r="11" fill="var(--color-accent)" fill-opacity="0.12" stroke="var(--color-accent)" stroke-width="1.3"/>
-							<text x="252" y="122" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text)">Mary</text>
-							<text x="252" y="134" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-text-secondary)" font-style="italic">b. 1940</text>
+							<text x="252" y="128" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text)">Mary</text>
+							<text x="252" y="140" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-text-secondary)" font-style="italic">b. 1940</text>
 							<!-- Child 4: Florence (Paul & Margit's) -->
 							<circle cx="328" cy="100" r="11" fill="var(--color-accent)" fill-opacity="0.12" stroke="var(--color-accent)" stroke-width="1.3"/>
-							<text x="328" y="122" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text)">Florence</text>
-							<text x="328" y="134" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-text-secondary)" font-style="italic">b. 1942</text>
+							<text x="328" y="128" text-anchor="middle" font-family="Georgia,serif" font-size="10" fill="var(--color-text)">Florence</text>
+							<text x="328" y="140" text-anchor="middle" font-family="Georgia,serif" font-size="8.5" fill="var(--color-text-secondary)" font-style="italic">b. 1942</text>
 							<!-- Legend -->
-							<rect x="100" y="140" width="8" height="6" rx="1" stroke="var(--color-text-secondary)" stroke-width="1" stroke-dasharray="2,1.5" fill="none"/>
-							<text x="112" y="146" font-family="Georgia,serif" font-size="8" fill="var(--color-text-secondary)">Margit's children (raised by Paul)</text>
-							<circle cx="240" cy="143" r="4" fill="var(--color-accent)" fill-opacity="0.25" stroke="var(--color-accent)" stroke-width="1"/>
-							<text x="248" y="146" font-family="Georgia,serif" font-size="8" fill="var(--color-text-secondary)">Paul &amp; Margit's daughters</text>
+							<rect x="100" y="146" width="8" height="6" rx="1" stroke="var(--color-text-secondary)" stroke-width="1" stroke-dasharray="2,1.5" fill="none"/>
+							<text x="112" y="152" font-family="Georgia,serif" font-size="8" fill="var(--color-text-secondary)">Margit's children (raised by Paul)</text>
+							<circle cx="240" cy="149" r="4" fill="var(--color-accent)" fill-opacity="0.25" stroke="var(--color-accent)" stroke-width="1"/>
+							<text x="248" y="152" font-family="Georgia,serif" font-size="8" fill="var(--color-text-secondary)">Paul &amp; Margit's daughters</text>
 						</svg>
 						<p class="life-illo-caption">Margit's two children from her previous marriage, Judith and Gabriel, joined the family. Paul and Margit also had two daughters together, Mary Elizabeth (1940) and Florence Monica (1942).</p>
 					</div>
