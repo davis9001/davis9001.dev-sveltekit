@@ -78,6 +78,75 @@ export function taskProgress(tasks: Task[]): { done: number; total: number; perc
 	return { done, total, percent: total === 0 ? 0 : Math.round((done / total) * 100) };
 }
 
+// ── Task board ────────────────────────────────────────────────────────────
+// The board view is a task kanban: cards are individual tasks tied to their
+// parent projects, flowing through the same statuses projects use.
+
+export interface BoardTask {
+	projectId: string;
+	projectName: string;
+	group: string;
+	/** Index into the parent project's tasks array (task identity for updates) */
+	index: number;
+	text: string;
+	status: ProjectStatus;
+}
+
+/** Flatten every project's tasks into board cards */
+export function flattenTasks(projects: OpenProject[]): BoardTask[] {
+	const tasks: BoardTask[] = [];
+	for (const project of projects) {
+		project.tasks.forEach((task, index) => {
+			tasks.push({
+				projectId: project.id,
+				projectName: project.name,
+				group: project.group,
+				index,
+				text: task.text,
+				status: task.status
+			});
+		});
+	}
+	return tasks;
+}
+
+/**
+ * Return a new tasks array with the task at `index` moved to `status`
+ * (done stays in sync). Returns the original array for invalid indexes.
+ */
+export function setTaskStatus(tasks: Task[], index: number, status: ProjectStatus): Task[] {
+	if (index < 0 || index >= tasks.length) {
+		return tasks;
+	}
+	return tasks.map((task, i) =>
+		i === index ? { ...task, status, done: status === 'complete' } : task
+	);
+}
+
+export interface TaskStats {
+	total: number;
+	byStatus: Record<ProjectStatus, number>;
+}
+
+/** Task counts across all projects, for the board-view stat tiles */
+export function computeTaskStats(projects: OpenProject[]): TaskStats {
+	const byStatus: Record<ProjectStatus, number> = {
+		planning: 0,
+		active: 0,
+		paused: 0,
+		blocked: 0,
+		complete: 0
+	};
+	let total = 0;
+	for (const project of projects) {
+		for (const task of project.tasks) {
+			byStatus[task.status]++;
+			total++;
+		}
+	}
+	return { total, byStatus };
+}
+
 /** Apply dashboard filters to a project list */
 export function filterProjects(projects: OpenProject[], filters: DashboardFilters): OpenProject[] {
 	const search = (filters.search || '').trim().toLowerCase();

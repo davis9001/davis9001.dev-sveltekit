@@ -37,8 +37,8 @@ const mockData: any = {
 			githubUrl: 'https://github.com/starspacegroup/NebulaKit',
 			extraLinks: [{ label: 'Docs', href: 'https://docs.example.com' }],
 			tasks: [
-				{ text: 'Ship v1', done: false },
-				{ text: 'Write docs', done: true }
+				{ text: 'Ship v1', done: false, status: 'planning' },
+				{ text: 'Write docs', done: true, status: 'complete' }
 			]
 		}),
 		makeProject({
@@ -130,10 +130,10 @@ describe('Admin Projects Dashboard page', () => {
 		expect(screen.getByText('NebulaKit')).toBeTruthy();
 	});
 
-	it('switches to board view with status columns in workflow order', async () => {
+	it('switches to a task board with status columns in workflow order', async () => {
 		render(Page, { props: { data: mockData } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
-		// Column titles exist as headings for every status, Planning left of In Progress
+		// Column titles exist as headings for every board status, Planning left of In Progress
 		const headings = screen
 			.getAllByRole('heading', { level: 3 })
 			.map((h) => h.textContent?.trim() ?? '');
@@ -141,17 +141,44 @@ describe('Admin Projects Dashboard page', () => {
 		expect(headings[1]).toContain('In Progress');
 		expect(screen.getByRole('heading', { name: /Blocked/ })).toBeTruthy();
 		expect(screen.getByRole('heading', { name: /Done/ })).toBeTruthy();
-		// Paused has no board column (paused projects live in the Groups view)
 		expect(screen.queryByRole('heading', { name: /Paused/ })).toBeNull();
-		// Cards moved to board layout
-		expect(screen.getByText('NebulaKit')).toBeTruthy();
+
+		// Cards are TASKS tied to their projects
+		const planning = screen.getByLabelText('Planning column');
+		expect(within(planning).getByText('Ship v1')).toBeTruthy();
+		expect(within(planning).getByText('NebulaKit')).toBeTruthy();
+		const done = screen.getByLabelText('Done column');
+		expect(within(done).getByText('Write docs')).toBeTruthy();
+
+		// Task card project chip links to the project's edit page
+		const chip = within(planning).getByText('NebulaKit');
+		expect(chip.getAttribute('href')).toBe('/admin/projects/p-1');
 	});
 
-	it('drags a board card to another column to change its status', async () => {
+	it('shows task-centric stat tiles in board view that filter to one column', async () => {
 		render(Page, { props: { data: mockData } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
 
-		const card = screen.getByLabelText('Drag NebulaKit to another status');
+		// 2 tasks total, 1 planning, 1 done
+		const tiles = screen.getByRole('group', { name: 'Task statistics' });
+		expect(within(tiles).getByText('Tasks')).toBeTruthy();
+		expect(within(tiles).getByText('1/2 done')).toBeTruthy();
+
+		// Clicking the Planning tile shows only that column
+		await fireEvent.click(within(tiles).getByTitle('Show only the Planning column'));
+		expect(screen.getByLabelText('Planning column')).toBeTruthy();
+		expect(screen.queryByLabelText('Done column')).toBeNull();
+
+		// Clicking again restores all columns
+		await fireEvent.click(within(tiles).getByTitle('Show only the Planning column'));
+		expect(screen.getByLabelText('Done column')).toBeTruthy();
+	});
+
+	it('drags a task card to another column to change its status', async () => {
+		render(Page, { props: { data: mockData } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
+
+		const card = screen.getByLabelText('Drag task: Ship v1');
 		const blockedColumn = screen.getByLabelText('Blocked column');
 
 		await fireEvent.dragStart(card);
@@ -161,19 +188,40 @@ describe('Admin Projects Dashboard page', () => {
 		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-1');
 		expect(call).toBeTruthy();
 		expect(call![1].method).toBe('PUT');
-		expect(JSON.parse(call![1].body).status).toBe('blocked');
+		expect(JSON.parse(call![1].body).tasks).toEqual([
+			{ text: 'Ship v1', done: false, status: 'blocked' },
+			{ text: 'Write docs', done: true, status: 'complete' }
+		]);
 
-		// The card must visually move into the Blocked column (reactive columns)
-		expect(within(blockedColumn).getByText('NebulaKit')).toBeTruthy();
-		expect(within(screen.getByLabelText('In Progress column')).queryByText('NebulaKit')).toBeNull();
+		// The task card must visually move into the Blocked column (reactive columns)
+		expect(within(blockedColumn).getByText('Ship v1')).toBeTruthy();
+		expect(within(screen.getByLabelText('Planning column')).queryByText('Ship v1')).toBeNull();
 	});
 
-	it('dropping a card on its own column is a no-op', async () => {
+	it('dragging a task into the Done column completes it', async () => {
 		render(Page, { props: { data: mockData } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
 
-		const card = screen.getByLabelText('Drag NebulaKit to another status');
-		const ownColumn = screen.getByLabelText('In Progress column');
+		const card = screen.getByLabelText('Drag task: Ship v1');
+		const doneColumn = screen.getByLabelText('Done column');
+
+		await fireEvent.dragStart(card);
+		await fireEvent.drop(doneColumn);
+
+		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-1');
+		expect(JSON.parse(call![1].body).tasks[0]).toEqual({
+			text: 'Ship v1',
+			done: true,
+			status: 'complete'
+		});
+	});
+
+	it('dropping a task on its own column is a no-op', async () => {
+		render(Page, { props: { data: mockData } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
+
+		const card = screen.getByLabelText('Drag task: Ship v1');
+		const ownColumn = screen.getByLabelText('Planning column');
 
 		await fireEvent.dragStart(card);
 		await fireEvent.drop(ownColumn);
@@ -190,8 +238,8 @@ describe('Admin Projects Dashboard page', () => {
 		);
 		const body = JSON.parse(fetchMock.mock.calls[0][1].body);
 		expect(body.tasks).toEqual([
-			{ text: 'Ship v1', done: true },
-			{ text: 'Write docs', done: true }
+			{ text: 'Ship v1', done: true, status: 'complete' },
+			{ text: 'Write docs', done: true, status: 'complete' }
 		]);
 	});
 
@@ -203,7 +251,7 @@ describe('Admin Projects Dashboard page', () => {
 		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-2');
 		expect(call).toBeTruthy();
 		const body = JSON.parse(call![1].body);
-		expect(body.tasks).toEqual([{ text: 'New thing', done: false }]);
+		expect(body.tasks).toEqual([{ text: 'New thing', done: false, status: 'planning' }]);
 	});
 
 	it('changes a project status via the pill select', async () => {

@@ -49,7 +49,7 @@
 	}
 
 	function addTask() {
-		form.tasks = [...form.tasks, { text: '', done: false }];
+		form.tasks = [...form.tasks, { text: '', done: false, status: 'planning' }];
 	}
 
 	function removeTask(index: number) {
@@ -239,12 +239,19 @@
 			<legend>Tasks</legend>
 			{#each form.tasks as task, i}
 				<div class="row-editor">
-					<input
-						type="checkbox"
-						bind:checked={task.done}
-						aria-label="Task {i + 1} done"
-						class="task-check"
-					/>
+					<select
+						class="task-status-select"
+						value={task.status}
+						on:change={(e) => {
+							const status = e.currentTarget.value as (typeof PROJECT_STATUSES)[number];
+							form.tasks[i] = { ...task, status, done: status === 'complete' };
+						}}
+						aria-label="Task {i + 1} status"
+					>
+						{#each PROJECT_STATUSES as s}
+							<option value={s}>{STATUS_LABELS[s]}</option>
+						{/each}
+					</select>
 					<input
 						type="text"
 						bind:value={task.text}
@@ -439,8 +446,9 @@
 		flex: 1;
 	}
 
-	.task-check {
+	.task-status-select {
 		flex: none;
+		max-width: 8.5rem;
 	}
 
 	.task-text-input {

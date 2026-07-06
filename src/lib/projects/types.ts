@@ -5,12 +5,17 @@
  * the admin dashboard, the public page, and both APIs.
  */
 
-export type Task = { text: string; done: boolean };
-
-export type ExtraLink = { label: string; href: string };
-
 export type ProjectStatus = 'active' | 'planning' | 'paused' | 'blocked' | 'complete';
 export type ProjectPriority = 'high' | 'medium' | 'low';
+
+/**
+ * A project task. Tasks flow through the same statuses as projects (the
+ * admin board is a task kanban); `done` is kept in sync with
+ * `status === 'complete'` and is what the public API exposes.
+ */
+export type Task = { text: string; done: boolean; status: ProjectStatus };
+
+export type ExtraLink = { label: string; href: string };
 
 /** Workflow order — drives column order on the board and select options */
 export const PROJECT_STATUSES: ProjectStatus[] = [
@@ -79,6 +84,9 @@ export interface ProjectGroup {
 }
 
 /** The frozen public API/page shape — no id, no sortOrder */
+/** The task shape exposed publicly — no internal status field */
+export type PublicTask = { text: string; done: boolean };
+
 export interface PublicProject {
 	name: string;
 	status: ProjectStatus;
@@ -87,7 +95,7 @@ export interface PublicProject {
 	primaryLink: string | null;
 	githubUrl: string | null;
 	extraLinks: ExtraLink[];
-	tasks: Task[];
+	tasks: PublicTask[];
 	blockers: string;
 }
 

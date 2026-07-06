@@ -117,6 +117,23 @@ describe('Admin Project Edit page', () => {
 		expect((await screen.findByRole('alert')).textContent).toContain('Invalid status');
 	});
 
+	it('renders per-task status selects and includes status changes in the save payload', async () => {
+		render(Page, {
+			props: {
+				data: makeData({ tasks: [{ text: 'Ship', done: false, status: 'active' }] })
+			}
+		});
+
+		const statusSelect = screen.getByLabelText('Task 1 status') as HTMLSelectElement;
+		expect(statusSelect.value).toBe('active');
+
+		await fireEvent.change(statusSelect, { target: { value: 'complete' } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+		const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+		expect(body.tasks).toEqual([{ text: 'Ship', done: true, status: 'complete' }]);
+	});
+
 	it('adds and removes task rows', async () => {
 		render(Page, { props: { data: makeData() } });
 

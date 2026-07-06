@@ -55,8 +55,8 @@ describe('computeStats', () => {
 				status: 'active',
 				priority: 'high',
 				tasks: [
-					{ text: 'a', done: true },
-					{ text: 'b', done: false }
+					{ text: 'a', done: true, status: 'complete' },
+					{ text: 'b', done: false, status: 'planning' }
 				],
 				blockers: 'stuck'
 			}),
@@ -64,7 +64,7 @@ describe('computeStats', () => {
 				id: 'p-2',
 				status: 'blocked',
 				priority: 'low',
-				tasks: [{ text: 'c', done: true }]
+				tasks: [{ text: 'c', done: true, status: 'complete' }]
 			}),
 			makeProject({ id: 'p-3', status: 'active', blockers: '   ' })
 		]);
@@ -93,9 +93,9 @@ describe('taskProgress', () => {
 	it('computes rounded percent', () => {
 		expect(
 			taskProgress([
-				{ text: 'a', done: true },
-				{ text: 'b', done: false },
-				{ text: 'c', done: false }
+				{ text: 'a', done: true, status: 'complete' },
+				{ text: 'b', done: false, status: 'planning' },
+				{ text: 'c', done: false, status: 'planning' }
 			])
 		).toEqual({ done: 1, total: 3, percent: 33 });
 	});
@@ -112,7 +112,7 @@ describe('filterProjects', () => {
 			status: 'active',
 			priority: 'high',
 			description: 'CMS framework',
-			tasks: [{ text: 'write docs', done: false }]
+			tasks: [{ text: 'write docs', done: false, status: 'planning' }]
 		}),
 		makeProject({
 			id: 'b',
@@ -326,7 +326,7 @@ describe('/admin/projects page server load', () => {
 			id: 'p1',
 			name: 'NebulaKit',
 			status: 'active',
-			tasks: [{ text: 'Ship', done: false }]
+			tasks: [{ text: 'Ship', done: false, status: 'planning' }]
 		});
 	});
 });
@@ -385,5 +385,80 @@ describe('/admin/projects/[id] page server load', () => {
 
 		expect(result.project.id).toBe('p1');
 		expect(result.groups).toEqual(['*Space', 'Personal']);
+	});
+});
+
+// ─── Task board helpers ───────────────────────────────────────────────────────
+
+describe('flattenTasks', () => {
+	it('flattens all project tasks into board cards with identity', async () => {
+		const { flattenTasks } = await import('../../src/lib/admin/projects-dashboard');
+		const tasks = flattenTasks([
+			makeProject({
+				id: 'a',
+				name: 'Alpha',
+				group: '*Space',
+				tasks: [
+					{ text: 't1', done: false, status: 'planning' },
+					{ text: 't2', done: false, status: 'blocked' }
+				]
+			}),
+			makeProject({ id: 'b', name: 'Beta', group: 'Personal', tasks: [] })
+		]);
+
+		expect(tasks).toEqual([
+			{ projectId: 'a', projectName: 'Alpha', group: '*Space', index: 0, text: 't1', status: 'planning' },
+			{ projectId: 'a', projectName: 'Alpha', group: '*Space', index: 1, text: 't2', status: 'blocked' }
+		]);
+	});
+});
+
+describe('setTaskStatus', () => {
+	it('moves a task and keeps done in sync', async () => {
+		const { setTaskStatus } = await import('../../src/lib/admin/projects-dashboard');
+		const tasks = [
+			{ text: 'a', done: false, status: 'planning' as const },
+			{ text: 'b', done: false, status: 'active' as const }
+		];
+
+		const toDone = setTaskStatus(tasks, 0, 'complete');
+		expect(toDone[0]).toEqual({ text: 'a', done: true, status: 'complete' });
+		expect(toDone[1]).toBe(tasks[1] === toDone[1] ? toDone[1] : toDone[1]); // other entries preserved
+		expect(toDone[1]).toEqual(tasks[1]);
+
+		const backToActive = setTaskStatus(toDone, 0, 'active');
+		expect(backToActive[0]).toEqual({ text: 'a', done: false, status: 'active' });
+
+		// original untouched (immutability)
+		expect(tasks[0].status).toBe('planning');
+	});
+
+	it('returns the original array for invalid indexes', async () => {
+		const { setTaskStatus } = await import('../../src/lib/admin/projects-dashboard');
+		const tasks = [{ text: 'a', done: false, status: 'planning' as const }];
+		expect(setTaskStatus(tasks, -1, 'complete')).toBe(tasks);
+		expect(setTaskStatus(tasks, 5, 'complete')).toBe(tasks);
+	});
+});
+
+describe('computeTaskStats', () => {
+	it('counts tasks by status across projects', async () => {
+		const { computeTaskStats } = await import('../../src/lib/admin/projects-dashboard');
+		const stats = computeTaskStats([
+			makeProject({
+				id: 'a',
+				tasks: [
+					{ text: 't1', done: false, status: 'planning' },
+					{ text: 't2', done: true, status: 'complete' }
+				]
+			}),
+			makeProject({ id: 'b', tasks: [{ text: 't3', done: false, status: 'blocked' }] })
+		]);
+
+		expect(stats.total).toBe(3);
+		expect(stats.byStatus.planning).toBe(1);
+		expect(stats.byStatus.blocked).toBe(1);
+		expect(stats.byStatus.complete).toBe(1);
+		expect(stats.byStatus.active).toBe(0);
 	});
 });

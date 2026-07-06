@@ -17,21 +17,37 @@ import {
 	type Task
 } from './types';
 
-/** Normalise a tasks value — handles legacy string[] and {text,done}[] shapes */
+/**
+ * Canonicalise one task entry. Tasks carry a workflow status (the admin
+ * board is a task kanban); `done` mirrors `status === 'complete'`.
+ * An explicit valid status wins; otherwise it derives from `done`.
+ */
+function normalizeTask(entry: unknown, forceDone = false): Task {
+	if (typeof entry === 'string') {
+		const status: ProjectStatus = forceDone ? 'complete' : 'planning';
+		return { text: entry, done: status === 'complete', status };
+	}
+
+	const raw = (entry ?? {}) as Partial<Task>;
+	let status: ProjectStatus;
+	if (forceDone) {
+		status = 'complete';
+	} else if (PROJECT_STATUSES.includes(raw.status as ProjectStatus)) {
+		status = raw.status as ProjectStatus;
+	} else {
+		status = raw.done ? 'complete' : 'planning';
+	}
+
+	return { text: String(raw.text ?? ''), done: status === 'complete', status };
+}
+
+/** Normalise a tasks value — handles legacy string[], {text,done}[], and {text,done,status}[] shapes */
 export function normalizeTasks(tasks: unknown, completedTasks?: unknown): Task[] {
 	const raw: unknown[] = Array.isArray(tasks) ? tasks : [];
-	const normalized: Task[] = raw.map((t) =>
-		typeof t === 'string'
-			? { text: t, done: false }
-			: { text: String((t as Task)?.text ?? ''), done: Boolean((t as Task)?.done) }
-	);
+	const normalized = raw.map((t) => normalizeTask(t));
 
 	const rawCompleted: unknown[] = Array.isArray(completedTasks) ? completedTasks : [];
-	const completed: Task[] = rawCompleted.map((t) =>
-		typeof t === 'string'
-			? { text: t, done: true }
-			: { text: String((t as Task)?.text ?? ''), done: true }
-	);
+	const completed = rawCompleted.map((t) => normalizeTask(t, true));
 
 	return [...normalized, ...completed];
 }
@@ -104,7 +120,9 @@ export function toPublicGroups(projects: OpenProject[]): PublicProjectGroup[] {
 			primaryLink: p.primaryLink,
 			githubUrl: p.githubUrl,
 			extraLinks: p.extraLinks,
-			tasks: p.tasks,
+			// Contract: tasks expose exactly {text, done} — internal task
+			// status never leaks to the public API
+			tasks: p.tasks.map((t) => ({ text: t.text, done: t.done })),
 			blockers: p.blockers
 		}))
 	}));

@@ -143,4 +143,24 @@ describe('GET /api/projects (public contract)', () => {
 			'public, max-age=60, stale-while-revalidate=300'
 		);
 	});
+
+	it('never leaks internal task status — tasks are exactly {text, done}', async () => {
+		const { event } = createEvent([
+			makeRow({
+				tasks: '[{"text":"Ship","done":false,"status":"blocked"},{"text":"Docs","done":true,"status":"complete"}]'
+			})
+		]);
+
+		const response = await GET(event);
+		const body = await response.json();
+
+		const tasks = body.groups[0].projects[0].tasks;
+		expect(tasks).toEqual([
+			{ text: 'Ship', done: false },
+			{ text: 'Docs', done: true }
+		]);
+		for (const task of tasks) {
+			expect(Object.keys(task).sort()).toEqual(['done', 'text']);
+		}
+	});
 });

@@ -78,23 +78,23 @@ function createMockDb() {
 describe('Open Projects utils', () => {
 	describe('normalizeTasks', () => {
 		it('normalizes legacy string tasks and object tasks', () => {
-			expect(normalizeTasks(['a', { text: 'b', done: true }])).toEqual([
-				{ text: 'a', done: false },
-				{ text: 'b', done: true }
+			expect(normalizeTasks(['a', { text: 'b', done: true, status: 'complete' }])).toEqual([
+				{ text: 'a', done: false, status: 'planning' },
+				{ text: 'b', done: true, status: 'complete' }
 			]);
 		});
 
 		it('appends completed_tasks as done', () => {
 			expect(normalizeTasks([], ['x', { text: 'y' }])).toEqual([
-				{ text: 'x', done: true },
-				{ text: 'y', done: true }
+				{ text: 'x', done: true, status: 'complete' },
+				{ text: 'y', done: true, status: 'complete' }
 			]);
 		});
 
 		it('handles non-array inputs and malformed entries', () => {
 			expect(normalizeTasks('junk', 42)).toEqual([]);
-			expect(normalizeTasks([{}])).toEqual([{ text: '', done: false }]);
-			expect(normalizeTasks([null])).toEqual([{ text: '', done: false }]);
+			expect(normalizeTasks([{}])).toEqual([{ text: '', done: false, status: 'planning' }]);
+			expect(normalizeTasks([null])).toEqual([{ text: '', done: false, status: 'planning' }]);
 		});
 	});
 
@@ -145,7 +145,7 @@ describe('Open Projects utils', () => {
 
 	describe('toPublicGroups', () => {
 		it('strips internal fields and keeps the public key set', () => {
-			const groups = toPublicGroups([makeProject({ tasks: [{ text: 't', done: true }] })]);
+			const groups = toPublicGroups([makeProject({ tasks: [{ text: 't', done: true, status: 'complete' }] })]);
 			const project = groups[0].projects[0] as unknown as Record<string, unknown>;
 			expect(Object.keys(project).sort()).toEqual([
 				'blockers',
@@ -201,7 +201,7 @@ describe('Open Projects service', () => {
 				priority: 'high',
 				primaryLink: 'https://example.com',
 				extraLinks: [{ label: 'Docs', href: 'https://docs.example.com' }],
-				tasks: [{ text: 'Ship it', done: false }]
+				tasks: [{ text: 'Ship it', done: false, status: 'planning' }]
 			});
 		});
 
@@ -279,7 +279,7 @@ describe('Open Projects service', () => {
 				group: '*Space',
 				name: 'New',
 				sortOrder: 3,
-				tasks: [{ text: 'a', done: false }],
+				tasks: [{ text: 'a', done: false, status: 'planning' }],
 				extraLinks: [{ label: 'L', href: 'H' }]
 			});
 
@@ -290,7 +290,7 @@ describe('Open Projects service', () => {
 			expect(maxSql).toBeUndefined();
 			const insertBind = bind.mock.calls.find((args) => args.length === 12);
 			expect(insertBind?.[8]).toBe('[{"label":"L","href":"H"}]');
-			expect(insertBind?.[9]).toBe('[{"text":"a","done":false}]');
+			expect(insertBind?.[9]).toBe('[{"text":"a","done":false,"status":"planning"}]');
 			expect(insertBind?.[11]).toBe(3);
 		});
 
@@ -320,7 +320,7 @@ describe('Open Projects service', () => {
 
 			const project = await updateOpenProject(db, 'p1', {
 				name: 'Renamed',
-				tasks: [{ text: 'x', done: true }]
+				tasks: [{ text: 'x', done: true, status: 'complete' }]
 			});
 
 			expect(project?.name).toBe('Renamed');
@@ -332,7 +332,7 @@ describe('Open Projects service', () => {
 			expect(updateSql).toContain('updated_at = CURRENT_TIMESTAMP');
 			expect(updateSql).not.toContain('group_name = ?');
 			const updateBind = bind.mock.calls.find((args) => args.includes('Renamed'));
-			expect(updateBind).toEqual(['Renamed', '[{"text":"x","done":true}]', 'p1']);
+			expect(updateBind).toEqual(['Renamed', '[{"text":"x","done":true,"status":"complete"}]', 'p1']);
 		});
 
 		it('maps camelCase keys to snake_case columns', async () => {
@@ -407,5 +407,37 @@ describe('Open Projects service', () => {
 			expect(bind).toHaveBeenCalledWith(0, 'a');
 			expect(bind).toHaveBeenCalledWith(1, 'b');
 		});
+	});
+});
+
+describe('normalizeTasks status derivation', () => {
+	it('derives status from done for legacy tasks', () => {
+		expect(normalizeTasks([{ text: 'a', done: true }])).toEqual([
+			{ text: 'a', done: true, status: 'complete' }
+		]);
+		expect(normalizeTasks([{ text: 'a', done: false }])).toEqual([
+			{ text: 'a', done: false, status: 'planning' }
+		]);
+	});
+
+	it('prefers an explicit valid status and recomputes done', () => {
+		expect(normalizeTasks([{ text: 'a', done: true, status: 'blocked' }])).toEqual([
+			{ text: 'a', done: false, status: 'blocked' }
+		]);
+		expect(normalizeTasks([{ text: 'a', done: false, status: 'complete' }])).toEqual([
+			{ text: 'a', done: true, status: 'complete' }
+		]);
+	});
+
+	it('falls back on invalid statuses', () => {
+		expect(normalizeTasks([{ text: 'a', done: true, status: 'bogus' }])).toEqual([
+			{ text: 'a', done: true, status: 'complete' }
+		]);
+	});
+
+	it('forces complete for legacy completed_tasks regardless of status', () => {
+		expect(normalizeTasks([], [{ text: 'x', status: 'planning' }])).toEqual([
+			{ text: 'x', done: true, status: 'complete' }
+		]);
 	});
 });

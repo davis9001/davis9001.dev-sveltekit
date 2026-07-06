@@ -8,13 +8,17 @@
 <script lang="ts">
 	import {
 		computeStats,
+		computeTaskStats,
 		filterProjects,
+		flattenTasks,
 		groupProjects,
 		listGroups,
 		moveProject,
 		PROJECT_PRIORITIES,
 		PROJECT_STATUSES,
-		taskProgress
+		setTaskStatus,
+		taskProgress,
+		type BoardTask
 	} from '$lib/admin/projects-dashboard';
 	import type {
 		OpenProject,
@@ -150,8 +154,12 @@
 	}
 
 	function toggleTask(project: OpenProject, index: number) {
-		const tasks = project.tasks.map((t, i) => (i === index ? { ...t, done: !t.done } : t));
-		saveProject(project, { tasks });
+		const target = project.tasks[index];
+		if (!target) return;
+		// Checkbox flips the workflow status: complete ↔ planning
+		saveProject(project, {
+			tasks: setTaskStatus(project.tasks, index, target.done ? 'planning' : 'complete')
+		});
 	}
 
 	function removeTask(project: OpenProject, index: number) {
@@ -163,7 +171,9 @@
 		const text = (newTaskText[project.id] || '').trim();
 		if (!text) return;
 		newTaskText = { ...newTaskText, [project.id]: '' };
-		saveProject(project, { tasks: [...project.tasks, { text, done: false }] });
+		saveProject(project, {
+			tasks: [...project.tasks, { text, done: false, status: 'planning' }]
+		});
 	}
 
 	function startEditBlockers(project: OpenProject) {
@@ -244,7 +254,7 @@
 					primaryLink: createForm.primaryLink.trim() || null,
 					githubUrl: createForm.githubUrl.trim() || null,
 					tasks: createForm.firstTask.trim()
-						? [{ text: createForm.firstTask.trim(), done: false }]
+						? [{ text: createForm.firstTask.trim(), done: false, status: 'planning' }]
 						: []
 				})
 			});
@@ -277,36 +287,44 @@
 		}
 	}
 
-	// Paused projects live in the Groups view; the board is the flow board
+	// Paused stays off the board; it's the flow board
 	const BOARD_STATUSES = PROJECT_STATUSES.filter((s) => s !== 'paused');
 
-	// Reactive board columns — a plain function call in the template would
-	// hide the `filtered` dependency and freeze the board after edits
-	$: boardColumns = BOARD_STATUSES.map((status) => ({
+	// ── Task board ────────────────────────────────────────────────────────
+	// The board is a task kanban: cards are tasks tied to their parent
+	// projects. Reactive derivations (a plain function call in the template
+	// would hide the `filtered` dependency and freeze the board).
+	let taskStatusFilter: ProjectStatus | '' = '';
+
+	$: boardTasks = flattenTasks(filtered);
+	$: taskStats = computeTaskStats(filtered);
+	$: boardColumns = BOARD_STATUSES.filter(
+		(status) => !taskStatusFilter || status === taskStatusFilter
+	).map((status) => ({
 		status,
-		projects: filtered
-			.filter((p) => p.status === status)
-			.sort((a, b) =>
-				a.group === b.group ? a.sortOrder - b.sortOrder : a.group.localeCompare(b.group)
-			)
+		tasks: boardTasks.filter((t) => t.status === status)
 	}));
 
-	// ── Board drag & drop ─────────────────────────────────────────────────
-	let draggingId: string | null = null;
+	function toggleTaskStatusFilter(status: ProjectStatus) {
+		taskStatusFilter = taskStatusFilter === status ? '' : status;
+	}
+
+	// ── Board drag & drop (task cards) ────────────────────────────────────
+	let draggingTask: { projectId: string; index: number } | null = null;
 	let dragOverColumn: ProjectStatus | null = null;
 
-	function handleDragStart(event: DragEvent, project: OpenProject) {
-		draggingId = project.id;
+	function handleDragStart(event: DragEvent, task: BoardTask) {
+		draggingTask = { projectId: task.projectId, index: task.index };
 		if (event.dataTransfer) {
 			event.dataTransfer.effectAllowed = 'move';
 			// Payload for completeness; state drives the drop so tests and
 			// browsers without a DataTransfer polyfill both work
-			event.dataTransfer.setData('text/plain', project.id);
+			event.dataTransfer.setData('text/plain', `${task.projectId}:${task.index}`);
 		}
 	}
 
 	function handleDragEnd() {
-		draggingId = null;
+		draggingTask = null;
 		dragOverColumn = null;
 	}
 
@@ -331,12 +349,16 @@
 
 	function handleDrop(event: DragEvent, status: ProjectStatus) {
 		event.preventDefault();
-		const project = projects.find((p) => p.id === draggingId);
-		draggingId = null;
+		const dragged = draggingTask;
+		draggingTask = null;
 		dragOverColumn = null;
-		if (project && project.status !== status) {
-			saveProject(project, { status });
-		}
+		if (!dragged) return;
+
+		const project = projects.find((p) => p.id === dragged.projectId);
+		const task = project?.tasks[dragged.index];
+		if (!project || !task || task.status === status) return;
+
+		saveProject(project, { tasks: setTaskStatus(project.tasks, dragged.index, status) });
 	}
 </script>
 
@@ -372,46 +394,79 @@
 	{/if}
 
 	<!-- Stats -->
-	<div class="stats-row" role="group" aria-label="Project statistics">
-		<button
-			class="stat"
-			class:stat-active={statusFilter === ''}
-			on:click={() => (statusFilter = '')}
-		>
-			<span class="stat-value">{stats.total}</span>
-			<span class="stat-label">Projects</span>
-		</button>
-		{#each PROJECT_STATUSES as s}
+	{#if view === 'board'}
+		<div class="stats-row" role="group" aria-label="Task statistics">
 			<button
 				class="stat"
-				class:stat-active={statusFilter === s}
-				style="--stat-color: {STATUS_COLORS[s]}"
-				on:click={() => toggleStatusFilter(s)}
-				title="Filter by {STATUS_LABELS[s]}"
+				class:stat-active={taskStatusFilter === ''}
+				on:click={() => (taskStatusFilter = '')}
 			>
-				<span class="stat-value stat-colored">{stats.byStatus[s]}</span>
-				<span class="stat-label">{STATUS_LABELS[s]}</span>
+				<span class="stat-value">{taskStats.total}</span>
+				<span class="stat-label">Tasks</span>
 			</button>
-		{/each}
-		<div class="stat stat-static">
-			<span class="stat-value">{stats.openTasks}</span>
-			<span class="stat-label">Open tasks</span>
+			{#each BOARD_STATUSES as s}
+				<button
+					class="stat"
+					class:stat-active={taskStatusFilter === s}
+					style="--stat-color: {STATUS_COLORS[s]}"
+					on:click={() => toggleTaskStatusFilter(s)}
+					title="Show only the {STATUS_LABELS[s]} column"
+				>
+					<span class="stat-value stat-colored">{taskStats.byStatus[s]}</span>
+					<span class="stat-label">{STATUS_LABELS[s]}</span>
+				</button>
+			{/each}
+			<div class="stat stat-static">
+				<span class="stat-value">
+					{taskStats.total === 0
+						? 0
+						: Math.round((taskStats.byStatus.complete / taskStats.total) * 100)}%
+				</span>
+				<span class="stat-label">{taskStats.byStatus.complete}/{taskStats.total} done</span>
+			</div>
 		</div>
-		<div class="stat stat-static">
-			<span class="stat-value">{stats.taskPercent}%</span>
-			<span class="stat-label">{stats.doneTasks}/{stats.totalTasks} done</span>
+	{:else}
+		<div class="stats-row" role="group" aria-label="Project statistics">
+			<button
+				class="stat"
+				class:stat-active={statusFilter === ''}
+				on:click={() => (statusFilter = '')}
+			>
+				<span class="stat-value">{stats.total}</span>
+				<span class="stat-label">Projects</span>
+			</button>
+			{#each PROJECT_STATUSES as s}
+				<button
+					class="stat"
+					class:stat-active={statusFilter === s}
+					style="--stat-color: {STATUS_COLORS[s]}"
+					on:click={() => toggleStatusFilter(s)}
+					title="Filter by {STATUS_LABELS[s]}"
+				>
+					<span class="stat-value stat-colored">{stats.byStatus[s]}</span>
+					<span class="stat-label">{STATUS_LABELS[s]}</span>
+				</button>
+			{/each}
+			<div class="stat stat-static">
+				<span class="stat-value">{stats.openTasks}</span>
+				<span class="stat-label">Open tasks</span>
+			</div>
+			<div class="stat stat-static">
+				<span class="stat-value">{stats.taskPercent}%</span>
+				<span class="stat-label">{stats.doneTasks}/{stats.totalTasks} done</span>
+			</div>
+			<button
+				class="stat"
+				class:stat-active={blockersOnly}
+				style="--stat-color: var(--color-warning, #f59e0b)"
+				on:click={() => (blockersOnly = !blockersOnly)}
+				title="Show only projects with blockers"
+			>
+				<span class="stat-value stat-colored">{stats.withBlockers}</span>
+				<span class="stat-label">Blockers</span>
+			</button>
 		</div>
-		<button
-			class="stat"
-			class:stat-active={blockersOnly}
-			style="--stat-color: var(--color-warning, #f59e0b)"
-			on:click={() => (blockersOnly = !blockersOnly)}
-			title="Show only projects with blockers"
-		>
-			<span class="stat-value stat-colored">{stats.withBlockers}</span>
-			<span class="stat-label">Blockers</span>
-		</button>
-	</div>
+	{/if}
 
 	<!-- Toolbar -->
 	<div class="toolbar">
@@ -643,9 +698,9 @@
 			</section>
 		{/each}
 	{:else}
-		<!-- ── Board view ── -->
-		<div class="board">
-			{#each boardColumns as { status: s, projects: column } (s)}
+		<!-- ── Board view: task kanban ── -->
+		<div class="board" class:board-single={!!taskStatusFilter}>
+			{#each boardColumns as { status: s, tasks: column } (s)}
 				<div
 					class="board-col"
 					class:board-col-dragover={dragOverColumn === s}
@@ -659,49 +714,29 @@
 						{STATUS_LABELS[s]}
 						<span class="group-count">{column.length}</span>
 					</h3>
-					{#each column as project (project.id)}
-						{@const progress = taskProgress(project.tasks)}
+					{#each column as task (`${task.projectId}:${task.index}`)}
 						<div
 							class="board-card"
-							class:card-saving={savingIds.has(project.id)}
-							class:board-card-dragging={draggingId === project.id}
+							class:card-saving={savingIds.has(task.projectId)}
+							class:board-card-dragging={draggingTask?.projectId === task.projectId &&
+								draggingTask?.index === task.index}
 							draggable="true"
 							role="listitem"
-							aria-label="Drag {project.name} to another status"
-							on:dragstart={(e) => handleDragStart(e, project)}
+							aria-label="Drag task: {task.text}"
+							on:dragstart={(e) => handleDragStart(e, task)}
 							on:dragend={handleDragEnd}
 						>
-							<div class="board-card-head">
-								<span class="board-card-name">{project.name}</span>
-								<span
-									class="priority-dot"
-									style="--dot-color: {PRIORITY_COLORS[project.priority]}"
-									title="Priority: {project.priority}"
-								></span>
-							</div>
-							<span class="board-card-group">{project.group}</span>
-							{#if project.tasks.length > 0}
-								<div
-									class="progress progress-sm"
-									title="{progress.done}/{progress.total} tasks done"
+							<span class="board-task-text">{task.text}</span>
+							<div class="board-card-foot">
+								<a
+									class="board-task-project"
+									href="/admin/projects/{task.projectId}"
+									title="Open {task.projectName}"
 								>
-									<div class="progress-bar" style="width: {progress.percent}%"></div>
-								</div>
-								<span class="board-card-tasks">{progress.done}/{progress.total} tasks</span>
-							{/if}
-							{#if project.blockers}
-								<span class="board-card-blocker" title={project.blockers}>⚠ blocked note</span>
-							{/if}
-							<select
-								class="pill-select board-move"
-								value={project.status}
-								on:change={(e) => setStatus(project, e.currentTarget.value)}
-								aria-label="Move {project.name} to status"
-							>
-								{#each PROJECT_STATUSES as opt}
-									<option value={opt}>{STATUS_LABELS[opt]}</option>
-								{/each}
-							</select>
+									{task.projectName}
+								</a>
+								<span class="board-card-group">{task.group}</span>
+							</div>
 						</div>
 					{/each}
 					{#if column.length === 0}
@@ -1456,50 +1491,44 @@
 		border-color: var(--color-primary);
 	}
 
-	.board-card-head {
+	.board-single {
+		grid-template-columns: minmax(280px, 640px);
+		justify-content: center;
+	}
+
+	.board-task-text {
+		font-size: 0.875rem;
+		color: var(--color-text);
+		word-break: break-word;
+		line-height: 1.4;
+	}
+
+	.board-card-foot {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--spacing-xs);
+		margin-top: 0.25rem;
 	}
 
-	.board-card-name {
-		font-size: 0.875rem;
+	.board-task-project {
+		font-size: 0.6875rem;
 		font-weight: 600;
-		color: var(--color-text);
-		word-break: break-word;
+		color: var(--color-primary);
+		text-decoration: none;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
-	.priority-dot {
-		width: 9px;
-		height: 9px;
-		border-radius: 50%;
-		background: var(--dot-color);
-		flex-shrink: 0;
+	.board-task-project:hover {
+		text-decoration: underline;
 	}
 
 	.board-card-group {
 		font-size: 0.6875rem;
 		color: var(--color-text-secondary);
-	}
-
-	.progress-sm {
-		margin: 0.25rem 0 0 0;
-	}
-
-	.board-card-tasks {
-		font-size: 0.6875rem;
-		color: var(--color-text-secondary);
-	}
-
-	.board-card-blocker {
-		font-size: 0.6875rem;
-		color: var(--color-warning, #f59e0b);
-	}
-
-	.board-move {
-		margin-top: 0.25rem;
-		align-self: flex-start;
+		flex-shrink: 0;
 	}
 
 	/* Buttons */
