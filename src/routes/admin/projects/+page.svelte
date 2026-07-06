@@ -22,6 +22,7 @@
 		ProjectPriority,
 		ProjectStatus
 	} from '$lib/projects/types';
+	import { PROJECT_STATUS_COLORS, PROJECT_STATUS_LABELS } from '$lib/projects/types';
 	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
@@ -80,20 +81,8 @@
 	$: hasActiveFilters =
 		!!search || !!statusFilter || !!priorityFilter || !!groupFilter || hideComplete || blockersOnly;
 
-	const STATUS_LABELS: Record<ProjectStatus, string> = {
-		active: 'Active',
-		planning: 'Planning',
-		paused: 'Paused',
-		blocked: 'Blocked',
-		complete: 'Complete'
-	};
-	const STATUS_COLORS: Record<ProjectStatus, string> = {
-		active: 'var(--color-success, #22c55e)',
-		planning: 'var(--color-primary)',
-		paused: 'var(--color-warning, #f59e0b)',
-		blocked: 'var(--color-danger, #ef4444)',
-		complete: 'var(--color-text-secondary)'
-	};
+	const STATUS_LABELS = PROJECT_STATUS_LABELS;
+	const STATUS_COLORS = PROJECT_STATUS_COLORS;
 	const PRIORITY_COLORS: Record<ProjectPriority, string> = {
 		high: 'var(--color-danger, #ef4444)',
 		medium: 'var(--color-warning, #f59e0b)',
@@ -288,12 +277,63 @@
 		}
 	}
 
-	function boardColumn(status: ProjectStatus): OpenProject[] {
-		return filtered
+	// Reactive board columns — a plain function call in the template would
+	// hide the `filtered` dependency and freeze the board after edits
+	$: boardColumns = PROJECT_STATUSES.map((status) => ({
+		status,
+		projects: filtered
 			.filter((p) => p.status === status)
 			.sort((a, b) =>
 				a.group === b.group ? a.sortOrder - b.sortOrder : a.group.localeCompare(b.group)
-			);
+			)
+	}));
+
+	// ── Board drag & drop ─────────────────────────────────────────────────
+	let draggingId: string | null = null;
+	let dragOverColumn: ProjectStatus | null = null;
+
+	function handleDragStart(event: DragEvent, project: OpenProject) {
+		draggingId = project.id;
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+			// Payload for completeness; state drives the drop so tests and
+			// browsers without a DataTransfer polyfill both work
+			event.dataTransfer.setData('text/plain', project.id);
+		}
+	}
+
+	function handleDragEnd() {
+		draggingId = null;
+		dragOverColumn = null;
+	}
+
+	function handleDragOver(event: DragEvent, status: ProjectStatus) {
+		event.preventDefault();
+		if (event.dataTransfer) {
+			event.dataTransfer.dropEffect = 'move';
+		}
+		dragOverColumn = status;
+	}
+
+	function handleDragLeave(event: DragEvent, status: ProjectStatus) {
+		// Only clear when actually leaving the column, not entering a child
+		const related = event.relatedTarget as Node | null;
+		const column = event.currentTarget as Node;
+		if (!related || !column.contains(related)) {
+			if (dragOverColumn === status) {
+				dragOverColumn = null;
+			}
+		}
+	}
+
+	function handleDrop(event: DragEvent, status: ProjectStatus) {
+		event.preventDefault();
+		const project = projects.find((p) => p.id === draggingId);
+		draggingId = null;
+		dragOverColumn = null;
+		if (project && project.status !== status) {
+			saveProject(project, { status });
+		}
 	}
 </script>
 
@@ -602,16 +642,32 @@
 	{:else}
 		<!-- ── Board view ── -->
 		<div class="board">
-			{#each PROJECT_STATUSES as s}
-				{@const column = boardColumn(s)}
-				<div class="board-col">
+			{#each boardColumns as { status: s, projects: column } (s)}
+				<div
+					class="board-col"
+					class:board-col-dragover={dragOverColumn === s}
+					role="list"
+					aria-label="{STATUS_LABELS[s]} column"
+					on:dragover={(e) => handleDragOver(e, s)}
+					on:dragleave={(e) => handleDragLeave(e, s)}
+					on:drop={(e) => handleDrop(e, s)}
+				>
 					<h3 class="board-col-title" style="--col-color: {STATUS_COLORS[s]}">
 						{STATUS_LABELS[s]}
 						<span class="group-count">{column.length}</span>
 					</h3>
 					{#each column as project (project.id)}
 						{@const progress = taskProgress(project.tasks)}
-						<div class="board-card" class:card-saving={savingIds.has(project.id)}>
+						<div
+							class="board-card"
+							class:card-saving={savingIds.has(project.id)}
+							class:board-card-dragging={draggingId === project.id}
+							draggable="true"
+							role="listitem"
+							aria-label="Drag {project.name} to another status"
+							on:dragstart={(e) => handleDragStart(e, project)}
+							on:dragend={handleDragEnd}
+						>
 							<div class="board-card-head">
 								<span class="board-card-name">{project.name}</span>
 								<span
@@ -1370,6 +1426,12 @@
 		border-bottom: 2px solid var(--col-color, var(--color-border));
 	}
 
+	.board-col-dragover {
+		border-color: var(--color-primary);
+		background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+		box-shadow: inset 0 0 0 1px var(--color-primary);
+	}
+
 	.board-card {
 		display: flex;
 		flex-direction: column;
@@ -1378,6 +1440,17 @@
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius-md);
 		padding: var(--spacing-sm);
+		cursor: grab;
+	}
+
+	.board-card:active {
+		cursor: grabbing;
+	}
+
+	.board-card-dragging {
+		opacity: 0.45;
+		border-style: dashed;
+		border-color: var(--color-primary);
 	}
 
 	.board-card-head {

@@ -186,7 +186,7 @@ describe('Projects Page', () => {
 		const badges = document.querySelectorAll('.status-badge');
 		expect(badges.length).toBeGreaterThan(0);
 		// active badge
-		expect(screen.getAllByText('Active').length).toBeGreaterThan(0);
+		expect(screen.getAllByText('In Progress').length).toBeGreaterThan(0);
 		// paused badge
 		expect(screen.getByText('Paused')).toBeInTheDocument();
 		// blocked badge

@@ -7,20 +7,16 @@
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { PROJECT_PRIORITIES, PROJECT_STATUSES } from '$lib/projects/types';
+	import {
+		PROJECT_PRIORITIES,
+		PROJECT_STATUS_LABELS as STATUS_LABELS,
+		PROJECT_STATUSES
+	} from '$lib/projects/types';
 	import type { ExtraLink, Task } from '$lib/projects/types';
 	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
-
-	const STATUS_LABELS: Record<string, string> = {
-		active: 'Active',
-		planning: 'Planning',
-		paused: 'Paused',
-		blocked: 'Blocked',
-		complete: 'Complete'
-	};
 
 	// Editable form state, seeded from the loaded project
 	let form = {

@@ -1,7 +1,7 @@
 /**
  * Tests for the Admin Projects Dashboard page component (/admin/projects)
  */
-import { fireEvent, render, screen } from '@testing-library/svelte/svelte5';
+import { fireEvent, render, screen, within } from '@testing-library/svelte/svelte5';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Page from '../../src/routes/admin/projects/+page.svelte';
 
@@ -130,15 +130,53 @@ describe('Admin Projects Dashboard page', () => {
 		expect(screen.getByText('NebulaKit')).toBeTruthy();
 	});
 
-	it('switches to board view with status columns', async () => {
+	it('switches to board view with status columns in workflow order', async () => {
 		render(Page, { props: { data: mockData } });
 		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
-		// Column titles exist as headings for every status
-		expect(screen.getByRole('heading', { name: /Planning/ })).toBeTruthy();
+		// Column titles exist as headings for every status, Planning left of In Progress
+		const headings = screen
+			.getAllByRole('heading', { level: 3 })
+			.map((h) => h.textContent?.trim() ?? '');
+		expect(headings[0]).toContain('Planning');
+		expect(headings[1]).toContain('In Progress');
 		expect(screen.getByRole('heading', { name: /Paused/ })).toBeTruthy();
 		expect(screen.getByRole('heading', { name: /Blocked/ })).toBeTruthy();
 		// Cards moved to board layout
 		expect(screen.getByText('NebulaKit')).toBeTruthy();
+	});
+
+	it('drags a board card to another column to change its status', async () => {
+		render(Page, { props: { data: mockData } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
+
+		const card = screen.getByLabelText('Drag NebulaKit to another status');
+		const pausedColumn = screen.getByLabelText('Paused column');
+
+		await fireEvent.dragStart(card);
+		await fireEvent.dragOver(pausedColumn);
+		await fireEvent.drop(pausedColumn);
+
+		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-1');
+		expect(call).toBeTruthy();
+		expect(call![1].method).toBe('PUT');
+		expect(JSON.parse(call![1].body).status).toBe('paused');
+
+		// The card must visually move into the Paused column (reactive columns)
+		expect(within(pausedColumn).getByText('NebulaKit')).toBeTruthy();
+		expect(within(screen.getByLabelText('In Progress column')).queryByText('NebulaKit')).toBeNull();
+	});
+
+	it('dropping a card on its own column is a no-op', async () => {
+		render(Page, { props: { data: mockData } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
+
+		const card = screen.getByLabelText('Drag NebulaKit to another status');
+		const ownColumn = screen.getByLabelText('In Progress column');
+
+		await fireEvent.dragStart(card);
+		await fireEvent.drop(ownColumn);
+
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
 	it('saves a task toggle via PUT to the admin API', async () => {

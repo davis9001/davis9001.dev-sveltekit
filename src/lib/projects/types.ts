@@ -12,15 +12,34 @@ export type ExtraLink = { label: string; href: string };
 export type ProjectStatus = 'active' | 'planning' | 'paused' | 'blocked' | 'complete';
 export type ProjectPriority = 'high' | 'medium' | 'low';
 
+/** Workflow order — drives column order on the board and select options */
 export const PROJECT_STATUSES: ProjectStatus[] = [
-	'active',
 	'planning',
+	'active',
 	'paused',
 	'blocked',
 	'complete'
 ];
 
 export const PROJECT_PRIORITIES: ProjectPriority[] = ['high', 'medium', 'low'];
+
+/** Display labels ('active' is stored for API compatibility, shown as In Progress) */
+export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
+	planning: 'Planning',
+	active: 'In Progress',
+	paused: 'Paused',
+	blocked: 'Blocked',
+	complete: 'Complete'
+};
+
+/** Status accent colors (CSS custom properties with fallbacks) */
+export const PROJECT_STATUS_COLORS: Record<ProjectStatus, string> = {
+	planning: 'var(--color-primary)',
+	active: 'var(--color-success, #22c55e)',
+	paused: 'var(--color-warning, #f59e0b)',
+	blocked: 'var(--color-danger, #ef4444)',
+	complete: 'var(--color-text-secondary)'
+};
 
 export interface OpenProject {
 	id: string;

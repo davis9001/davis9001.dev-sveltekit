@@ -1,5 +1,10 @@
 <script lang="ts">
 	import SEO from '$lib/components/SEO.svelte';
+	import {
+		PROJECT_STATUS_COLORS,
+		PROJECT_STATUS_LABELS,
+		type ProjectStatus
+	} from '$lib/projects/types';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -7,27 +12,11 @@
 	const githubIconPath =
 		'M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5';
 
-	type StatusKey = 'active' | 'planning' | 'paused' | 'blocked' | 'complete';
-	const STATUS_LABELS: Record<StatusKey, string> = {
-		active: 'Active',
-		planning: 'Planning',
-		paused: 'Paused',
-		blocked: 'Blocked',
-		complete: 'Complete'
-	};
-	const STATUS_COLORS: Record<StatusKey, string> = {
-		active: 'var(--color-success, #22c55e)',
-		planning: 'var(--color-primary)',
-		paused: 'var(--color-warning, #f59e0b)',
-		blocked: 'var(--color-danger, #ef4444)',
-		complete: 'var(--color-text-secondary)'
-	};
-
 	function statusColor(s: string): string {
-		return STATUS_COLORS[s as StatusKey] ?? STATUS_COLORS.active;
+		return PROJECT_STATUS_COLORS[s as ProjectStatus] ?? PROJECT_STATUS_COLORS.active;
 	}
 	function statusLabel(s: string): string {
-		return STATUS_LABELS[s as StatusKey] ?? s;
+		return PROJECT_STATUS_LABELS[s as ProjectStatus] ?? s;
 	}
 </script>
 
