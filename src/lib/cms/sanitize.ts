@@ -21,11 +21,28 @@ import type { ContentFieldDefinition } from './types';
 const FilterXSS = ((xssModule as unknown as { default?: typeof xssModule }).default ?? xssModule)
 	.FilterXSS as typeof xssModule.FilterXSS;
 
+// Presentational SVG subset for inline illustrations. Deliberately absent:
+// script, foreignObject, use, image, animate*, and any href/xlink:href —
+// the tags/attrs that can execute or fetch.
+const SVG_PAINT = [
+	'fill',
+	'stroke',
+	'stroke-width',
+	'opacity',
+	'fill-opacity',
+	'stroke-opacity',
+	'stroke-dasharray',
+	'stroke-linecap',
+	'stroke-linejoin',
+	'transform',
+	'class'
+];
+
 const ALLOWED_TAGS: Record<string, string[]> = {
-	h2: [],
-	h3: [],
-	h4: [],
-	p: [],
+	h2: ['class'],
+	h3: ['class'],
+	h4: ['class'],
+	p: ['class'],
 	a: ['href', 'title', 'target', 'rel'],
 	strong: [],
 	b: [],
@@ -50,8 +67,48 @@ const ALLOWED_TAGS: Record<string, string[]> = {
 	tr: [],
 	th: [],
 	td: [],
-	span: [],
-	div: ['data-svelte-embed', 'data-props']
+	span: ['class'],
+	div: ['data-svelte-embed', 'data-props', 'class'],
+	// SVG illustrations (inline, presentational only)
+	svg: [
+		'viewbox',
+		'xmlns',
+		'width',
+		'height',
+		'fill',
+		'aria-label',
+		'role',
+		'class',
+		'preserveaspectratio'
+	],
+	g: [...SVG_PAINT],
+	path: ['d', ...SVG_PAINT],
+	rect: ['x', 'y', 'width', 'height', 'rx', 'ry', ...SVG_PAINT],
+	circle: ['cx', 'cy', 'r', ...SVG_PAINT],
+	ellipse: ['cx', 'cy', 'rx', 'ry', ...SVG_PAINT],
+	line: ['x1', 'y1', 'x2', 'y2', ...SVG_PAINT],
+	polyline: ['points', ...SVG_PAINT],
+	polygon: ['points', ...SVG_PAINT],
+	text: [
+		'x',
+		'y',
+		'dx',
+		'dy',
+		'font-size',
+		'font-family',
+		'font-weight',
+		'font-style',
+		'text-anchor',
+		'dominant-baseline',
+		'lengthadjust',
+		'textlength',
+		...SVG_PAINT
+	],
+	tspan: ['x', 'y', 'dx', 'dy', 'font-size', 'font-weight', 'text-anchor', ...SVG_PAINT],
+	defs: [],
+	lineargradient: ['id', 'x1', 'y1', 'x2', 'y2', 'gradientunits', 'gradienttransform'],
+	radialgradient: ['id', 'cx', 'cy', 'r', 'fx', 'fy', 'gradientunits', 'gradienttransform'],
+	stop: ['offset', 'stop-color', 'stop-opacity']
 };
 
 function isSafeUrl(value: string): boolean {

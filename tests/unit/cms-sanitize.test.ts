@@ -75,6 +75,25 @@ describe('sanitizeHtml', () => {
 		expect(out).toContain('hi');
 	});
 
+	it('preserves presentational inline SVG but strips executable SVG', () => {
+		const svg =
+			'<svg viewBox="0 0 10 10" aria-label="x"><path d="M0 0" fill="var(--color-accent)" />' +
+			'<text x="1" y="2" font-size="10">hi</text></svg>';
+		const out = sanitizeHtml(svg);
+		expect(out).toContain('<path');
+		expect(out).toContain('<text');
+		expect(out).toContain('hi');
+
+		const evil = sanitizeHtml(
+			'<svg><foreignObject><body onload="x()"></body></foreignObject>' +
+				'<use href="javascript:alert(1)"></use><script>bad()</script></svg>'
+		);
+		expect(evil).not.toContain('foreignObject');
+		expect(evil).not.toContain('<use');
+		expect(evil).not.toContain('onload');
+		expect(evil).not.toContain('bad()');
+	});
+
 	it('handles empty and non-string input', () => {
 		expect(sanitizeHtml('')).toBe('');
 		expect(sanitizeHtml(undefined as unknown as string)).toBe('');
