@@ -15,6 +15,7 @@
 	$: githubConfigured = data.configuredProviders?.github ?? false;
 	$: discordConfigured = data.configuredProviders?.discord ?? false;
 	$: hasAnyProvider = githubConfigured || discordConfigured;
+	$: devLoginEnabled = data.devLoginEnabled ?? false;
 
 	// Map error codes to user-friendly messages
 	const errorMessages: Record<string, string> = {
@@ -66,11 +67,7 @@
 	}
 </script>
 
-<SEO
-	title="Sign In"
-	description="Sign in to davis9001.dev."
-	path="/auth/login"
-/>
+<SEO title="Sign In" description="Sign in to davis9001.dev." path="/auth/login" />
 
 <div class="auth-page">
 	<div class="auth-container">
@@ -104,6 +101,15 @@
 				<p class="no-providers-message">
 					No OAuth providers configured. Please contact the administrator.
 				</p>
+			{/if}
+			{#if devLoginEnabled}
+				<button
+					class="sso-button dev-login"
+					data-testid="dev-login-button"
+					on:click={() => (window.location.href = '/api/auth/dev-login')}
+				>
+					🛠️ DEV: Sign in as davis9001 (superadmin)
+				</button>
 			{/if}
 		</div>
 
@@ -226,6 +232,23 @@
 	.sso-button.discord:hover {
 		background: #4752c4;
 		border-color: #4752c4;
+	}
+
+	.sso-button.dev-login {
+		background: repeating-linear-gradient(
+			45deg,
+			rgba(245, 158, 11, 0.08),
+			rgba(245, 158, 11, 0.08) 10px,
+			transparent 10px,
+			transparent 20px
+		);
+		border: 2px dashed #f59e0b;
+		color: #b45309;
+		font-weight: 600;
+	}
+
+	.sso-button.dev-login:hover {
+		background: rgba(245, 158, 11, 0.15);
 	}
 
 	.divider {

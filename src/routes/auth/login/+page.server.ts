@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import { base } from '$app/paths';
 import { isProviderConfigured } from '$lib/utils/auth';
 import type { PageServerLoad } from './$types';
@@ -32,6 +33,8 @@ export const load: PageServerLoad = async ({ locals, url, platform }) => {
 		configuredProviders: {
 			github: githubConfigured,
 			discord: discordConfigured
-		}
+		},
+		// Dev-only simulated owner sign-in (never true in production builds)
+		devLoginEnabled: dev
 	};
 };

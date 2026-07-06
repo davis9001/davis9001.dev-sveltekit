@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock redirect
 const mockRedirect = vi.fn((status: number, location: string) => {
-	const err = new Error('Redirect') as Error & { status: number; location: string; };
+	const err = new Error('Redirect') as Error & { status: number; location: string };
 	err.status = status;
 	err.location = location;
 	throw err;
@@ -67,7 +67,8 @@ describe('Auth Login Page Server', () => {
 				configuredProviders: {
 					github: false,
 					discord: false
-				}
+				},
+				devLoginEnabled: expect.any(Boolean)
 			});
 		});
 
@@ -85,7 +86,8 @@ describe('Auth Login Page Server', () => {
 				configuredProviders: {
 					github: false,
 					discord: false
-				}
+				},
+				devLoginEnabled: expect.any(Boolean)
 			});
 		});
 
