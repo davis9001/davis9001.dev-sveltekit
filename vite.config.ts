@@ -1,13 +1,40 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { svelteTesting } from '@testing-library/svelte/vite';
-import { loadEnv } from 'vite';
+import { loadEnv, type Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+
+// Vite marks optimized dep chunks as immutable, but their ?v= generation
+// changes on every dep re-optimization. Any cache between the tunnel and the
+// browser (Cloudflare edge, browser disk) can then serve chunks from mixed
+// generations — two Svelte runtimes load at once and hydration crashes to a
+// black screen. Force no-store for requests arriving via the tunnel host;
+// localhost keeps normal caching.
+function tunnelNoStore(tunnelHost: string | undefined): Plugin {
+	return {
+		name: 'tunnel-no-store',
+		apply: 'serve',
+		configureServer(server) {
+			if (!tunnelHost) return;
+			server.middlewares.use((req, res, next) => {
+				if (req.headers.host === tunnelHost) {
+					const setHeader = res.setHeader.bind(res);
+					res.setHeader = (name, value) =>
+						String(name).toLowerCase() === 'cache-control'
+							? setHeader('Cache-Control', 'no-store')
+							: setHeader(name, value);
+					res.setHeader('Cache-Control', 'no-store');
+				}
+				next();
+			});
+		}
+	};
+}
 
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), '');
 
 	return {
-		plugins: [sveltekit(), svelteTesting()],
+		plugins: [tunnelNoStore(env.DEV_TUNNEL_HOST), sveltekit(), svelteTesting()],
 		server: {
 			// The dev tunnel hostname is secret (this repo is public) — set
 			// DEV_TUNNEL_HOST in .env.local to expose the dev server through it
