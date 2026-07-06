@@ -11,7 +11,7 @@ const mockData: any = {
 				{
 					id: '1',
 					name: 'starspace.group',
-					projectStatus: 'active',
+					status: 'active',
 					priority: 'high',
 					description: '',
 					primaryLink: 'https://starspace.group/',
@@ -24,7 +24,7 @@ const mockData: any = {
 				{
 					id: '2',
 					name: 'NebulaKit',
-					projectStatus: 'active',
+					status: 'active',
 					priority: 'high',
 					description: '',
 					primaryLink: 'https://nebulakit.starspace.group/',
@@ -37,7 +37,7 @@ const mockData: any = {
 				{
 					id: '3',
 					name: 'SpaceBot',
-					projectStatus: 'paused',
+					status: 'paused',
 					priority: 'medium',
 					description: '',
 					primaryLink: 'https://spacebot.starspace.group/',
@@ -50,7 +50,7 @@ const mockData: any = {
 				{
 					id: '4',
 					name: 'Dashboard',
-					projectStatus: 'blocked',
+					status: 'blocked',
 					priority: 'medium',
 					description: '',
 					primaryLink: 'https://dashboard.starspace.group',
@@ -63,7 +63,7 @@ const mockData: any = {
 				{
 					id: '5',
 					name: 'Game',
-					projectStatus: 'active',
+					status: 'active',
 					priority: 'medium',
 					description: '',
 					primaryLink: 'https://game.starspace.group',
@@ -84,7 +84,7 @@ const mockData: any = {
 				{
 					id: '6',
 					name: 'davis9001.dev',
-					projectStatus: 'active',
+					status: 'active',
 					priority: 'high',
 					description: '',
 					primaryLink: 'https://davis9001.dev/',
@@ -97,7 +97,7 @@ const mockData: any = {
 				{
 					id: '7',
 					name: 'Arizona Iced VST',
-					projectStatus: 'planning',
+					status: 'planning',
 					priority: 'medium',
 					description: '',
 					primaryLink: null,

@@ -24,10 +24,10 @@
 	};
 
 	function statusColor(s: string): string {
-		return STATUS_COLORS[(s as StatusKey)] ?? STATUS_COLORS.active;
+		return STATUS_COLORS[s as StatusKey] ?? STATUS_COLORS.active;
 	}
 	function statusLabel(s: string): string {
-		return STATUS_LABELS[(s as StatusKey)] ?? s;
+		return STATUS_LABELS[s as StatusKey] ?? s;
 	}
 </script>
 
@@ -53,7 +53,12 @@
 							<li>
 								<div class="project-header">
 									{#if item.primaryLink}
-										<a class="project-name" href={item.primaryLink} target="_blank" rel="noopener noreferrer">
+										<a
+											class="project-name"
+											href={item.primaryLink}
+											target="_blank"
+											rel="noopener noreferrer"
+										>
 											{item.name}
 										</a>
 									{:else}
@@ -61,10 +66,10 @@
 									{/if}
 									<span
 										class="status-badge"
-										style="--badge-color: {statusColor(item.projectStatus)}"
-										title="Status: {statusLabel(item.projectStatus)}"
+										style="--badge-color: {statusColor(item.status)}"
+										title="Status: {statusLabel(item.status)}"
 									>
-										{statusLabel(item.projectStatus)}
+										{statusLabel(item.status)}
 									</span>
 								</div>
 
@@ -72,7 +77,12 @@
 									<ul class="item-links" aria-label="{item.name} related links">
 										{#if item.githubUrl}
 											<li>
-												<a class="link-with-icon" href={item.githubUrl} target="_blank" rel="noopener noreferrer">
+												<a
+													class="link-with-icon"
+													href={item.githubUrl}
+													target="_blank"
+													rel="noopener noreferrer"
+												>
 													<svg
 														class="github-icon"
 														viewBox="0 0 24 24"
@@ -91,7 +101,9 @@
 										{/if}
 										{#each item.extraLinks as link}
 											<li>
-												<a href={link.href} target="_blank" rel="noopener noreferrer">{link.label}</a>
+												<a href={link.href} target="_blank" rel="noopener noreferrer"
+													>{link.label}</a
+												>
 											</li>
 										{/each}
 									</ul>
@@ -122,8 +134,16 @@
 		min-height: 100vh;
 		padding: var(--spacing-xl) var(--spacing-md);
 		background:
-			radial-gradient(circle at 10% 10%, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 45%),
-			radial-gradient(circle at 90% 90%, color-mix(in srgb, var(--color-text) 6%, transparent) 0%, transparent 40%),
+			radial-gradient(
+				circle at 10% 10%,
+				color-mix(in srgb, var(--color-primary) 12%, transparent) 0%,
+				transparent 45%
+			),
+			radial-gradient(
+				circle at 90% 90%,
+				color-mix(in srgb, var(--color-text) 6%, transparent) 0%,
+				transparent 40%
+			),
 			var(--color-background);
 	}
 
