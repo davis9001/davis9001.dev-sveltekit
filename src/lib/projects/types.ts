@@ -29,7 +29,7 @@ export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
 	active: 'In Progress',
 	paused: 'Paused',
 	blocked: 'Blocked',
-	complete: 'Complete'
+	complete: 'Done'
 };
 
 /** Status accent colors (CSS custom properties with fallbacks) */

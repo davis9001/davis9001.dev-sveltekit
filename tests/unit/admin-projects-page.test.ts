@@ -139,8 +139,10 @@ describe('Admin Projects Dashboard page', () => {
 			.map((h) => h.textContent?.trim() ?? '');
 		expect(headings[0]).toContain('Planning');
 		expect(headings[1]).toContain('In Progress');
-		expect(screen.getByRole('heading', { name: /Paused/ })).toBeTruthy();
 		expect(screen.getByRole('heading', { name: /Blocked/ })).toBeTruthy();
+		expect(screen.getByRole('heading', { name: /Done/ })).toBeTruthy();
+		// Paused has no board column (paused projects live in the Groups view)
+		expect(screen.queryByRole('heading', { name: /Paused/ })).toBeNull();
 		// Cards moved to board layout
 		expect(screen.getByText('NebulaKit')).toBeTruthy();
 	});
@@ -150,19 +152,19 @@ describe('Admin Projects Dashboard page', () => {
 		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
 
 		const card = screen.getByLabelText('Drag NebulaKit to another status');
-		const pausedColumn = screen.getByLabelText('Paused column');
+		const blockedColumn = screen.getByLabelText('Blocked column');
 
 		await fireEvent.dragStart(card);
-		await fireEvent.dragOver(pausedColumn);
-		await fireEvent.drop(pausedColumn);
+		await fireEvent.dragOver(blockedColumn);
+		await fireEvent.drop(blockedColumn);
 
 		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-1');
 		expect(call).toBeTruthy();
 		expect(call![1].method).toBe('PUT');
-		expect(JSON.parse(call![1].body).status).toBe('paused');
+		expect(JSON.parse(call![1].body).status).toBe('blocked');
 
-		// The card must visually move into the Paused column (reactive columns)
-		expect(within(pausedColumn).getByText('NebulaKit')).toBeTruthy();
+		// The card must visually move into the Blocked column (reactive columns)
+		expect(within(blockedColumn).getByText('NebulaKit')).toBeTruthy();
 		expect(within(screen.getByLabelText('In Progress column')).queryByText('NebulaKit')).toBeNull();
 	});
 

@@ -277,9 +277,12 @@
 		}
 	}
 
+	// Paused projects live in the Groups view; the board is the flow board
+	const BOARD_STATUSES = PROJECT_STATUSES.filter((s) => s !== 'paused');
+
 	// Reactive board columns — a plain function call in the template would
 	// hide the `filtered` dependency and freeze the board after edits
-	$: boardColumns = PROJECT_STATUSES.map((status) => ({
+	$: boardColumns = BOARD_STATUSES.map((status) => ({
 		status,
 		projects: filtered
 			.filter((p) => p.status === status)
@@ -439,7 +442,7 @@
 		</select>
 		<label class="toolbar-check">
 			<input type="checkbox" bind:checked={hideComplete} />
-			Hide complete
+			Hide done
 		</label>
 		{#if hasActiveFilters}
 			<button class="btn-link" on:click={clearFilters}>Clear filters</button>
@@ -1397,7 +1400,7 @@
 	/* Board view */
 	.board {
 		display: grid;
-		grid-template-columns: repeat(5, minmax(180px, 1fr));
+		grid-template-columns: repeat(4, minmax(180px, 1fr));
 		gap: var(--spacing-md);
 		overflow-x: auto;
 	}
