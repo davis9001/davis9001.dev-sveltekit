@@ -40,7 +40,11 @@ describe('Layout Server Load', () => {
 						}
 					}
 				})
-			} as any)) as { user: typeof mockUser | null; hasAIProviders: boolean; hasAuthConfig: boolean; };
+			} as any)) as {
+				user: typeof mockUser | null;
+				hasAIProviders: boolean;
+				hasAuthConfig: boolean;
+			};
 
 			expect(result.user).toEqual(mockUser);
 			expect(result.hasAIProviders).toBe(true);
@@ -58,7 +62,7 @@ describe('Layout Server Load', () => {
 				locals: {},
 				fetch: mockFetch,
 				platform: mockPlatform()
-			} as any)) as { user: null; hasAIProviders: boolean; hasAuthConfig: boolean; };
+			} as any)) as { user: null; hasAIProviders: boolean; hasAuthConfig: boolean };
 
 			expect(result.user).toBeNull();
 			expect(result.hasAIProviders).toBe(false);
@@ -76,7 +80,7 @@ describe('Layout Server Load', () => {
 				locals: { user: { id: 'user-123' } },
 				fetch: mockFetch,
 				platform: mockPlatform()
-			} as any)) as { hasAIProviders: boolean; };
+			} as any)) as { hasAIProviders: boolean };
 
 			expect(result.hasAIProviders).toBe(false);
 		});
@@ -89,7 +93,7 @@ describe('Layout Server Load', () => {
 				locals: { user: { id: 'user-123' } },
 				fetch: mockFetch,
 				platform: mockPlatform()
-			} as any)) as { hasAIProviders: boolean; };
+			} as any)) as { hasAIProviders: boolean };
 
 			expect(result.hasAIProviders).toBe(false);
 		});
@@ -108,7 +112,7 @@ describe('Layout Server Load', () => {
 					GITHUB_CLIENT_ID: 'gid',
 					GITHUB_CLIENT_SECRET: 'gsecret'
 				})
-			} as any)) as { hasAuthConfig: boolean; };
+			} as any)) as { hasAuthConfig: boolean };
 
 			expect(result.hasAuthConfig).toBe(true);
 		});
@@ -133,7 +137,7 @@ describe('Layout Server Load', () => {
 						}
 					}
 				})
-			} as any)) as { hasAuthConfig: boolean; };
+			} as any)) as { hasAuthConfig: boolean };
 
 			expect(result.hasAuthConfig).toBe(true);
 		});
@@ -149,7 +153,7 @@ describe('Layout Server Load', () => {
 				locals: {},
 				fetch: mockFetch,
 				platform: mockPlatform()
-			} as any)) as { portfolioItems: Array<{ slug: string; title: string; summary: string; }>; };
+			} as any)) as { portfolioItems: Array<{ slug: string; title: string; summary: string }> };
 
 			expect(Array.isArray(result.portfolioItems)).toBe(true);
 			expect(result.portfolioItems.length).toBeGreaterThan(0);
@@ -163,29 +167,57 @@ describe('Layout Server Load', () => {
 			});
 		});
 
-		it('should return blogPosts array from markdown files', async () => {
-			const mockFetch = vi.fn().mockResolvedValue({
-				ok: true,
-				json: vi.fn().mockResolvedValue({ hasProviders: false })
+		it('should return blogPosts from the CMS (D1) with a TTL cache', async () => {
+			const { clearBlogPostCache } = await import('../../src/lib/cms/blog-queries');
+			clearBlogPostCache();
+
+			const all = vi.fn().mockResolvedValue({
+				results: [
+					{
+						slug: 'a-post',
+						title: 'A Post',
+						summary: 'Summary',
+						published_at: '2026-01-01 00:00:00'
+					}
+				]
 			});
+			const db = { prepare: vi.fn().mockReturnValue({ bind: vi.fn().mockReturnThis(), all }) };
+
+			const { load } = await import('../../src/routes/+layout.server');
+			const event = {
+				locals: {},
+				platform: mockPlatform({ DB: db })
+			} as any;
+
+			const result = (await load(event)) as {
+				blogPosts: Array<{ slug: string; title: string; summary: string }>;
+			};
+
+			expect(result.blogPosts).toEqual([
+				{
+					slug: 'a-post',
+					title: 'A Post',
+					summary: 'Summary',
+					publishedAt: '2026-01-01 00:00:00'
+				}
+			]);
+
+			// Second load within the TTL hits the cache — no extra query
+			await load(event);
+			expect(all).toHaveBeenCalledTimes(1);
+		});
+
+		it('should return empty blogPosts without a database', async () => {
+			const { clearBlogPostCache } = await import('../../src/lib/cms/blog-queries');
+			clearBlogPostCache();
 
 			const { load } = await import('../../src/routes/+layout.server');
 			const result = (await load({
 				locals: {},
-				fetch: mockFetch,
 				platform: mockPlatform()
-			} as any)) as { blogPosts: Array<{ slug: string; title: string; summary: string; }>; };
+			} as any)) as { blogPosts: unknown[] };
 
-			expect(Array.isArray(result.blogPosts)).toBe(true);
-			expect(result.blogPosts.length).toBeGreaterThan(0);
-			// Each post should have slug, title, and summary
-			result.blogPosts.forEach((post) => {
-				expect(post).toHaveProperty('slug');
-				expect(post).toHaveProperty('title');
-				expect(post).toHaveProperty('summary');
-				expect(typeof post.slug).toBe('string');
-				expect(typeof post.title).toBe('string');
-			});
+			expect(result.blogPosts).toEqual([]);
 		});
 	});
 });

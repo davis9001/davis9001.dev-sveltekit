@@ -545,7 +545,7 @@
 								class="w-5 h-5 sm:w-6 sm:h-6"
 							/>
 							<a
-								href="/updates"
+								href="/blog"
 								class="text-secondary hover:text-foreground transition-colors"
 							>
 								Updates (Blog)
@@ -554,7 +554,7 @@
 						<div class="text-base sm:text-xl">
 							{#each recentPosts as post}
 								<div class="text-left p-2">
-									<a href="/update/{post.slug}" class="text-accent">
+									<a href="/blog/{post.slug}" class="text-accent">
 										<em class="opacity-50">
 											{formatBlogDate(post.publishedAt)}
 										</em>
@@ -565,7 +565,7 @@
 						</div>
 						{#if recentPosts.length >= 5}
 							<p class="text-left p-2">
-								<a href="/updates" class="text-secondary">See the rest &rarr;</a>
+								<a href="/blog" class="text-secondary">See the rest &rarr;</a>
 							</p>
 						{/if}
 					</div>

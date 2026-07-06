@@ -76,7 +76,7 @@
 			id: 'blog',
 			label: 'Blog',
 			description: 'Read blog posts and updates',
-			action: () => goto('/updates'),
+			action: () => goto('/blog'),
 			icon: '📝'
 		},
 		{
@@ -162,7 +162,7 @@
 			id: `blog-${post.slug}`,
 			label: post.title,
 			description: post.summary || 'Blog post',
-			action: () => goto(`/update/${post.slug}`),
+			action: () => goto(`/blog/${post.slug}`),
 			icon: '📄',
 			badge: 'Blog'
 		}))

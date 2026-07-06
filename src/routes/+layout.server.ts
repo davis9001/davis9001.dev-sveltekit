@@ -1,23 +1,21 @@
+import { getCachedBlogPosts } from '$lib/cms/blog-queries';
 import { hasAnyAuthProvider } from '$lib/utils/auth';
-import { processRawPosts } from '$lib/utils/blog';
 import { buildProject } from '$lib/utils/portfolio';
 import type { LayoutServerLoad } from './$types';
 
-// Load all content at build time (Vite glob import, Cloudflare Workers compatible)
-const blogModules = import.meta.glob('/src/updates/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
-const projectModules = import.meta.glob('/src/projects/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+// Portfolio content is loaded at build time (Vite glob import); the blog
+// now lives in the CMS and is queried from D1 with a per-isolate TTL cache.
+const projectModules = import.meta.glob('/src/projects/*.md', {
+	query: '?raw',
+	import: 'default',
+	eager: true
+}) as Record<string, string>;
 
 const portfolioItems = Object.entries(projectModules).map(([path, raw]) => {
 	const slug = path.replace('/src/projects/', '').replace('.md', '');
 	const project = buildProject(slug, raw);
 	return { slug: project.slug, title: project.meta.title, summary: project.meta.summary };
 });
-
-const blogPosts = processRawPosts(blogModules).map((post) => ({
-	slug: post.slug,
-	title: post.title,
-	summary: post.summary
-}));
 
 export const load: LayoutServerLoad = async ({ locals, platform }) => {
 	// Check if AI providers are enabled (inline — avoids internal HTTP round-trip on every page load)
@@ -43,6 +41,8 @@ export const load: LayoutServerLoad = async ({ locals, platform }) => {
 
 	// Check if any auth provider is configured (env vars or /setup KV)
 	const hasAuthConfig = await hasAnyAuthProvider(platform);
+
+	const blogPosts = await getCachedBlogPosts(platform?.env?.DB);
 
 	return {
 		user: locals.user || null,
