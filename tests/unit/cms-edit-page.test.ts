@@ -11,7 +11,7 @@ describe('Admin CMS Edit Page Server', () => {
 
 	const mockType = {
 		id: 'type-1',
-		slug: 'open-projects',
+		slug: 'blog',
 		name: 'Open Projects',
 		fields: [{ name: 'project_name', label: 'Project Name', type: 'text', sortOrder: 1 }],
 		settings: { hasTags: false }
@@ -47,7 +47,7 @@ describe('Admin CMS Edit Page Server', () => {
 
 		const result = await load({
 			fetch: mockFetch,
-			params: { type: 'open-projects', id: 'item-1' }
+			params: { type: 'blog', id: 'item-1' }
 		});
 
 		expect(result.contentType).toEqual(mockType);
@@ -70,7 +70,7 @@ describe('Admin CMS Edit Page Server', () => {
 		mockFetch.mockResolvedValueOnce({ ok: false });
 
 		await expect(
-			load({ fetch: mockFetch, params: { type: 'open-projects', id: 'item-1' } })
+			load({ fetch: mockFetch, params: { type: 'blog', id: 'item-1' } })
 		).rejects.toThrow();
 	});
 
@@ -83,7 +83,7 @@ describe('Admin CMS Edit Page Server', () => {
 			.mockResolvedValueOnce({ ok: false, status: 404 });
 
 		await expect(
-			load({ fetch: mockFetch, params: { type: 'open-projects', id: 'nonexistent' } })
+			load({ fetch: mockFetch, params: { type: 'blog', id: 'nonexistent' } })
 		).rejects.toThrow();
 	});
 
@@ -96,7 +96,7 @@ describe('Admin CMS Edit Page Server', () => {
 			.mockResolvedValueOnce({ ok: false, status: 500 });
 
 		await expect(
-			load({ fetch: mockFetch, params: { type: 'open-projects', id: 'item-1' } })
+			load({ fetch: mockFetch, params: { type: 'blog', id: 'item-1' } })
 		).rejects.toThrow();
 	});
 
@@ -120,7 +120,7 @@ describe('Admin CMS Edit Page Server', () => {
 
 		const result = await load({
 			fetch: mockFetch,
-			params: { type: 'open-projects', id: 'item-1' }
+			params: { type: 'blog', id: 'item-1' }
 		});
 
 		expect(result.tags).toEqual(mockTags);
@@ -143,7 +143,7 @@ describe('Admin CMS Edit Page Server', () => {
 
 		const result = await load({
 			fetch: mockFetch,
-			params: { type: 'open-projects', id: 'item-1' }
+			params: { type: 'blog', id: 'item-1' }
 		});
 
 		expect(result.tags).toEqual([]);
@@ -160,7 +160,7 @@ describe('Admin CMS Edit Page Server', () => {
 				json: async () => ({ item: mockItem })
 			});
 
-		await load({ fetch: mockFetch, params: { type: 'open-projects', id: 'item-1' } });
+		await load({ fetch: mockFetch, params: { type: 'blog', id: 'item-1' } });
 
 		expect(mockFetch).toHaveBeenCalledTimes(2);
 	});
@@ -176,8 +176,8 @@ describe('Admin CMS Edit Page Server', () => {
 				json: async () => ({ item: mockItem })
 			});
 
-		await load({ fetch: mockFetch, params: { type: 'open-projects', id: 'item-1' } });
+		await load({ fetch: mockFetch, params: { type: 'blog', id: 'item-1' } });
 
-		expect(mockFetch).toHaveBeenCalledWith('/api/cms/open-projects/item-1');
+		expect(mockFetch).toHaveBeenCalledWith('/api/cms/blog/item-1');
 	});
 });

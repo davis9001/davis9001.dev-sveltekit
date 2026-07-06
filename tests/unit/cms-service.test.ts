@@ -52,7 +52,7 @@ describe('CMS Service', () => {
 
 		it('should not batch when no changes needed', async () => {
 			const { syncContentTypes } = await import('../../src/lib/services/cms.js');
-			const { blogContentType, openProjectsContentType } = await import('../../src/lib/cms/registry.js');
+			const { blogContentType } = await import('../../src/lib/cms/registry.js');
 
 			mockDB.all.mockResolvedValue({
 				results: [
@@ -64,15 +64,6 @@ describe('CMS Service', () => {
 						fields: JSON.stringify(blogContentType.fields),
 						settings: JSON.stringify(blogContentType.settings),
 						icon: blogContentType.icon
-					},
-					{
-						id: 'existing-id-2',
-						slug: 'open-projects',
-						name: openProjectsContentType.name,
-						description: openProjectsContentType.description,
-						fields: JSON.stringify(openProjectsContentType.fields),
-						settings: JSON.stringify(openProjectsContentType.settings),
-						icon: openProjectsContentType.icon
 					}
 				]
 			});
@@ -575,7 +566,11 @@ describe('CMS Service', () => {
 			// items query returns no results property
 			mockDB.all.mockResolvedValue({});
 
-			const result = await listContentItems(mockDB, 'ct-1', { status: 'published', page: 1, pageSize: 10 });
+			const result = await listContentItems(mockDB, 'ct-1', {
+				status: 'published',
+				page: 1,
+				pageSize: 10
+			});
 			expect(result.items).toEqual([]);
 		});
 

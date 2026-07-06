@@ -1,16 +1,14 @@
 # davis9001.dev Features
 
-## 🗂️ Projects Admin Dashboard (`/admin/projects`)
+## 🗂️ Open Projects (`/projects` + `/admin/projects`)
 
-Mission control for the `open-projects` CMS content type — everything visible and editable inline, no per-item editor round-trips:
+A first-class feature with its own D1 table (`open_projects`, migration `0009`) — no CMS coupling:
 
-- Stats tiles (per-status counts, open tasks, completion %, blockers) that double as filters
-- Grouped card view and a by-status board view
-- Inline edits saved instantly via the CMS API: status, priority, task toggle/add/remove, blocker notes
-- Search across names, descriptions, tasks and blockers; status/priority/group filters
-- Reorder within groups (normalises `sort_order`), quick-create, and delete with confirmation
-- Drafts included and flagged; falls back to the generic editor at `/admin/cms/open-projects/[id]` for full-field edits
-- Logic lives in `src/lib/admin/projects-dashboard.ts` (pure, unit-tested)
+- **Public page** `/projects` and **public JSON API** `GET /api/projects` (frozen contract, consumed externally; `Cache-Control: public, max-age=60, SWR 300`)
+- **Admin dashboard** `/admin/projects` — mission control: stats tiles that double as filters, grouped card + by-status board views, inline edits saved instantly (status, priority, task toggle/add/remove, blocker notes), search and status/priority/group filters, reorder within groups, quick-create, delete with confirmation
+- **Full-field editor** `/admin/projects/[id]` — name, group, status, priority, description, links, extra links, tasks, blockers, sort order
+- **Admin API** — `GET/POST /api/admin/projects`, `GET/PUT/DELETE /api/admin/projects/[id]`, and `POST /api/admin/projects/reorder` (atomic bulk reorder in one D1 batch); auth: 401 unauthenticated / 403 non-admin
+- **Shared module** `src/lib/projects/` (types, normalizers, grouping, validation) + D1 service `src/lib/services/open-projects.ts`; dashboard-only helpers in `src/lib/admin/projects-dashboard.ts` — all pure and unit-tested
 
 ## 🚀 Cloudflare Full Stack Integration
 
