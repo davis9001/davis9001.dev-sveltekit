@@ -1,4 +1,4 @@
-import { toPublicGroups } from '$lib/projects/utils';
+import { toPublicBoardTasks, toPublicGroups } from '$lib/projects/utils';
 import { listOpenProjects } from '$lib/services/open-projects';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
@@ -11,5 +11,8 @@ export const load: PageServerLoad = async ({ platform }) => {
 
 	const projects = await listOpenProjects(db);
 
-	return { groups: toPublicGroups(projects) };
+	return {
+		groups: toPublicGroups(projects),
+		boardTasks: toPublicBoardTasks(projects)
+	};
 };

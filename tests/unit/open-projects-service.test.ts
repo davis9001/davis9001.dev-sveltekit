@@ -163,7 +163,47 @@ describe('Open Projects utils', () => {
 		});
 	});
 
-	describe('latestUpdatedAt', () => {
+	describe('toPublicBoardTasks', () => {
+	it('flattens tasks in group order with project context and status', async () => {
+		const { toPublicBoardTasks } = await import('../../src/lib/projects/utils');
+		const cards = toPublicBoardTasks([
+			makeProject({
+				id: 'b',
+				group: 'Personal',
+				name: 'Beta',
+				primaryLink: null,
+				tasks: [{ text: 'p1', done: false, status: 'planning' }]
+			}),
+			makeProject({
+				id: 'a',
+				group: '*Space',
+				name: 'Alpha',
+				primaryLink: 'https://alpha.example',
+				tasks: [{ text: 's1', done: false, status: 'active' }]
+			})
+		]);
+
+		// *Space group comes first regardless of input order
+		expect(cards).toEqual([
+			{
+				text: 's1',
+				status: 'active',
+				projectName: 'Alpha',
+				group: '*Space',
+				projectLink: 'https://alpha.example'
+			},
+			{
+				text: 'p1',
+				status: 'planning',
+				projectName: 'Beta',
+				group: 'Personal',
+				projectLink: null
+			}
+		]);
+	});
+});
+
+describe('latestUpdatedAt', () => {
 		it('returns the max raw datetime string', () => {
 			expect(
 				latestUpdatedAt([

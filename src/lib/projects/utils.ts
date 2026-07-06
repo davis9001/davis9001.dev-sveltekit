@@ -128,6 +128,37 @@ export function toPublicGroups(projects: OpenProject[]): PublicProjectGroup[] {
 	}));
 }
 
+/** A task card on the public board — includes status (page-only; the JSON API stays {text, done}) */
+export interface PublicBoardTask {
+	text: string;
+	status: ProjectStatus;
+	projectName: string;
+	group: string;
+	projectLink: string | null;
+}
+
+/**
+ * Flatten projects into public board cards, in group display order.
+ * Used by the /projects page; NOT part of the frozen /api/projects contract.
+ */
+export function toPublicBoardTasks(projects: OpenProject[]): PublicBoardTask[] {
+	const cards: PublicBoardTask[] = [];
+	for (const group of groupProjects(projects)) {
+		for (const project of group.projects) {
+			for (const task of project.tasks) {
+				cards.push({
+					text: task.text,
+					status: task.status,
+					projectName: project.name,
+					group: group.name,
+					projectLink: project.primaryLink
+				});
+			}
+		}
+	}
+	return cards;
+}
+
 /** Latest updated_at across projects (raw DB datetime strings sort lexicographically) */
 export function latestUpdatedAt(projects: OpenProject[]): string | null {
 	let latest: string | null = null;

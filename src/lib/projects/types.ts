@@ -28,6 +28,9 @@ export const PROJECT_STATUSES: ProjectStatus[] = [
 
 export const PROJECT_PRIORITIES: ProjectPriority[] = ['high', 'medium', 'low'];
 
+/** Board columns — the flow board omits Paused (admin and public boards) */
+export const BOARD_STATUSES: ProjectStatus[] = PROJECT_STATUSES.filter((s) => s !== 'paused');
+
 /** Display labels ('active' is stored for API compatibility, shown as In Progress) */
 export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
 	planning: 'Planning',
