@@ -45,6 +45,71 @@
 			<p>A live board of what I'm actively working on right now.</p>
 		</header>
 
+		<!-- Task board -->
+		<section class="board-section" aria-label="Task board">
+			<div class="board-header">
+				<h2>Task Board</h2>
+				{#if groupNames.length > 1}
+					<div class="group-chips" role="group" aria-label="Filter tasks by group">
+						<button
+							class="group-chip"
+							class:group-chip-active={groupFilter === ''}
+							on:click={() => (groupFilter = '')}
+						>
+							All
+						</button>
+						{#each groupNames as name}
+							<button
+								class="group-chip"
+								class:group-chip-active={groupFilter === name}
+								on:click={() => (groupFilter = groupFilter === name ? '' : name)}
+							>
+								{name}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
+
+			<div class="board" role="list" aria-label="Tasks by status">
+				{#each columns as column (column.status)}
+					<div class="board-col" role="listitem" aria-label="{statusLabel(column.status)} tasks">
+						<h3 class="board-col-title" style="--col-color: {statusColor(column.status)}">
+							{statusLabel(column.status)}
+							<span class="board-col-count">{column.tasks.length}</span>
+						</h3>
+						<div class="board-col-cards">
+							{#each column.tasks as task}
+								<article class="task-card" class:task-card-done={task.status === 'complete'}>
+									<p class="task-card-text">{task.text}</p>
+									<div class="task-card-foot">
+										{#if task.projectLink}
+											<a
+												class="task-card-project"
+												href={task.projectLink}
+												target="_blank"
+												rel="noopener noreferrer"
+											>
+												{task.projectName}
+											</a>
+										{:else}
+											<span class="task-card-project task-card-project--plain">
+												{task.projectName}
+											</span>
+										{/if}
+										<span class="task-card-group">{task.group}</span>
+									</div>
+								</article>
+							{/each}
+							{#if column.tasks.length === 0}
+								<p class="board-empty">—</p>
+							{/if}
+						</div>
+					</div>
+				{/each}
+			</div>
+			<p class="board-hint" aria-hidden="true">swipe columns →</p>
+		</section>
 		<!-- Project strip: one compact card per project -->
 		<div class="groups" role="list" aria-label="Current work groups">
 			{#each data.groups as group}
@@ -118,72 +183,6 @@
 				</section>
 			{/each}
 		</div>
-
-		<!-- Task board -->
-		<section class="board-section" aria-label="Task board">
-			<div class="board-header">
-				<h2>Task Board</h2>
-				{#if groupNames.length > 1}
-					<div class="group-chips" role="group" aria-label="Filter tasks by group">
-						<button
-							class="group-chip"
-							class:group-chip-active={groupFilter === ''}
-							on:click={() => (groupFilter = '')}
-						>
-							All
-						</button>
-						{#each groupNames as name}
-							<button
-								class="group-chip"
-								class:group-chip-active={groupFilter === name}
-								on:click={() => (groupFilter = groupFilter === name ? '' : name)}
-							>
-								{name}
-							</button>
-						{/each}
-					</div>
-				{/if}
-			</div>
-
-			<div class="board" role="list" aria-label="Tasks by status">
-				{#each columns as column (column.status)}
-					<div class="board-col" role="listitem" aria-label="{statusLabel(column.status)} tasks">
-						<h3 class="board-col-title" style="--col-color: {statusColor(column.status)}">
-							{statusLabel(column.status)}
-							<span class="board-col-count">{column.tasks.length}</span>
-						</h3>
-						<div class="board-col-cards">
-							{#each column.tasks as task}
-								<article class="task-card" class:task-card-done={task.status === 'complete'}>
-									<p class="task-card-text">{task.text}</p>
-									<div class="task-card-foot">
-										{#if task.projectLink}
-											<a
-												class="task-card-project"
-												href={task.projectLink}
-												target="_blank"
-												rel="noopener noreferrer"
-											>
-												{task.projectName}
-											</a>
-										{:else}
-											<span class="task-card-project task-card-project--plain">
-												{task.projectName}
-											</span>
-										{/if}
-										<span class="task-card-group">{task.group}</span>
-									</div>
-								</article>
-							{/each}
-							{#if column.tasks.length === 0}
-								<p class="board-empty">—</p>
-							{/if}
-						</div>
-					</div>
-				{/each}
-			</div>
-			<p class="board-hint" aria-hidden="true">swipe columns →</p>
-		</section>
 	</div>
 </main>
 
@@ -229,7 +228,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: var(--spacing-lg);
-		margin-bottom: var(--spacing-2xl, 3rem);
 	}
 
 	.group h2 {
@@ -338,6 +336,10 @@
 	}
 
 	/* ── Task board ── */
+	.board-section {
+		margin-bottom: var(--spacing-2xl, 3rem);
+	}
+
 	.board-header {
 		display: flex;
 		flex-wrap: wrap;
