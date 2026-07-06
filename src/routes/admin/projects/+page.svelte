@@ -1,19 +1,12 @@
 <!--
   Admin Projects Dashboard ("mission control")
 
-  Purpose-built admin view for the open-projects content type. Everything is
-  visible and editable inline: status, priority, tasks, blockers, ordering.
-  Falls back to the generic CMS editor for full-field edits.
+  Purpose-built admin view for open projects. Everything is visible and
+  editable inline: status, priority, tasks, blockers, ordering.
+  Full-field edits happen on /admin/projects/[id].
 -->
 <script lang="ts">
-	import type {
-		AdminProject,
-		AdminTask,
-		ProjectPriority,
-		ProjectStatus
-	} from '$lib/admin/projects-dashboard';
 	import {
-		buildFieldsUpdate,
 		computeStats,
 		filterProjects,
 		groupProjects,
@@ -23,12 +16,18 @@
 		PROJECT_STATUSES,
 		taskProgress
 	} from '$lib/admin/projects-dashboard';
+	import type {
+		OpenProject,
+		OpenProjectInput,
+		ProjectPriority,
+		ProjectStatus
+	} from '$lib/projects/types';
 	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
 
-	let projects: AdminProject[] = data.projects || [];
+	let projects: OpenProject[] = data.projects || [];
 
 	// ── UI state ──────────────────────────────────────────────────────────
 	let view: 'groups' | 'board' = 'groups';
@@ -123,48 +122,21 @@
 	// ── Persistence ───────────────────────────────────────────────────────
 
 	/**
-	 * Optimistically apply a field patch to a project and persist it.
+	 * Optimistically apply a patch to a project and persist it.
 	 * Rolls back the whole list on failure.
 	 */
-	async function saveProject(
-		project: AdminProject,
-		patch: Parameters<typeof buildFieldsUpdate>[1],
-		titleOverride?: string
-	) {
+	async function saveProject(project: OpenProject, patch: OpenProjectInput) {
 		const snapshot = projects;
-		const fields = buildFieldsUpdate(project, patch);
 
 		// optimistic local update
-		projects = projects.map((p) =>
-			p.id === project.id
-				? {
-						...p,
-						rawFields: fields,
-						group: (fields.group as string) ?? p.group,
-						name: (fields.project_name as string) || p.name,
-						projectStatus: (fields.status as ProjectStatus) ?? p.projectStatus,
-						priority: (fields.priority as ProjectPriority) ?? p.priority,
-						description: (fields.description as string) ?? p.description,
-						primaryLink: (fields.primary_link as string | null) ?? null,
-						githubUrl: (fields.github_url as string | null) ?? null,
-						tasks: (fields.tasks as AdminTask[]) ?? p.tasks,
-						blockers: (fields.blockers as string) ?? p.blockers,
-						sortOrder:
-							typeof fields.sort_order === 'number' ? (fields.sort_order as number) : p.sortOrder,
-						title: titleOverride ?? p.title
-					}
-				: p
-		);
+		projects = projects.map((p) => (p.id === project.id ? { ...p, ...patch } : p));
 
 		savingIds = new Set(savingIds).add(project.id);
 		try {
-			const body: Record<string, unknown> = { fields };
-			if (titleOverride) body.title = titleOverride;
-
-			const res = await fetch(`/api/cms/open-projects/${project.id}`, {
+			const res = await fetch(`/api/admin/projects/${project.id}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(body)
+				body: JSON.stringify(patch)
 			});
 			if (!res.ok) {
 				projects = snapshot;
@@ -180,37 +152,37 @@
 		}
 	}
 
-	function setStatus(project: AdminProject, status: string) {
-		saveProject(project, { status });
+	function setStatus(project: OpenProject, status: string) {
+		saveProject(project, { status: status as ProjectStatus });
 	}
 
-	function setPriority(project: AdminProject, priority: string) {
-		saveProject(project, { priority });
+	function setPriority(project: OpenProject, priority: string) {
+		saveProject(project, { priority: priority as ProjectPriority });
 	}
 
-	function toggleTask(project: AdminProject, index: number) {
+	function toggleTask(project: OpenProject, index: number) {
 		const tasks = project.tasks.map((t, i) => (i === index ? { ...t, done: !t.done } : t));
 		saveProject(project, { tasks });
 	}
 
-	function removeTask(project: AdminProject, index: number) {
+	function removeTask(project: OpenProject, index: number) {
 		const tasks = project.tasks.filter((_, i) => i !== index);
 		saveProject(project, { tasks });
 	}
 
-	function addTask(project: AdminProject) {
+	function addTask(project: OpenProject) {
 		const text = (newTaskText[project.id] || '').trim();
 		if (!text) return;
 		newTaskText = { ...newTaskText, [project.id]: '' };
 		saveProject(project, { tasks: [...project.tasks, { text, done: false }] });
 	}
 
-	function startEditBlockers(project: AdminProject) {
+	function startEditBlockers(project: OpenProject) {
 		blockersDraft = { ...blockersDraft, [project.id]: project.blockers };
 		editingBlockers = { ...editingBlockers, [project.id]: true };
 	}
 
-	function saveBlockers(project: AdminProject) {
+	function saveBlockers(project: OpenProject) {
 		editingBlockers = { ...editingBlockers, [project.id]: false };
 		const draft = blockersDraft[project.id] ?? '';
 		if (draft !== project.blockers) {
@@ -218,34 +190,21 @@
 		}
 	}
 
-	async function move(project: AdminProject, direction: 'up' | 'down') {
+	async function move(project: OpenProject, direction: 'up' | 'down') {
 		const updates = moveProject(projects, project.id, direction);
 		if (updates.length === 0) return;
 
 		const snapshot = projects;
 		const byId = new Map(updates.map((u) => [u.id, u.sortOrder]));
-		projects = projects.map((p) =>
-			byId.has(p.id)
-				? {
-						...p,
-						sortOrder: byId.get(p.id)!,
-						rawFields: { ...p.rawFields, sort_order: byId.get(p.id)! }
-					}
-				: p
-		);
+		projects = projects.map((p) => (byId.has(p.id) ? { ...p, sortOrder: byId.get(p.id)! } : p));
 
 		try {
-			const results = await Promise.all(
-				updates.map((u) => {
-					const target = snapshot.find((p) => p.id === u.id)!;
-					return fetch(`/api/cms/open-projects/${u.id}`, {
-						method: 'PUT',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ fields: buildFieldsUpdate(target, { sort_order: u.sortOrder }) })
-					});
-				})
-			);
-			if (results.some((r) => !r.ok)) {
+			const res = await fetch('/api/admin/projects/reorder', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ updates })
+			});
+			if (!res.ok) {
 				projects = snapshot;
 				showError('Failed to reorder projects');
 			}
@@ -256,14 +215,14 @@
 	}
 
 	// ── Delete ────────────────────────────────────────────────────────────
-	let deleteTarget: AdminProject | null = null;
+	let deleteTarget: OpenProject | null = null;
 	let deleting = false;
 
 	async function confirmDelete() {
 		if (!deleteTarget) return;
 		deleting = true;
 		try {
-			const res = await fetch(`/api/cms/open-projects/${deleteTarget.id}`, { method: 'DELETE' });
+			const res = await fetch(`/api/admin/projects/${deleteTarget.id}`, { method: 'DELETE' });
 			if (res.ok) {
 				projects = projects.filter((p) => p.id !== deleteTarget!.id);
 				deleteTarget = null;
@@ -283,60 +242,26 @@
 		if (!name) return;
 		creating = true;
 
-		const groupProjectsList = projects.filter((p) => p.group === createForm.group);
-		const nextOrder =
-			groupProjectsList.length === 0
-				? 0
-				: Math.max(...groupProjectsList.map((p) => p.sortOrder)) + 1;
-
-		const fields = {
-			group: createForm.group,
-			project_name: name,
-			status: createForm.status,
-			priority: createForm.priority,
-			description: createForm.description.trim(),
-			primary_link: createForm.primaryLink.trim() || null,
-			github_url: createForm.githubUrl.trim() || null,
-			extra_links: [],
-			tasks: createForm.firstTask.trim()
-				? [{ text: createForm.firstTask.trim(), done: false }]
-				: [],
-			blockers: '',
-			sort_order: nextOrder
-		};
-
 		try {
-			const res = await fetch('/api/cms/open-projects', {
+			const res = await fetch('/api/admin/projects', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ title: name, status: 'published', fields })
+				body: JSON.stringify({
+					group: createForm.group,
+					name,
+					status: createForm.status,
+					priority: createForm.priority,
+					description: createForm.description.trim(),
+					primaryLink: createForm.primaryLink.trim() || null,
+					githubUrl: createForm.githubUrl.trim() || null,
+					tasks: createForm.firstTask.trim()
+						? [{ text: createForm.firstTask.trim(), done: false }]
+						: []
+				})
 			});
 			if (res.ok) {
 				const d = await res.json();
-				const item = d.item;
-				projects = [
-					...projects,
-					{
-						id: item.id,
-						slug: item.slug,
-						title: item.title,
-						itemStatus: item.status,
-						group: fields.group,
-						name,
-						projectStatus: fields.status,
-						priority: fields.priority,
-						description: fields.description,
-						primaryLink: fields.primary_link,
-						githubUrl: fields.github_url,
-						extraLinks: [],
-						tasks: fields.tasks,
-						blockers: '',
-						sortOrder: nextOrder,
-						createdAt: item.createdAt,
-						updatedAt: item.updatedAt,
-						rawFields: fields
-					}
-				];
+				projects = [...projects, d.project];
 				showCreate = false;
 				createForm = resetCreateForm();
 			} else {
@@ -363,9 +288,9 @@
 		}
 	}
 
-	function boardColumn(status: ProjectStatus): AdminProject[] {
+	function boardColumn(status: ProjectStatus): OpenProject[] {
 		return filtered
-			.filter((p) => p.projectStatus === status)
+			.filter((p) => p.status === status)
 			.sort((a, b) =>
 				a.group === b.group ? a.sortOrder - b.sortOrder : a.group.localeCompare(b.group)
 			);
@@ -387,8 +312,7 @@
 				Mission control for <a href="/projects" target="_blank" rel="noopener noreferrer"
 					>/projects</a
 				>
-				· edits save instantly ·
-				<a href="/admin/cms/open-projects">raw CMS view</a>
+				· edits save instantly
 			</p>
 		</div>
 		<div class="dash-header-actions">
@@ -508,7 +432,7 @@
 						<article
 							class="card"
 							class:card-saving={savingIds.has(project.id)}
-							class:card-blocked={project.projectStatus === 'blocked'}
+							class:card-blocked={project.status === 'blocked'}
 						>
 							<div class="card-head">
 								<div class="card-name-row">
@@ -529,8 +453,8 @@
 								<div class="card-controls">
 									<select
 										class="pill-select"
-										style="--pill-color: {STATUS_COLORS[project.projectStatus]}"
-										value={project.projectStatus}
+										style="--pill-color: {STATUS_COLORS[project.status]}"
+										value={project.status}
 										on:change={(e) => setStatus(project, e.currentTarget.value)}
 										aria-label="{project.name} status"
 									>
@@ -640,9 +564,6 @@
 							<!-- Footer -->
 							<div class="card-foot">
 								<span class="card-meta" title="Last updated">{formatDate(project.updatedAt)}</span>
-								{#if project.itemStatus !== 'published'}
-									<span class="card-draft">{project.itemStatus}</span>
-								{/if}
 								<span class="card-foot-spacer"></span>
 								<button
 									class="icon-btn"
@@ -660,7 +581,7 @@
 								>
 								<a
 									class="icon-btn"
-									href="/admin/cms/open-projects/{project.id}"
+									href="/admin/projects/{project.id}"
 									title="Full editor"
 									aria-label="Edit {project.name} in full editor"
 								>
@@ -714,7 +635,7 @@
 							{/if}
 							<select
 								class="pill-select board-move"
-								value={project.projectStatus}
+								value={project.status}
 								on:change={(e) => setStatus(project, e.currentTarget.value)}
 								aria-label="Move {project.name} to status"
 							>
@@ -1382,15 +1303,6 @@
 	.card-meta {
 		font-size: 0.6875rem;
 		color: var(--color-text-secondary);
-	}
-
-	.card-draft {
-		font-size: 0.625rem;
-		text-transform: uppercase;
-		color: var(--color-warning, #f59e0b);
-		border: 1px solid currentColor;
-		border-radius: var(--radius-sm);
-		padding: 0 0.4em;
 	}
 
 	.card-foot-spacer {

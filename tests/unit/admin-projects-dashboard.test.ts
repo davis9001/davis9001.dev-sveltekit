@@ -3,16 +3,13 @@
  * and the /admin/projects server load.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AdminProject } from '../../src/lib/admin/projects-dashboard';
+import type { OpenProject } from '../../src/lib/projects/types';
 import {
-	buildFieldsUpdate,
 	computeStats,
 	filterProjects,
 	groupProjects,
 	listGroups,
-	mapItemToAdminProject,
 	moveProject,
-	normalizeTasks,
 	PROJECT_PRIORITIES,
 	PROJECT_STATUSES,
 	taskProgress
@@ -20,15 +17,12 @@ import {
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-function makeProject(overrides: Partial<AdminProject> = {}): AdminProject {
+function makeProject(overrides: Partial<OpenProject> = {}): OpenProject {
 	return {
 		id: 'p-1',
-		slug: 'proj',
-		title: 'Proj',
-		itemStatus: 'published',
 		group: '*Space',
 		name: 'Proj',
-		projectStatus: 'active',
+		status: 'active',
 		priority: 'medium',
 		description: '',
 		primaryLink: null,
@@ -39,133 +33,9 @@ function makeProject(overrides: Partial<AdminProject> = {}): AdminProject {
 		sortOrder: 0,
 		createdAt: '2026-01-01',
 		updatedAt: '2026-01-02',
-		rawFields: {},
 		...overrides
 	};
 }
-
-// ─── normalizeTasks ───────────────────────────────────────────────────────────
-
-describe('normalizeTasks', () => {
-	it('normalizes legacy string[] tasks as not done', () => {
-		expect(normalizeTasks(['a', 'b'])).toEqual([
-			{ text: 'a', done: false },
-			{ text: 'b', done: false }
-		]);
-	});
-
-	it('passes through {text,done} tasks', () => {
-		expect(normalizeTasks([{ text: 'a', done: true }])).toEqual([{ text: 'a', done: true }]);
-	});
-
-	it('handles malformed task objects', () => {
-		expect(normalizeTasks([{}, { text: 42, done: 'yes' }])).toEqual([
-			{ text: '', done: false },
-			{ text: '42', done: true }
-		]);
-	});
-
-	it('returns empty array for non-array input', () => {
-		expect(normalizeTasks(undefined)).toEqual([]);
-		expect(normalizeTasks('nope')).toEqual([]);
-		expect(normalizeTasks(null)).toEqual([]);
-	});
-
-	it('merges legacy completed_tasks as done', () => {
-		expect(normalizeTasks(['open'], ['done-str', { text: 'done-obj' }])).toEqual([
-			{ text: 'open', done: false },
-			{ text: 'done-str', done: true },
-			{ text: 'done-obj', done: true }
-		]);
-	});
-
-	it('ignores non-array completedTasks', () => {
-		expect(normalizeTasks(['a'], 'nope')).toEqual([{ text: 'a', done: false }]);
-	});
-});
-
-// ─── mapItemToAdminProject ────────────────────────────────────────────────────
-
-describe('mapItemToAdminProject', () => {
-	const baseItem = {
-		id: 'item-1',
-		contentTypeId: 'ct-1',
-		slug: 'nebulakit',
-		title: 'NebulaKit',
-		status: 'published' as const,
-		fields: {} as Record<string, unknown>,
-		seoTitle: null,
-		seoDescription: null,
-		seoImage: null,
-		authorId: null,
-		publishedAt: '2026-01-01',
-		createdAt: '2026-01-01',
-		updatedAt: '2026-01-02'
-	};
-
-	it('maps a fully-populated item', () => {
-		const item = {
-			...baseItem,
-			fields: {
-				group: '*Space',
-				project_name: 'NebulaKit',
-				status: 'blocked',
-				priority: 'high',
-				description: 'CMS framework',
-				primary_link: 'https://nebulakit.starspace.group/',
-				github_url: 'https://github.com/starspacegroup/NebulaKit',
-				extra_links: [{ label: 'Docs', href: 'https://docs.example.com' }],
-				tasks: [{ text: 'Ship it', done: false }],
-				blockers: 'Waiting on review',
-				sort_order: 3
-			}
-		};
-
-		const p = mapItemToAdminProject(item);
-		expect(p.id).toBe('item-1');
-		expect(p.group).toBe('*Space');
-		expect(p.name).toBe('NebulaKit');
-		expect(p.projectStatus).toBe('blocked');
-		expect(p.priority).toBe('high');
-		expect(p.description).toBe('CMS framework');
-		expect(p.primaryLink).toBe('https://nebulakit.starspace.group/');
-		expect(p.githubUrl).toBe('https://github.com/starspacegroup/NebulaKit');
-		expect(p.extraLinks).toHaveLength(1);
-		expect(p.tasks).toEqual([{ text: 'Ship it', done: false }]);
-		expect(p.blockers).toBe('Waiting on review');
-		expect(p.sortOrder).toBe(3);
-		expect(p.itemStatus).toBe('published');
-		expect(p.rawFields).toBe(item.fields);
-	});
-
-	it('applies safe defaults for empty fields', () => {
-		const p = mapItemToAdminProject(baseItem);
-		expect(p.group).toBe('Other');
-		expect(p.name).toBe('NebulaKit'); // falls back to title
-		expect(p.projectStatus).toBe('active');
-		expect(p.priority).toBe('medium');
-		expect(p.extraLinks).toEqual([]);
-		expect(p.tasks).toEqual([]);
-		expect(p.blockers).toBe('');
-		expect(p.sortOrder).toBe(999);
-	});
-
-	it('sanitises invalid status/priority and non-array extra_links', () => {
-		const p = mapItemToAdminProject({
-			...baseItem,
-			fields: { status: 'bogus', priority: 'urgent', extra_links: 'nope' }
-		});
-		expect(p.projectStatus).toBe('active');
-		expect(p.priority).toBe('medium');
-		expect(p.extraLinks).toEqual([]);
-	});
-
-	it('handles null fields object', () => {
-		const p = mapItemToAdminProject({ ...baseItem, fields: null as any });
-		expect(p.group).toBe('Other');
-		expect(p.tasks).toEqual([]);
-	});
-});
 
 // ─── computeStats ─────────────────────────────────────────────────────────────
 
@@ -182,7 +52,7 @@ describe('computeStats', () => {
 	it('counts statuses, priorities, tasks and blockers', () => {
 		const stats = computeStats([
 			makeProject({
-				projectStatus: 'active',
+				status: 'active',
 				priority: 'high',
 				tasks: [
 					{ text: 'a', done: true },
@@ -192,11 +62,11 @@ describe('computeStats', () => {
 			}),
 			makeProject({
 				id: 'p-2',
-				projectStatus: 'blocked',
+				status: 'blocked',
 				priority: 'low',
 				tasks: [{ text: 'c', done: true }]
 			}),
-			makeProject({ id: 'p-3', projectStatus: 'active', blockers: '   ' })
+			makeProject({ id: 'p-3', status: 'active', blockers: '   ' })
 		]);
 
 		expect(stats.total).toBe(3);
@@ -239,7 +109,7 @@ describe('filterProjects', () => {
 			id: 'a',
 			name: 'NebulaKit',
 			group: '*Space',
-			projectStatus: 'active',
+			status: 'active',
 			priority: 'high',
 			description: 'CMS framework',
 			tasks: [{ text: 'write docs', done: false }]
@@ -248,7 +118,7 @@ describe('filterProjects', () => {
 			id: 'b',
 			name: 'AgapeVerse',
 			group: 'Personal',
-			projectStatus: 'complete',
+			status: 'complete',
 			priority: 'low',
 			blockers: 'waiting on domain'
 		}),
@@ -256,7 +126,7 @@ describe('filterProjects', () => {
 			id: 'c',
 			name: 'SpaceBot',
 			group: '*Space',
-			projectStatus: 'blocked',
+			status: 'blocked',
 			priority: 'medium'
 		})
 	];
@@ -410,89 +280,21 @@ describe('moveProject', () => {
 	});
 });
 
-// ─── buildFieldsUpdate ────────────────────────────────────────────────────────
-
-describe('buildFieldsUpdate', () => {
-	it('merges a patch over raw fields', () => {
-		const project = makeProject({
-			rawFields: { group: '*Space', project_name: 'Old', status: 'active', tasks: [] }
-		});
-		const fields = buildFieldsUpdate(project, { status: 'paused' });
-		expect(fields.status).toBe('paused');
-		expect(fields.group).toBe('*Space');
-		expect(fields.project_name).toBe('Old');
-	});
-
-	it('canonicalises legacy tasks and drops completed_tasks', () => {
-		const project = makeProject({
-			rawFields: { tasks: ['open task'], completed_tasks: ['done task'] }
-		});
-		const fields = buildFieldsUpdate(project, { blockers: 'x' });
-		expect(fields.tasks).toEqual([
-			{ text: 'open task', done: false },
-			{ text: 'done task', done: true }
-		]);
-		expect('completed_tasks' in fields).toBe(false);
-	});
-
-	it('prefers patched tasks over raw fields', () => {
-		const project = makeProject({ rawFields: { tasks: ['old'] } });
-		const fields = buildFieldsUpdate(project, { tasks: [{ text: 'new', done: true }] });
-		expect(fields.tasks).toEqual([{ text: 'new', done: true }]);
-	});
-
-	it('does not mutate the original rawFields', () => {
-		const raw = { status: 'active', completed_tasks: ['x'] };
-		const project = makeProject({ rawFields: raw });
-		buildFieldsUpdate(project, { status: 'complete' });
-		expect(raw.status).toBe('active');
-		expect(raw.completed_tasks).toEqual(['x']);
-	});
-});
-
 // ─── /admin/projects +page.server.ts ─────────────────────────────────────────
 
-function createMockDB(): any {
-	const db: any = {
-		_firstQueue: [] as any[],
-		_allQueue: [] as any[],
-		prepare: vi.fn().mockReturnThis(),
-		bind: vi.fn().mockReturnThis(),
-		first: vi.fn(() => Promise.resolve(db._firstQueue.shift() ?? null)),
-		all: vi.fn(() => Promise.resolve(db._allQueue.shift() ?? { results: [] })),
-		run: vi.fn(() => Promise.resolve({ meta: { changes: 1 } })),
-		batch: vi.fn(() => Promise.resolve([]))
-	};
-	return db;
-}
-
-const openProjectsTypeRow = {
-	id: 'ct-op',
-	slug: 'open-projects',
-	name: 'Open Projects',
-	description: 'Projects',
-	fields: '[]',
-	settings: '{"listPageSize":100}',
-	icon: 'rocket',
-	sort_order: 1,
-	is_system: 1,
-	created_at: '2026-01-01',
-	updated_at: '2026-01-01'
-};
-
-const projectItemRow = {
-	id: 'item-1',
-	content_type_id: 'ct-op',
-	slug: 'nebulakit',
-	title: 'NebulaKit',
-	status: 'published',
-	fields:
-		'{"group":"*Space","project_name":"NebulaKit","status":"active","priority":"high","tasks":[{"text":"Ship","done":false}],"sort_order":0}',
-	seo_title: null,
-	seo_description: null,
-	seo_image: null,
-	author_id: null,
-	published_at: '2026-01-01',
+const projectRow = {
+	id: 'p1',
+	group_name: '*Space',
+	name: 'NebulaKit',
+	status: 'active',
+	priority: 'high',
+	description: '',
+	primary_link: null,
+	github_url: null,
+	extra_links: '[]',
+	tasks: '[{"text":"Ship","done":false}]',
+	blockers: '',
+	sort_order: 0,
 	created_at: '2026-01-01',
 	updated_at: '2026-01-02'
 };
@@ -512,42 +314,76 @@ describe('/admin/projects page server load', () => {
 		}
 	});
 
-	it('throws 500 when the open-projects content type is missing', async () => {
+	it('returns mapped projects from the open_projects table', async () => {
 		const { load } = await import('../../src/routes/admin/projects/+page.server.js');
-		const db = createMockDB();
-		// syncContentTypes reads existing types
-		db._allQueue.push({ results: [] });
-		// getContentTypeBySlug → null
-		db._firstQueue.push(null);
+		const all = vi.fn().mockResolvedValue({ results: [projectRow] });
+		const db = { prepare: vi.fn().mockReturnValue({ all, bind: vi.fn() }) };
 
+		const result = (await load({ platform: { env: { DB: db } } } as any)) as any;
+
+		expect(result.projects).toHaveLength(1);
+		expect(result.projects[0]).toMatchObject({
+			id: 'p1',
+			name: 'NebulaKit',
+			status: 'active',
+			tasks: [{ text: 'Ship', done: false }]
+		});
+	});
+});
+
+// ─── /admin/projects/[id] +page.server.ts ────────────────────────────────────
+
+describe('/admin/projects/[id] page server load', () => {
+	beforeEach(() => {
+		vi.resetModules();
+	});
+
+	it('throws 500 when database is not available', async () => {
+		const { load } = await import('../../src/routes/admin/projects/[id]/+page.server.js');
 		try {
-			await load({ platform: { env: { DB: db } } } as any);
+			await load({ platform: { env: {} }, params: { id: 'p1' } } as any);
 			expect.fail('Should have thrown');
 		} catch (err: any) {
 			expect(err.status).toBe(500);
 		}
 	});
 
-	it('returns mapped projects including drafts', async () => {
-		const { load } = await import('../../src/routes/admin/projects/+page.server.js');
-		const db = createMockDB();
-		// syncContentTypes reads existing types
-		db._allQueue.push({ results: [] });
-		// getContentTypeBySlug
-		db._firstQueue.push(openProjectsTypeRow);
-		// listContentItems: count then items
-		db._firstQueue.push({ count: 2 });
-		db._allQueue.push({
-			results: [projectItemRow, { ...projectItemRow, id: 'item-2', status: 'draft', fields: '{}' }]
-		});
+	it('throws 404 for an unknown project', async () => {
+		const { load } = await import('../../src/routes/admin/projects/[id]/+page.server.js');
+		const statement = {
+			bind: vi.fn().mockReturnThis(),
+			first: vi.fn().mockResolvedValue(null),
+			all: vi.fn().mockResolvedValue({ results: [] })
+		};
+		const db = { prepare: vi.fn().mockReturnValue(statement) };
 
-		const result = (await load({ platform: { env: { DB: db } } } as any)) as any;
+		try {
+			await load({ platform: { env: { DB: db } }, params: { id: 'nope' } } as any);
+			expect.fail('Should have thrown');
+		} catch (err: any) {
+			expect(err.status).toBe(404);
+		}
+	});
 
-		expect(result.projects).toHaveLength(2);
-		expect(result.projects[0].name).toBe('NebulaKit');
-		expect(result.projects[0].projectStatus).toBe('active');
-		expect(result.projects[0].tasks).toEqual([{ text: 'Ship', done: false }]);
-		expect(result.projects[1].itemStatus).toBe('draft');
-		expect(result.projects[1].group).toBe('Other');
+	it('returns the project and group names', async () => {
+		const { load } = await import('../../src/routes/admin/projects/[id]/+page.server.js');
+		const statement = {
+			bind: vi.fn().mockReturnThis(),
+			first: vi.fn().mockResolvedValue(projectRow),
+			all: vi
+				.fn()
+				.mockResolvedValue({
+					results: [projectRow, { ...projectRow, id: 'p2', group_name: 'Personal' }]
+				})
+		};
+		const db = { prepare: vi.fn().mockReturnValue(statement) };
+
+		const result = (await load({
+			platform: { env: { DB: db } },
+			params: { id: 'p1' }
+		} as any)) as any;
+
+		expect(result.project.id).toBe('p1');
+		expect(result.groups).toEqual(['*Space', 'Personal']);
 	});
 });

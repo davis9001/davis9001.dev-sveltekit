@@ -8,12 +8,9 @@ import Page from '../../src/routes/admin/projects/+page.svelte';
 function makeProject(overrides: Record<string, any> = {}) {
 	return {
 		id: 'p-1',
-		slug: 'proj',
-		title: 'Proj',
-		itemStatus: 'published',
 		group: '*Space',
 		name: 'Proj',
-		projectStatus: 'active',
+		status: 'active',
 		priority: 'medium',
 		description: '',
 		primaryLink: null,
@@ -24,7 +21,6 @@ function makeProject(overrides: Record<string, any> = {}) {
 		sortOrder: 0,
 		createdAt: '2026-01-01T00:00:00Z',
 		updatedAt: '2026-01-02T00:00:00Z',
-		rawFields: {},
 		...overrides
 	};
 }
@@ -34,7 +30,7 @@ const mockData: any = {
 		makeProject({
 			id: 'p-1',
 			name: 'NebulaKit',
-			projectStatus: 'active',
+			status: 'active',
 			priority: 'high',
 			description: 'The CMS framework',
 			primaryLink: 'https://nebulakit.starspace.group/',
@@ -43,13 +39,12 @@ const mockData: any = {
 			tasks: [
 				{ text: 'Ship v1', done: false },
 				{ text: 'Write docs', done: true }
-			],
-			rawFields: { group: '*Space', project_name: 'NebulaKit', status: 'active' }
+			]
 		}),
 		makeProject({
 			id: 'p-2',
 			name: 'SpaceBot',
-			projectStatus: 'blocked',
+			status: 'blocked',
 			blockers: 'Waiting on runners',
 			sortOrder: 1
 		}),
@@ -57,8 +52,7 @@ const mockData: any = {
 			id: 'p-3',
 			name: 'AgapeVerse',
 			group: 'Personal',
-			projectStatus: 'complete',
-			itemStatus: 'draft'
+			status: 'complete'
 		})
 	]
 };
@@ -112,9 +106,10 @@ describe('Admin Projects Dashboard page', () => {
 		expect(screen.getByText('Docs')).toBeTruthy();
 	});
 
-	it('marks draft items', () => {
+	it('links each card to its full edit page', () => {
 		render(Page, { props: { data: mockData } });
-		expect(screen.getByText('draft')).toBeTruthy();
+		const editLink = screen.getByLabelText('Edit NebulaKit in full editor');
+		expect(editLink.getAttribute('href')).toBe('/admin/projects/p-1');
 	});
 
 	it('filters projects by search', async () => {
@@ -146,15 +141,15 @@ describe('Admin Projects Dashboard page', () => {
 		expect(screen.getByText('NebulaKit')).toBeTruthy();
 	});
 
-	it('saves a task toggle via PUT', async () => {
+	it('saves a task toggle via PUT to the admin API', async () => {
 		render(Page, { props: { data: mockData } });
 		await fireEvent.click(screen.getByLabelText('Toggle task: Ship v1'));
 		expect(fetchMock).toHaveBeenCalledWith(
-			'/api/cms/open-projects/p-1',
+			'/api/admin/projects/p-1',
 			expect.objectContaining({ method: 'PUT' })
 		);
 		const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-		expect(body.fields.tasks).toEqual([
+		expect(body.tasks).toEqual([
 			{ text: 'Ship v1', done: true },
 			{ text: 'Write docs', done: true }
 		]);
@@ -165,34 +160,65 @@ describe('Admin Projects Dashboard page', () => {
 		const input = screen.getByLabelText('New task for SpaceBot');
 		await fireEvent.input(input, { target: { value: 'New thing' } });
 		await fireEvent.keyDown(input, { key: 'Enter' });
-		const call = fetchMock.mock.calls.find(([url]) => url === '/api/cms/open-projects/p-2');
+		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-2');
 		expect(call).toBeTruthy();
 		const body = JSON.parse(call![1].body);
-		expect(body.fields.tasks).toEqual([{ text: 'New thing', done: false }]);
+		expect(body.tasks).toEqual([{ text: 'New thing', done: false }]);
 	});
 
 	it('changes a project status via the pill select', async () => {
 		render(Page, { props: { data: mockData } });
 		const select = screen.getByLabelText('NebulaKit status');
 		await fireEvent.change(select, { target: { value: 'paused' } });
-		const call = fetchMock.mock.calls.find(([url]) => url === '/api/cms/open-projects/p-1');
+		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-1');
 		expect(call).toBeTruthy();
-		expect(JSON.parse(call![1].body).fields.status).toBe('paused');
+		expect(JSON.parse(call![1].body).status).toBe('paused');
 	});
 
-	it('opens the quick-create modal', async () => {
+	it('reorders with a single POST to the reorder endpoint', async () => {
+		render(Page, { props: { data: mockData } });
+		await fireEvent.click(screen.getByLabelText('Move NebulaKit down'));
+		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/reorder');
+		expect(call).toBeTruthy();
+		expect(call![1].method).toBe('POST');
+		const body = JSON.parse(call![1].body);
+		expect(body.updates).toEqual(
+			expect.arrayContaining([
+				{ id: 'p-1', sortOrder: 1 },
+				{ id: 'p-2', sortOrder: 0 }
+			])
+		);
+		// exactly one network call for the whole reorder
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('opens the quick-create modal and creates via the admin API', async () => {
+		fetchMock.mockResolvedValue({
+			ok: true,
+			json: async () => ({ project: makeProject({ id: 'p-new', name: 'Fresh' }) })
+		});
 		render(Page, { props: { data: mockData } });
 		await fireEvent.click(screen.getByRole('button', { name: '+ New Project' }));
 		expect(screen.getByRole('dialog', { name: 'New project' })).toBeTruthy();
+
+		const nameInput = screen.getByLabelText(/Name/);
+		await fireEvent.input(nameInput, { target: { value: 'Fresh' } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects');
+		expect(call).toBeTruthy();
+		expect(call![1].method).toBe('POST');
+		expect(JSON.parse(call![1].body).name).toBe('Fresh');
+		expect(await screen.findByText('Fresh')).toBeTruthy();
 	});
 
-	it('shows delete confirmation and deletes', async () => {
+	it('shows delete confirmation and deletes via the admin API', async () => {
 		render(Page, { props: { data: mockData } });
 		await fireEvent.click(screen.getByLabelText('Delete AgapeVerse'));
 		expect(screen.getByRole('dialog', { name: 'Confirm deletion' })).toBeTruthy();
 		await fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 		expect(fetchMock).toHaveBeenCalledWith(
-			'/api/cms/open-projects/p-3',
+			'/api/admin/projects/p-3',
 			expect.objectContaining({ method: 'DELETE' })
 		);
 	});
