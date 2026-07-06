@@ -12,9 +12,14 @@
  * the write-time defense (writes are additionally owner/admin-gated).
  */
 
-import { FilterXSS, escapeAttrValue } from 'xss';
+// xss is CommonJS — import the namespace and unwrap the interop default so
+// this works under Vite SSR, Workers bundling, and Vitest alike.
+import * as xssModule from 'xss';
 import { decodeAttrEntities, encodeAttrEntities, EMBED_NAME_PATTERN } from './embed';
 import type { ContentFieldDefinition } from './types';
+
+const FilterXSS = ((xssModule as unknown as { default?: typeof xssModule }).default ?? xssModule)
+	.FilterXSS as typeof xssModule.FilterXSS;
 
 const ALLOWED_TAGS: Record<string, string[]> = {
 	h2: [],
@@ -66,7 +71,9 @@ const filter = new FilterXSS({
 	stripIgnoreTagBody: ['script', 'style'],
 	onTagAttr(tag, name, value) {
 		if (tag === 'div' && name === 'data-svelte-embed') {
-			return EMBED_NAME_PATTERN.test(value) ? `data-svelte-embed="${escapeAttrValue(value)}"` : '';
+			return EMBED_NAME_PATTERN.test(value)
+				? `data-svelte-embed="${encodeAttrEntities(value)}"`
+				: '';
 		}
 		if (tag === 'div' && name === 'data-props') {
 			// The value arrives raw from the parser (entity-escaped as stored)

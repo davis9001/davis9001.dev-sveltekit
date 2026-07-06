@@ -6,6 +6,8 @@
   (onMount) — during SSR the component renders an empty shell.
 -->
 <script lang="ts">
+	import { embedManifest } from '$lib/cms/embeds/manifest';
+	import { SvelteEmbed } from '$lib/cms/richtext-embed-extension';
 	import { Editor } from '@tiptap/core';
 	import Image from '@tiptap/extension-image';
 	import Link from '@tiptap/extension-link';
@@ -15,6 +17,8 @@
 
 	export let value = '';
 	export let placeholder = 'Write something…';
+	/** Show the Svelte-embed toolbar button (on for CMS content) */
+	export let allowEmbeds = true;
 
 	let element: HTMLDivElement;
 	let editor: Editor | null = null;
@@ -32,6 +36,43 @@
 	let linkUrl = '';
 	let linkInputEl: HTMLInputElement | null = null;
 
+	// embed picker + props editor
+	let showEmbedPicker = false;
+	let showPropsEditor = false;
+	let propsJson = '';
+	let propsError = '';
+	let propsSetter: ((p: Record<string, unknown>) => void) | null = null;
+
+	function openPropsEditor(
+		getProps: () => Record<string, unknown>,
+		setProps: (p: Record<string, unknown>) => void
+	) {
+		propsJson = JSON.stringify(getProps(), null, 2);
+		propsError = '';
+		propsSetter = setProps;
+		showPropsEditor = true;
+	}
+
+	function applyProps() {
+		try {
+			const parsed = JSON.parse(propsJson || '{}');
+			if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+				propsError = 'Props must be a JSON object';
+				return;
+			}
+			propsSetter?.(parsed);
+			showPropsEditor = false;
+			propsSetter = null;
+		} catch {
+			propsError = 'Invalid JSON';
+		}
+	}
+
+	function insertEmbed(name: string, defaultProps: Record<string, unknown>) {
+		editor?.chain().focus().insertSvelteEmbed(name, defaultProps).run();
+		showEmbedPicker = false;
+	}
+
 	onMount(() => {
 		editor = new Editor({
 			element,
@@ -45,7 +86,8 @@
 					HTMLAttributes: { rel: 'noopener noreferrer' }
 				}),
 				Image,
-				Placeholder.configure({ placeholder })
+				Placeholder.configure({ placeholder }),
+				SvelteEmbed.configure({ onEditProps: openPropsEditor })
 			],
 			content: value || '',
 			onUpdate: ({ editor: e }) => {
@@ -244,6 +286,16 @@
 				disabled={sourceMode}
 				on:click={() => cmd((c) => c.setHorizontalRule())}>—</button
 			>
+			{#if allowEmbeds}
+				<button
+					type="button"
+					class="rte-btn"
+					title="Insert Svelte embed"
+					aria-label="Insert Svelte embed"
+					disabled={sourceMode}
+					on:click={() => (showEmbedPicker = true)}>⧉</button
+				>
+			{/if}
 		</div>
 
 		<slot name="toolbar-extra" {editor} {sourceMode} />
@@ -309,6 +361,67 @@
 		></textarea>
 	{/if}
 </div>
+
+{#if showEmbedPicker}
+	<div
+		class="rte-modal-overlay"
+		on:click|self={() => (showEmbedPicker = false)}
+		on:keydown={(e) => e.key === 'Escape' && (showEmbedPicker = false)}
+		role="presentation"
+	>
+		<div class="rte-modal" role="dialog" aria-modal="true" aria-label="Insert embed">
+			<h3>Insert Svelte embed</h3>
+			<ul class="rte-embed-list">
+				{#each embedManifest as embed (embed.name)}
+					<li>
+						<button
+							type="button"
+							class="rte-embed-option"
+							on:click={() => insertEmbed(embed.name, embed.defaultProps)}
+						>
+							<strong>{embed.label}</strong>
+							<span>{embed.description}</span>
+						</button>
+					</li>
+				{/each}
+			</ul>
+			<div class="rte-modal-actions">
+				<button type="button" class="rte-btn" on:click={() => (showEmbedPicker = false)}>
+					Cancel
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showPropsEditor}
+	<div
+		class="rte-modal-overlay"
+		on:click|self={() => (showPropsEditor = false)}
+		on:keydown={(e) => e.key === 'Escape' && (showPropsEditor = false)}
+		role="presentation"
+	>
+		<div class="rte-modal" role="dialog" aria-modal="true" aria-label="Edit embed props">
+			<h3>Embed props (JSON)</h3>
+			<textarea
+				class="rte-props-area"
+				bind:value={propsJson}
+				rows="8"
+				aria-label="Embed props JSON"
+				spellcheck="false"
+			></textarea>
+			{#if propsError}
+				<p class="rte-props-error" role="alert">{propsError}</p>
+			{/if}
+			<div class="rte-modal-actions">
+				<button type="button" class="rte-btn" on:click={() => (showPropsEditor = false)}>
+					Cancel
+				</button>
+				<button type="button" class="rte-btn rte-active" on:click={applyProps}>Apply</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	.rte {
@@ -515,5 +628,144 @@
 		padding: 0.75rem 1rem;
 		resize: vertical;
 		outline: none;
+	}
+
+	/* Embed placeholder cards (nodeview DOM is unscoped) */
+	.rte-editor :global(.rte-embed-card) {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.75rem;
+		border: 1px dashed var(--color-primary);
+		border-radius: var(--radius-md);
+		background: color-mix(in srgb, var(--color-primary) 6%, var(--color-background));
+		padding: 0.6rem 0.75rem;
+		margin: 0.75em 0;
+	}
+
+	.rte-editor :global(.rte-embed-info) {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		font-size: 0.8125rem;
+	}
+
+	.rte-editor :global(.rte-embed-chip) {
+		font-family: var(--font-mono);
+		font-size: 0.6875rem;
+		color: var(--color-text-secondary);
+	}
+
+	.rte-editor :global(.rte-embed-desc) {
+		color: var(--color-text-secondary);
+		font-size: 0.75rem;
+	}
+
+	.rte-editor :global(.rte-embed-actions) {
+		display: flex;
+		gap: 0.375rem;
+		flex: none;
+	}
+
+	.rte-editor :global(.rte-embed-actions button) {
+		background: none;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		color: var(--color-text-secondary);
+		font-size: 0.75rem;
+		padding: 0.2rem 0.5rem;
+		cursor: pointer;
+	}
+
+	.rte-editor :global(.rte-embed-actions button:hover) {
+		color: var(--color-text);
+		background: var(--color-surface-hover, rgba(128, 128, 128, 0.15));
+	}
+
+	/* Modals */
+	.rte-modal-overlay {
+		position: fixed;
+		inset: 0;
+		background: rgba(0, 0, 0, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 200;
+		padding: 1rem;
+	}
+
+	.rte-modal {
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-lg);
+		width: 100%;
+		max-width: 460px;
+		padding: 1rem;
+	}
+
+	.rte-modal h3 {
+		font-size: 0.9375rem;
+		margin-bottom: 0.75rem;
+		color: var(--color-text);
+	}
+
+	.rte-embed-list {
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		margin: 0 0 0.75rem;
+		padding: 0;
+		max-height: 320px;
+		overflow-y: auto;
+	}
+
+	.rte-embed-option {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+		text-align: left;
+		background: var(--color-background);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		padding: 0.5rem 0.75rem;
+		color: var(--color-text);
+		cursor: pointer;
+		font-size: 0.8125rem;
+	}
+
+	.rte-embed-option span {
+		color: var(--color-text-secondary);
+		font-size: 0.75rem;
+	}
+
+	.rte-embed-option:hover {
+		border-color: var(--color-primary);
+	}
+
+	.rte-props-area {
+		width: 100%;
+		background: var(--color-background);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		color: var(--color-text);
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		padding: 0.5rem 0.75rem;
+		resize: vertical;
+	}
+
+	.rte-props-error {
+		color: var(--color-danger, #ef4444);
+		font-size: 0.8125rem;
+		margin-top: 0.375rem;
+	}
+
+	.rte-modal-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.375rem;
+		margin-top: 0.75rem;
 	}
 </style>

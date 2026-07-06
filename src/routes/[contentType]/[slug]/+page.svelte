@@ -5,6 +5,7 @@
   Uses the content type's itemTemplate setting for layout selection.
 -->
 <script lang="ts">
+	import CmsContent from '$lib/components/CmsContent.svelte';
 	import SEO from '$lib/components/SEO.svelte';
 	import type { PageData } from './$types';
 
@@ -81,7 +82,7 @@
 			{/if}
 
 			<div class="cms-blog-article-body cms-content">
-				{@html item.fields.body || ''}
+				<CmsContent html={String(item.fields.body || '')} />
 			</div>
 		</article>
 	{:else}
@@ -108,7 +109,9 @@
 					{#if item.fields[fieldDef.name] !== undefined && item.fields[fieldDef.name] !== null && item.fields[fieldDef.name] !== ''}
 						<div class="cms-field-block">
 							{#if fieldDef.type === 'richtext'}
-								<div class="cms-content">{@html item.fields[fieldDef.name]}</div>
+								<div class="cms-content">
+									<CmsContent html={String(item.fields[fieldDef.name] || '')} />
+								</div>
 							{:else if fieldDef.type === 'image' || fieldDef.type === 'url'}
 								{#if fieldDef.type === 'image'}
 									<img src={String(item.fields[fieldDef.name])} alt={fieldDef.label} />

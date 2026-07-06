@@ -13,7 +13,8 @@ const editorState = vi.hoisted(() => {
 	return state;
 });
 
-vi.mock('@tiptap/core', () => {
+vi.mock('@tiptap/core', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('@tiptap/core')>();
 	class MockEditor {
 		options: any;
 		destroyed = false;
@@ -54,7 +55,7 @@ vi.mock('@tiptap/core', () => {
 			this.destroyed = true;
 		}
 	}
-	return { Editor: MockEditor };
+	return { ...actual, Editor: MockEditor };
 });
 
 vi.mock('@tiptap/starter-kit', () => ({
