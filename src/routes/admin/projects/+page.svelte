@@ -360,6 +360,65 @@
 
 		saveProject(project, { tasks: setTaskStatus(project.tasks, dragged.index, status) });
 	}
+
+	// ── Board quick-add composer ──────────────────────────────────────────
+	let composerStatus: ProjectStatus | null = null;
+	let composerProjectId = '';
+	let composerText = '';
+
+	function openComposer(status: ProjectStatus) {
+		composerStatus = status;
+		composerText = '';
+		if (!projects.some((p) => p.id === composerProjectId)) {
+			composerProjectId = filtered[0]?.id ?? projects[0]?.id ?? '';
+		}
+	}
+
+	function cancelComposer() {
+		composerStatus = null;
+		composerText = '';
+	}
+
+	function submitComposer() {
+		const text = composerText.trim();
+		const project = projects.find((p) => p.id === composerProjectId);
+		if (!text || !project || !composerStatus) return;
+		saveProject(project, {
+			tasks: [
+				...project.tasks,
+				{ text, done: composerStatus === 'complete', status: composerStatus }
+			]
+		});
+		// stay open for rapid entry
+		composerText = '';
+	}
+
+	// ── Inline task editing on board cards ────────────────────────────────
+	let editingTask: { projectId: string; index: number } | null = null;
+	let editingText = '';
+
+	function startEditTask(task: BoardTask) {
+		editingTask = { projectId: task.projectId, index: task.index };
+		editingText = task.text;
+	}
+
+	function commitEditTask() {
+		const editing = editingTask;
+		editingTask = null;
+		if (!editing) return;
+		const project = projects.find((p) => p.id === editing.projectId);
+		const text = editingText.trim();
+		if (!project || !text || project.tasks[editing.index]?.text === text) return;
+		saveProject(project, {
+			tasks: project.tasks.map((task, i) => (i === editing.index ? { ...task, text } : task))
+		});
+	}
+
+	function removeBoardTask(task: BoardTask) {
+		const project = projects.find((p) => p.id === task.projectId);
+		if (!project) return;
+		removeTask(project, task.index);
+	}
 </script>
 
 <SEO
@@ -720,13 +779,36 @@
 							class:card-saving={savingIds.has(task.projectId)}
 							class:board-card-dragging={draggingTask?.projectId === task.projectId &&
 								draggingTask?.index === task.index}
-							draggable="true"
+							draggable={editingTask === null}
 							role="listitem"
 							aria-label="Drag task: {task.text}"
 							on:dragstart={(e) => handleDragStart(e, task)}
 							on:dragend={handleDragEnd}
 						>
-							<span class="board-task-text">{task.text}</span>
+							{#if editingTask?.projectId === task.projectId && editingTask?.index === task.index}
+								<!-- svelte-ignore a11y-autofocus -->
+								<input
+									class="board-task-edit"
+									type="text"
+									bind:value={editingText}
+									autofocus
+									aria-label="Edit task text"
+									on:blur={commitEditTask}
+									on:keydown={(e) => {
+										if (e.key === 'Enter') commitEditTask();
+										if (e.key === 'Escape') editingTask = null;
+									}}
+								/>
+							{:else}
+								<button
+									class="board-task-text"
+									title="Click to edit"
+									aria-label="Edit task: {task.text}"
+									on:click={() => startEditTask(task)}
+								>
+									{task.text}
+								</button>
+							{/if}
 							<div class="board-card-foot">
 								<a
 									class="board-task-project"
@@ -736,11 +818,60 @@
 									{task.projectName}
 								</a>
 								<span class="board-card-group">{task.group}</span>
+								<button
+									class="board-task-remove"
+									title="Remove task"
+									aria-label="Remove task: {task.text}"
+									on:click={() => removeBoardTask(task)}>×</button
+								>
 							</div>
 						</div>
 					{/each}
 					{#if column.length === 0}
 						<p class="board-empty">—</p>
+					{/if}
+
+					{#if composerStatus === s}
+						<div class="board-composer">
+							<select
+								value={composerProjectId}
+								on:change={(e) => (composerProjectId = e.currentTarget.value)}
+								aria-label="Project for new task"
+								class="board-composer-project"
+							>
+								{#each groupProjects(projects) as g}
+									{#each g.projects as p}
+										<option value={p.id}>{g.name} · {p.name}</option>
+									{/each}
+								{/each}
+							</select>
+							<!-- svelte-ignore a11y-autofocus -->
+							<input
+								type="text"
+								bind:value={composerText}
+								placeholder="Task…"
+								autofocus
+								aria-label="New task text for {STATUS_LABELS[s]}"
+								on:keydown={(e) => {
+									if (e.key === 'Enter') submitComposer();
+									if (e.key === 'Escape') cancelComposer();
+								}}
+							/>
+							<div class="board-composer-actions">
+								<button class="btn-link" on:click={submitComposer} disabled={!composerText.trim()}>
+									Add
+								</button>
+								<button class="btn-link btn-link-muted" on:click={cancelComposer}>Done</button>
+							</div>
+						</div>
+					{:else}
+						<button
+							class="board-add-task"
+							aria-label="Add task to {STATUS_LABELS[s]}"
+							on:click={() => openComposer(s)}
+						>
+							+ Add task
+						</button>
 					{/if}
 				</div>
 			{/each}
@@ -1433,11 +1564,34 @@
 	}
 
 	/* Board view */
+	/* Mobile-first: swipeable snap columns; grid on wide screens */
 	.board {
-		display: grid;
-		grid-template-columns: repeat(4, minmax(180px, 1fr));
-		gap: var(--spacing-md);
+		display: flex;
+		gap: var(--spacing-sm);
 		overflow-x: auto;
+		scroll-snap-type: x mandatory;
+		-webkit-overflow-scrolling: touch;
+		padding-bottom: var(--spacing-sm);
+	}
+
+	.board > * {
+		flex: 0 0 84vw;
+		max-width: 20rem;
+		scroll-snap-align: center;
+	}
+
+	@media (min-width: 900px) {
+		.board {
+			display: grid;
+			grid-template-columns: repeat(4, minmax(180px, 1fr));
+			gap: var(--spacing-md);
+			overflow-x: visible;
+		}
+
+		.board > * {
+			flex: none;
+			max-width: none;
+		}
 	}
 
 	.board-col {
@@ -1491,9 +1645,11 @@
 		border-color: var(--color-primary);
 	}
 
-	.board-single {
-		grid-template-columns: minmax(280px, 640px);
-		justify-content: center;
+	@media (min-width: 900px) {
+		.board-single {
+			grid-template-columns: minmax(280px, 640px);
+			justify-content: center;
+		}
 	}
 
 	.board-task-text {
@@ -1501,6 +1657,86 @@
 		color: var(--color-text);
 		word-break: break-word;
 		line-height: 1.4;
+		background: none;
+		border: none;
+		padding: 0;
+		text-align: left;
+		cursor: text;
+		font-family: inherit;
+	}
+
+	.board-task-edit {
+		width: 100%;
+		font-size: 0.875rem;
+		font-family: inherit;
+		color: var(--color-text);
+		background: var(--color-background);
+		border: 1px solid var(--color-primary);
+		border-radius: var(--radius-sm);
+		padding: 0.2rem 0.4rem;
+	}
+
+	.board-task-remove {
+		background: none;
+		border: none;
+		color: var(--color-text-secondary);
+		font-size: 0.9375rem;
+		line-height: 1;
+		cursor: pointer;
+		padding: 0 0.15rem;
+		flex: none;
+	}
+
+	.board-task-remove:hover {
+		color: var(--color-danger, #ef4444);
+	}
+
+	.board-add-task {
+		background: none;
+		border: 1px dashed var(--color-border);
+		border-radius: var(--radius-md);
+		color: var(--color-text-secondary);
+		font-size: 0.8125rem;
+		padding: 0.4rem;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.board-add-task:hover {
+		border-color: var(--color-primary);
+		color: var(--color-text);
+	}
+
+	.board-composer {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		background: var(--color-surface);
+		border: 1px solid var(--color-primary);
+		border-radius: var(--radius-md);
+		padding: 0.5rem;
+	}
+
+	.board-composer select,
+	.board-composer input {
+		width: 100%;
+		font-size: 0.8125rem;
+		font-family: inherit;
+		color: var(--color-text);
+		background: var(--color-background);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 0.3rem 0.5rem;
+	}
+
+	.board-composer-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.75rem;
+	}
+
+	.btn-link-muted {
+		color: var(--color-text-secondary);
 	}
 
 	.board-card-foot {
@@ -1684,18 +1920,9 @@
 	}
 
 	/* Responsive */
-	@media (max-width: 900px) {
-		.board {
-			grid-template-columns: repeat(2, minmax(160px, 1fr));
-		}
-	}
 
 	@media (max-width: 640px) {
 		.cards {
-			grid-template-columns: 1fr;
-		}
-
-		.board {
 			grid-template-columns: 1fr;
 		}
 

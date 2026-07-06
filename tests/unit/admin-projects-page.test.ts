@@ -254,6 +254,61 @@ describe('Admin Projects Dashboard page', () => {
 		expect(body.tasks).toEqual([{ text: 'New thing', done: false, status: 'planning' }]);
 	});
 
+	it('quick-adds a task to a column via the board composer', async () => {
+		render(Page, { props: { data: mockData } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
+
+		await fireEvent.click(screen.getByLabelText('Add task to Blocked'));
+		const projectSelect = screen.getByLabelText('Project for new task') as HTMLSelectElement;
+		await fireEvent.change(projectSelect, { target: { value: 'p-2' } });
+		const input = screen.getByLabelText('New task text for Blocked');
+		await fireEvent.input(input, { target: { value: 'Unblock runners' } });
+		await fireEvent.keyDown(input, { key: 'Enter' });
+
+		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-2');
+		expect(call).toBeTruthy();
+		expect(JSON.parse(call![1].body).tasks).toEqual([
+			{ text: 'Unblock runners', done: false, status: 'blocked' }
+		]);
+
+		// the new task card appears in the Blocked column (optimistic)
+		expect(
+			within(screen.getByLabelText('Blocked column')).getByText('Unblock runners')
+		).toBeTruthy();
+	});
+
+	it('edits a task inline on its board card', async () => {
+		render(Page, { props: { data: mockData } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
+
+		await fireEvent.click(screen.getByLabelText('Edit task: Ship v1'));
+		const input = screen.getByLabelText('Edit task text') as HTMLInputElement;
+		expect(input.value).toBe('Ship v1');
+		await fireEvent.input(input, { target: { value: 'Ship v2' } });
+		await fireEvent.keyDown(input, { key: 'Enter' });
+
+		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-1');
+		expect(call).toBeTruthy();
+		expect(JSON.parse(call![1].body).tasks[0]).toEqual({
+			text: 'Ship v2',
+			done: false,
+			status: 'planning'
+		});
+	});
+
+	it('removes a task from its board card', async () => {
+		render(Page, { props: { data: mockData } });
+		await fireEvent.click(screen.getByRole('button', { name: 'Board' }));
+
+		await fireEvent.click(screen.getByLabelText('Remove task: Ship v1'));
+
+		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-1');
+		expect(call).toBeTruthy();
+		expect(JSON.parse(call![1].body).tasks).toEqual([
+			{ text: 'Write docs', done: true, status: 'complete' }
+		]);
+	});
+
 	it('changes a project status via the pill select', async () => {
 		render(Page, { props: { data: mockData } });
 		const select = screen.getByLabelText('NebulaKit status');
