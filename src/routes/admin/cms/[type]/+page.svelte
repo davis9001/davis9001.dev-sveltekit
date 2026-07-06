@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
 	import SEO from '$lib/components/SEO.svelte';
+	import RichTextEditor from '$lib/components/RichTextEditor.svelte';
 	import TaskListField from '$lib/components/TaskListField.svelte';
 	import type { PageData } from './$types';
 
@@ -584,14 +585,10 @@
 										rows="3"
 									></textarea>
 								{:else if field.type === 'richtext'}
-									<textarea
-										id="field-{field.name}"
+									<RichTextEditor
 										bind:value={formFields[field.name]}
-										placeholder={field.placeholder || ''}
-										rows="10"
-										class="richtext-field"
-									></textarea>
-									<span class="field-help">Supports Markdown formatting</span>
+										placeholder={field.placeholder || 'Write your content…'}
+									/>
 								{:else if field.type === 'boolean'}
 									<label class="checkbox-label">
 										<input
@@ -1280,11 +1277,6 @@
 		border-radius: var(--radius-sm);
 		background: var(--color-surface);
 		cursor: pointer;
-	}
-
-	.richtext-field {
-		font-family: 'Courier New', monospace;
-		line-height: 1.5;
 	}
 
 	.json-field {

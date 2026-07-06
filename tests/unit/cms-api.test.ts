@@ -386,6 +386,20 @@ describe('CMS API - Content Items', () => {
 		it('should update a content item', async () => {
 			const { PUT } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
 
+			// getContentTypeBySlug (fields are validated + sanitized on PUT)
+			mockDB.first.mockResolvedValueOnce({
+				id: 'ct-1',
+				slug: 'blog',
+				name: 'Blog Posts',
+				description: '',
+				fields: '[{"name":"body","label":"Body","type":"richtext","sortOrder":1}]',
+				settings: '{}',
+				icon: 'article',
+				sort_order: 0,
+				is_system: 1,
+				created_at: '2024-01-01',
+				updated_at: '2024-01-01'
+			});
 			// updateContentItem: get existing
 			mockDB.first.mockResolvedValueOnce({
 				id: 'ci-1',
@@ -439,6 +453,115 @@ describe('CMS API - Content Items', () => {
 			expect(response.status).toBe(200);
 			const data = await response.json();
 			expect(data.item.title).toBe('Updated');
+		});
+
+		const contentTypeRow = {
+			id: 'ct-1',
+			slug: 'blog',
+			name: 'Blog Posts',
+			description: '',
+			fields: '[{"name":"body","label":"Body","type":"richtext","sortOrder":1,"required":true}]',
+			settings: '{}',
+			icon: 'article',
+			sort_order: 0,
+			is_system: 1,
+			created_at: '2024-01-01',
+			updated_at: '2024-01-01'
+		};
+
+		function makePutRequest(bodyFields: Record<string, unknown>) {
+			return new Request('http://localhost/api/cms/blog/ci-1', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ fields: bodyFields })
+			});
+		}
+
+		it('should 404 when the content type is missing and fields are provided', async () => {
+			const { PUT } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
+			mockDB.first.mockResolvedValueOnce(null); // getContentTypeBySlug
+
+			try {
+				await PUT({
+					platform: mockPlatform,
+					locals: mockLocals,
+					params: { type: 'nope', id: 'ci-1' },
+					request: makePutRequest({ body: 'x' })
+				} as any);
+				expect.fail('Should have thrown');
+			} catch (err: any) {
+				expect(err.status).toBe(404);
+			}
+		});
+
+		it('should 400 when field validation fails on update', async () => {
+			const { PUT } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
+			mockDB.first.mockResolvedValueOnce(contentTypeRow);
+
+			try {
+				await PUT({
+					platform: mockPlatform,
+					locals: mockLocals,
+					params: { type: 'blog', id: 'ci-1' },
+					request: makePutRequest({}) // required body missing
+				} as any);
+				expect.fail('Should have thrown');
+			} catch (err: any) {
+				expect(err.status).toBe(400);
+			}
+		});
+
+		it('should sanitize richtext fields on update', async () => {
+			const { PUT } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
+			mockDB.first
+				.mockResolvedValueOnce(contentTypeRow)
+				// updateContentItem: get existing
+				.mockResolvedValueOnce({
+					id: 'ci-1',
+					content_type_id: 'ct-1',
+					slug: 'hello',
+					title: 'Hello',
+					status: 'draft',
+					fields: '{}',
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: null,
+					published_at: null,
+					created_at: '2024-01-01',
+					updated_at: '2024-01-01'
+				})
+				// updateContentItem: refetch
+				.mockResolvedValueOnce({
+					id: 'ci-1',
+					content_type_id: 'ct-1',
+					slug: 'hello',
+					title: 'Hello',
+					status: 'draft',
+					fields: '{"body":"<p>ok</p>"}',
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: null,
+					published_at: null,
+					created_at: '2024-01-01',
+					updated_at: '2024-01-01'
+				});
+
+			await PUT({
+				platform: mockPlatform,
+				locals: mockLocals,
+				params: { type: 'blog', id: 'ci-1' },
+				request: makePutRequest({ body: '<p>ok</p><script>alert(1)</script>' })
+			} as any);
+
+			// The UPDATE bind must contain sanitized fields JSON (no script)
+			const boundFieldsJson = mockDB.bind.mock.calls
+				.flat()
+				.find((v: unknown) => typeof v === 'string' && (v as string).includes('"body"'));
+			expect(boundFieldsJson).toBeTruthy();
+			expect(boundFieldsJson).not.toContain('script');
+			expect(boundFieldsJson).toContain('<p>ok</p>');
 		});
 	});
 

@@ -5,7 +5,14 @@
  * PUT    /api/cms/[type]/[id] - Update an item
  * DELETE /api/cms/[type]/[id] - Delete an item
  */
-import { deleteContentItem, getContentItem, updateContentItem } from '$lib/services/cms';
+import { sanitizeRichtextFields } from '$lib/cms/sanitize';
+import { validateFields } from '$lib/cms/utils';
+import {
+	deleteContentItem,
+	getContentItem,
+	getContentTypeBySlug,
+	updateContentItem
+} from '$lib/services/cms';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -49,11 +56,27 @@ export const PUT: RequestHandler = async ({ platform, locals, params, request })
 	try {
 		const body = await request.json();
 
+		// Validate and sanitize fields against the content type definition
+		let fields = body.fields;
+		if (fields !== undefined) {
+			const contentType = await getContentTypeBySlug(db, params.type);
+			if (!contentType) {
+				throw error(404, `Content type "${params.type}" not found`);
+			}
+
+			const fieldErrors = validateFields(fields || {}, contentType.fields);
+			if (fieldErrors.length > 0) {
+				throw error(400, fieldErrors.join(', '));
+			}
+
+			fields = sanitizeRichtextFields(fields || {}, contentType.fields);
+		}
+
 		const item = await updateContentItem(db, params.id, {
 			title: body.title,
 			slug: body.slug,
 			status: body.status,
-			fields: body.fields,
+			fields,
 			seoTitle: body.seoTitle,
 			seoDescription: body.seoDescription,
 			seoImage: body.seoImage,

@@ -1,0 +1,519 @@
+<!--
+  RichTextEditor — TipTap-based WYSIWYG for CMS richtext fields.
+
+  Two-way binds an HTML string (bind:value), following the TaskListField
+  custom-field pattern. The TipTap Editor is constructed client-side only
+  (onMount) — during SSR the component renders an empty shell.
+-->
+<script lang="ts">
+	import { Editor } from '@tiptap/core';
+	import Image from '@tiptap/extension-image';
+	import Link from '@tiptap/extension-link';
+	import Placeholder from '@tiptap/extension-placeholder';
+	import StarterKit from '@tiptap/starter-kit';
+	import { onDestroy, onMount } from 'svelte';
+
+	export let value = '';
+	export let placeholder = 'Write something…';
+
+	let element: HTMLDivElement;
+	let editor: Editor | null = null;
+
+	// bumped on every transaction so toolbar active-states stay reactive
+	let tick = 0;
+	// guards against value-loop: editor onUpdate -> value -> setContent
+	let internalUpdate = false;
+
+	// source view
+	let sourceMode = false;
+
+	// link popover
+	let showLinkInput = false;
+	let linkUrl = '';
+	let linkInputEl: HTMLInputElement | null = null;
+
+	onMount(() => {
+		editor = new Editor({
+			element,
+			extensions: [
+				StarterKit.configure({
+					heading: { levels: [2, 3, 4] }
+				}),
+				Link.configure({
+					openOnClick: false,
+					autolink: true,
+					HTMLAttributes: { rel: 'noopener noreferrer' }
+				}),
+				Image,
+				Placeholder.configure({ placeholder })
+			],
+			content: value || '',
+			onUpdate: ({ editor: e }) => {
+				internalUpdate = true;
+				value = e.getHTML();
+			},
+			onTransaction: () => {
+				tick += 1;
+			}
+		});
+	});
+
+	onDestroy(() => {
+		editor?.destroy();
+		editor = null;
+	});
+
+	// External value changes (e.g. source-mode edits, parent resets) flow in;
+	// internal updates are skipped to avoid cursor-destroying setContent calls.
+	$: if (editor && !sourceMode) {
+		if (internalUpdate) {
+			internalUpdate = false;
+		} else if (value !== editor.getHTML()) {
+			editor.commands.setContent(value || '', false);
+		}
+	}
+
+	$: active = (name: string, attrs?: Record<string, unknown>) =>
+		tick >= 0 && editor ? editor.isActive(name, attrs) : false;
+
+	function cmd(fn: (chain: ReturnType<Editor['chain']>) => { run: () => boolean }) {
+		if (!editor) return;
+		fn(editor.chain().focus());
+	}
+
+	function toggleSource() {
+		if (sourceMode) {
+			// leaving source view — push edited HTML back into the editor
+			sourceMode = false;
+			editor?.commands.setContent(value || '', false);
+		} else {
+			sourceMode = true;
+		}
+	}
+
+	function openLinkInput() {
+		if (!editor) return;
+		linkUrl = editor.getAttributes('link').href || '';
+		showLinkInput = true;
+		setTimeout(() => linkInputEl?.focus(), 0);
+	}
+
+	function applyLink() {
+		if (!editor) return;
+		const url = linkUrl.trim();
+		if (url) {
+			editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+		} else {
+			editor.chain().focus().extendMarkRange('link').unsetLink().run();
+		}
+		showLinkInput = false;
+		linkUrl = '';
+	}
+
+	function cancelLink() {
+		showLinkInput = false;
+		linkUrl = '';
+	}
+</script>
+
+<div class="rte" class:rte-source={sourceMode}>
+	<div class="rte-toolbar" role="toolbar" aria-label="Text formatting">
+		<div class="rte-group">
+			<button
+				type="button"
+				class="rte-btn"
+				class:rte-active={active('paragraph') &&
+					!active('bulletList') &&
+					!active('orderedList') &&
+					!active('blockquote')}
+				title="Paragraph"
+				aria-label="Paragraph"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.setParagraph())}>¶</button
+			>
+			<button
+				type="button"
+				class="rte-btn"
+				class:rte-active={active('heading', { level: 2 })}
+				title="Heading 2"
+				aria-label="Heading 2"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.toggleHeading({ level: 2 }))}>H2</button
+			>
+			<button
+				type="button"
+				class="rte-btn"
+				class:rte-active={active('heading', { level: 3 })}
+				title="Heading 3"
+				aria-label="Heading 3"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.toggleHeading({ level: 3 }))}>H3</button
+			>
+		</div>
+
+		<div class="rte-group">
+			<button
+				type="button"
+				class="rte-btn rte-b"
+				class:rte-active={active('bold')}
+				title="Bold (Ctrl+B)"
+				aria-label="Bold"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.toggleBold())}>B</button
+			>
+			<button
+				type="button"
+				class="rte-btn rte-i"
+				class:rte-active={active('italic')}
+				title="Italic (Ctrl+I)"
+				aria-label="Italic"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.toggleItalic())}>I</button
+			>
+			<button
+				type="button"
+				class="rte-btn rte-s"
+				class:rte-active={active('strike')}
+				title="Strikethrough"
+				aria-label="Strikethrough"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.toggleStrike())}>S</button
+			>
+			<button
+				type="button"
+				class="rte-btn rte-code"
+				class:rte-active={active('code')}
+				title="Inline code"
+				aria-label="Inline code"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.toggleCode())}>&lt;&gt;</button
+			>
+			<button
+				type="button"
+				class="rte-btn"
+				class:rte-active={active('link')}
+				title="Link"
+				aria-label="Link"
+				disabled={sourceMode}
+				on:click={openLinkInput}>🔗</button
+			>
+		</div>
+
+		<div class="rte-group">
+			<button
+				type="button"
+				class="rte-btn"
+				class:rte-active={active('bulletList')}
+				title="Bullet list"
+				aria-label="Bullet list"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.toggleBulletList())}>••</button
+			>
+			<button
+				type="button"
+				class="rte-btn"
+				class:rte-active={active('orderedList')}
+				title="Numbered list"
+				aria-label="Numbered list"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.toggleOrderedList())}>1.</button
+			>
+			<button
+				type="button"
+				class="rte-btn"
+				class:rte-active={active('blockquote')}
+				title="Blockquote"
+				aria-label="Blockquote"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.toggleBlockquote())}>❝</button
+			>
+			<button
+				type="button"
+				class="rte-btn"
+				class:rte-active={active('codeBlock')}
+				title="Code block"
+				aria-label="Code block"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.toggleCodeBlock())}>{'{ }'}</button
+			>
+			<button
+				type="button"
+				class="rte-btn"
+				title="Horizontal rule"
+				aria-label="Horizontal rule"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.setHorizontalRule())}>—</button
+			>
+		</div>
+
+		<slot name="toolbar-extra" {editor} {sourceMode} />
+
+		<div class="rte-group rte-group-end">
+			<button
+				type="button"
+				class="rte-btn"
+				title="Undo (Ctrl+Z)"
+				aria-label="Undo"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.undo())}>↶</button
+			>
+			<button
+				type="button"
+				class="rte-btn"
+				title="Redo (Ctrl+Shift+Z)"
+				aria-label="Redo"
+				disabled={sourceMode}
+				on:click={() => cmd((c) => c.redo())}>↷</button
+			>
+			<button
+				type="button"
+				class="rte-btn rte-html"
+				class:rte-active={sourceMode}
+				title="Edit HTML source"
+				aria-label="Edit HTML source"
+				on:click={toggleSource}>HTML</button
+			>
+		</div>
+	</div>
+
+	{#if showLinkInput}
+		<div class="rte-linkbar">
+			<input
+				type="url"
+				placeholder="https://… (empty to remove link)"
+				bind:value={linkUrl}
+				bind:this={linkInputEl}
+				aria-label="Link URL"
+				on:keydown={(e) => {
+					if (e.key === 'Enter') {
+						e.preventDefault();
+						applyLink();
+					}
+					if (e.key === 'Escape') cancelLink();
+				}}
+			/>
+			<button type="button" class="rte-btn" on:click={applyLink}>Apply</button>
+			<button type="button" class="rte-btn" on:click={cancelLink}>Cancel</button>
+		</div>
+	{/if}
+
+	<div class="rte-editor" class:rte-hidden={sourceMode} bind:this={element}></div>
+
+	{#if sourceMode}
+		<textarea
+			class="rte-source-area"
+			bind:value
+			rows="14"
+			aria-label="HTML source"
+			spellcheck="false"
+		></textarea>
+	{/if}
+</div>
+
+<style>
+	.rte {
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		background: var(--color-background);
+		overflow: hidden;
+	}
+
+	.rte-toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.375rem;
+		border-bottom: 1px solid var(--color-border);
+		background: var(--color-surface);
+	}
+
+	.rte-group {
+		display: flex;
+		gap: 0.125rem;
+		padding: 0 0.25rem;
+		border-right: 1px solid var(--color-border);
+	}
+
+	.rte-group:last-child,
+	.rte-group-end {
+		border-right: none;
+	}
+
+	.rte-group-end {
+		margin-left: auto;
+	}
+
+	.rte-btn {
+		min-width: 1.9rem;
+		height: 1.9rem;
+		padding: 0 0.4rem;
+		background: none;
+		border: 1px solid transparent;
+		border-radius: var(--radius-sm);
+		color: var(--color-text-secondary);
+		font-size: 0.8125rem;
+		line-height: 1;
+		cursor: pointer;
+	}
+
+	.rte-btn:hover:not(:disabled) {
+		background: var(--color-surface-hover, rgba(128, 128, 128, 0.15));
+		color: var(--color-text);
+	}
+
+	.rte-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.rte-active {
+		background: var(--color-primary);
+		color: white;
+	}
+
+	.rte-active:hover:not(:disabled) {
+		background: var(--color-primary);
+		color: white;
+	}
+
+	.rte-b {
+		font-weight: 700;
+	}
+
+	.rte-i {
+		font-style: italic;
+	}
+
+	.rte-s {
+		text-decoration: line-through;
+	}
+
+	.rte-code,
+	.rte-html {
+		font-family: var(--font-mono);
+		font-size: 0.6875rem;
+	}
+
+	.rte-linkbar {
+		display: flex;
+		gap: 0.375rem;
+		padding: 0.375rem;
+		border-bottom: 1px solid var(--color-border);
+		background: var(--color-surface);
+	}
+
+	.rte-linkbar input {
+		flex: 1;
+		padding: 0.25rem 0.5rem;
+		background: var(--color-background);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		color: var(--color-text);
+		font-size: 0.8125rem;
+	}
+
+	.rte-editor {
+		min-height: 16rem;
+	}
+
+	.rte-hidden {
+		display: none;
+	}
+
+	/* ProseMirror content styling */
+	.rte-editor :global(.ProseMirror) {
+		min-height: 16rem;
+		padding: 0.75rem 1rem;
+		outline: none;
+		color: var(--color-text);
+		font-size: 0.9375rem;
+		line-height: 1.7;
+	}
+
+	.rte-editor :global(.ProseMirror p) {
+		margin: 0 0 0.75em;
+	}
+
+	.rte-editor :global(.ProseMirror h2),
+	.rte-editor :global(.ProseMirror h3),
+	.rte-editor :global(.ProseMirror h4) {
+		margin: 1.25em 0 0.5em;
+		line-height: 1.3;
+	}
+
+	.rte-editor :global(.ProseMirror ul),
+	.rte-editor :global(.ProseMirror ol) {
+		padding-left: 1.5rem;
+		margin: 0 0 0.75em;
+	}
+
+	.rte-editor :global(.ProseMirror blockquote) {
+		border-left: 3px solid var(--color-border);
+		padding-left: 1rem;
+		margin: 0 0 0.75em;
+		color: var(--color-text-secondary);
+	}
+
+	.rte-editor :global(.ProseMirror pre) {
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 0.75rem;
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		overflow-x: auto;
+		margin: 0 0 0.75em;
+	}
+
+	.rte-editor :global(.ProseMirror code) {
+		background: var(--color-surface);
+		border-radius: 3px;
+		padding: 0.1em 0.3em;
+		font-family: var(--font-mono);
+		font-size: 0.85em;
+	}
+
+	.rte-editor :global(.ProseMirror pre code) {
+		background: none;
+		padding: 0;
+	}
+
+	.rte-editor :global(.ProseMirror img) {
+		max-width: 100%;
+		height: auto;
+		border-radius: var(--radius-sm);
+	}
+
+	.rte-editor :global(.ProseMirror a) {
+		color: var(--color-primary);
+	}
+
+	.rte-editor :global(.ProseMirror hr) {
+		border: none;
+		border-top: 1px solid var(--color-border);
+		margin: 1.5em 0;
+	}
+
+	.rte-editor :global(.ProseMirror p.is-editor-empty:first-child::before) {
+		content: attr(data-placeholder);
+		float: left;
+		color: var(--color-text-secondary);
+		opacity: 0.5;
+		pointer-events: none;
+		height: 0;
+	}
+
+	.rte-source-area {
+		width: 100%;
+		border: none;
+		background: var(--color-background);
+		color: var(--color-text);
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		line-height: 1.6;
+		padding: 0.75rem 1rem;
+		resize: vertical;
+		outline: none;
+	}
+</style>
