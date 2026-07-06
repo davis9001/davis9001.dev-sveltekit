@@ -40,211 +40,229 @@ Content of third post.`;
 
 // Mock import.meta.glob by mocking the modules at module scope
 const mockModules: Record<string, string> = {
-  '/src/updates/first-test-post.md': samplePost1,
-  '/src/updates/second-test-post.md': samplePost2,
-  '/src/updates/third-test-post.md': samplePost3
+	'/src/updates/first-test-post.md': samplePost1,
+	'/src/updates/second-test-post.md': samplePost2,
+	'/src/updates/third-test-post.md': samplePost3
 };
 
 // Mock @sveltejs/kit error
 const mockError = vi.fn((status: number, message: string) => {
-  const err = new Error(message) as Error & { status: number; };
-  err.status = status;
-  throw err;
+	const err = new Error(message) as Error & { status: number };
+	err.status = status;
+	throw err;
 });
 
 const mockRedirect = vi.fn((status: number, location: string) => {
-  const err = new Error(`Redirect to ${location}`) as Error & { status: number; location: string; };
-  err.status = status;
-  err.location = location;
-  throw err;
+	const err = new Error(`Redirect to ${location}`) as Error & { status: number; location: string };
+	err.status = status;
+	err.location = location;
+	throw err;
 });
 
 vi.mock('@sveltejs/kit', () => ({
-  error: (status: number, message: string) => mockError(status, message),
-  redirect: (status: number, location: string) => mockRedirect(status, location)
+	error: (status: number, message: string) => mockError(status, message),
+	redirect: (status: number, location: string) => mockRedirect(status, location)
 }));
 
 // Mock marked
 vi.mock('marked', () => ({
-  marked: vi.fn((content: string) => Promise.resolve(`<p>${content}</p>`))
+	marked: vi.fn((content: string) => Promise.resolve(`<p>${content}</p>`))
 }));
 
 describe('Blog Updates List Page', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.resetModules();
-  });
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.resetModules();
+	});
 
-  describe('load function', () => {
-    it('should return sorted blog posts without content', async () => {
-      // We test processRawPosts directly since the route uses import.meta.glob
-      const { processRawPosts } = await import('../../src/lib/utils/blog');
+	describe('load function', () => {
+		it('should return sorted blog posts without content', async () => {
+			// We test processRawPosts directly since the route uses import.meta.glob
+			const { processRawPosts } = await import('../../src/lib/utils/blog');
 
-      const posts = processRawPosts(mockModules);
-      const postMetas = posts.map(({ content, ...meta }) => meta);
+			const posts = processRawPosts(mockModules);
+			const postMetas = posts.map(({ content, ...meta }) => meta);
 
-      expect(postMetas).toHaveLength(3);
-      // Should be sorted newest first
-      expect(postMetas[0].slug).toBe('second-test-post');
-      expect(postMetas[1].slug).toBe('first-test-post');
-      expect(postMetas[2].slug).toBe('third-test-post');
+			expect(postMetas).toHaveLength(3);
+			// Should be sorted newest first
+			expect(postMetas[0].slug).toBe('second-test-post');
+			expect(postMetas[1].slug).toBe('first-test-post');
+			expect(postMetas[2].slug).toBe('third-test-post');
 
-      // Should not include content
-      for (const post of postMetas) {
-        expect(post).not.toHaveProperty('content');
-      }
-    });
+			// Should not include content
+			for (const post of postMetas) {
+				expect(post).not.toHaveProperty('content');
+			}
+		});
 
-    it('should include all metadata fields', async () => {
-      const { processRawPosts } = await import('../../src/lib/utils/blog');
+		it('should include all metadata fields', async () => {
+			const { processRawPosts } = await import('../../src/lib/utils/blog');
 
-      const posts = processRawPosts(mockModules);
+			const posts = processRawPosts(mockModules);
 
-      const firstPost = posts.find((p) => p.slug === 'first-test-post');
-      expect(firstPost).toBeDefined();
-      expect(firstPost!.title).toBe('First Test Post');
-      expect(firstPost!.publishedAt).toBe('2025-06-15');
-      expect(firstPost!.summary).toBe('This is the first test post.');
-      expect(firstPost!.tags).toEqual(['testing', 'blog']);
-    });
+			const firstPost = posts.find((p) => p.slug === 'first-test-post');
+			expect(firstPost).toBeDefined();
+			expect(firstPost!.title).toBe('First Test Post');
+			expect(firstPost!.publishedAt).toBe('2025-06-15');
+			expect(firstPost!.summary).toBe('This is the first test post.');
+			expect(firstPost!.tags).toEqual(['testing', 'blog']);
+		});
 
-    it('should handle posts without tags', async () => {
-      const { processRawPosts } = await import('../../src/lib/utils/blog');
+		it('should handle posts without tags', async () => {
+			const { processRawPosts } = await import('../../src/lib/utils/blog');
 
-      const posts = processRawPosts(mockModules);
+			const posts = processRawPosts(mockModules);
 
-      const secondPost = posts.find((p) => p.slug === 'second-test-post');
-      expect(secondPost).toBeDefined();
-      expect(secondPost!.tags).toEqual([]);
-    });
-  });
+			const secondPost = posts.find((p) => p.slug === 'second-test-post');
+			expect(secondPost).toBeDefined();
+			expect(secondPost!.tags).toEqual([]);
+		});
+	});
 });
 
 describe('Blog Update Detail Page', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.resetModules();
-  });
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.resetModules();
+	});
 
-  describe('load function', () => {
-    it('should return a single post with rendered HTML content', async () => {
-      const { processRawPosts } = await import('../../src/lib/utils/blog');
-      const { marked } = await import('marked');
+	describe('load function', () => {
+		it('should return a single post with rendered HTML content', async () => {
+			const { processRawPosts } = await import('../../src/lib/utils/blog');
+			const { marked } = await import('marked');
 
-      const posts = processRawPosts(mockModules);
-      const post = posts.find((p) => p.slug === 'first-test-post');
+			const posts = processRawPosts(mockModules);
+			const post = posts.find((p) => p.slug === 'first-test-post');
 
-      expect(post).toBeDefined();
+			expect(post).toBeDefined();
 
-      const htmlContent = await marked(post!.content, {
-        gfm: true,
-        breaks: false
-      });
+			const htmlContent = await marked(post!.content, {
+				gfm: true,
+				breaks: false
+			});
 
-      expect(htmlContent).toContain('First Post');
-      expect(typeof htmlContent).toBe('string');
-    });
+			expect(htmlContent).toContain('First Post');
+			expect(typeof htmlContent).toBe('string');
+		});
 
-    it('should throw 404 for non-existent slug', async () => {
-      const { processRawPosts } = await import('../../src/lib/utils/blog');
+		it('should throw 404 for non-existent slug', async () => {
+			const { processRawPosts } = await import('../../src/lib/utils/blog');
 
-      const posts = processRawPosts(mockModules);
-      const post = posts.find((p) => p.slug === 'non-existent-post');
+			const posts = processRawPosts(mockModules);
+			const post = posts.find((p) => p.slug === 'non-existent-post');
 
-      expect(post).toBeUndefined();
+			expect(post).toBeUndefined();
 
-      // The route would call error(404, 'Post not found') here
-      expect(() => mockError(404, 'Post not found')).toThrow('Post not found');
-    });
+			// The route would call error(404, 'Post not found') here
+			expect(() => mockError(404, 'Post not found')).toThrow('Post not found');
+		});
 
-    it('should find post by exact slug', async () => {
-      const { processRawPosts } = await import('../../src/lib/utils/blog');
+		it('should find post by exact slug', async () => {
+			const { processRawPosts } = await import('../../src/lib/utils/blog');
 
-      const posts = processRawPosts(mockModules);
+			const posts = processRawPosts(mockModules);
 
-      const post = posts.find((p) => p.slug === 'third-test-post');
-      expect(post).toBeDefined();
-      expect(post!.title).toBe('Third Test Post');
-      expect(post!.content).toContain('Content of third post.');
-    });
+			const post = posts.find((p) => p.slug === 'third-test-post');
+			expect(post).toBeDefined();
+			expect(post!.title).toBe('Third Test Post');
+			expect(post!.content).toContain('Content of third post.');
+		});
 
-    it('should include all post fields for detail view', async () => {
-      const { processRawPosts } = await import('../../src/lib/utils/blog');
+		it('should include all post fields for detail view', async () => {
+			const { processRawPosts } = await import('../../src/lib/utils/blog');
 
-      const posts = processRawPosts(mockModules);
-      const post = posts.find((p) => p.slug === 'first-test-post');
+			const posts = processRawPosts(mockModules);
+			const post = posts.find((p) => p.slug === 'first-test-post');
 
-      expect(post).toBeDefined();
-      expect(post!.slug).toBe('first-test-post');
-      expect(post!.title).toBe('First Test Post');
-      expect(post!.publishedAt).toBe('2025-06-15');
-      expect(post!.summary).toBe('This is the first test post.');
-      expect(post!.tags).toEqual(['testing', 'blog']);
-      expect(post!.content).toContain('First Post');
-    });
-  });
+			expect(post).toBeDefined();
+			expect(post!.slug).toBe('first-test-post');
+			expect(post!.title).toBe('First Test Post');
+			expect(post!.publishedAt).toBe('2025-06-15');
+			expect(post!.summary).toBe('This is the first test post.');
+			expect(post!.tags).toEqual(['testing', 'blog']);
+			expect(post!.content).toContain('First Post');
+		});
+	});
 });
 
-describe('Legacy Blog Update Route', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.resetModules();
-  });
+describe('Legacy Blog Routes (blog now lives in the CMS at /blog)', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.resetModules();
+	});
 
-  it('should redirect legacy /updates/[slug] URLs to /update/[slug]', async () => {
-    const { load } = await import('../../src/routes/updates/[slug]/+page.server');
+	it('redirects /updates to /blog', async () => {
+		const { load } = await import('../../src/routes/updates/+page.server');
 
-    await expect(
-      load({ params: { slug: 'first-test-post' } } as any)
-    ).rejects.toMatchObject({
-      status: 308,
-      location: '/update/first-test-post'
-    });
-  });
+		await expect(load({} as any)).rejects.toMatchObject({
+			status: 308,
+			location: '/blog'
+		});
+	});
+
+	it('redirects /updates/[slug] to /blog/[slug]', async () => {
+		const { load } = await import('../../src/routes/updates/[slug]/+page.server');
+
+		await expect(load({ params: { slug: 'first-test-post' } } as any)).rejects.toMatchObject({
+			status: 308,
+			location: '/blog/first-test-post'
+		});
+	});
+
+	it('redirects /update/[slug] to /blog/[slug]', async () => {
+		const { load } = await import('../../src/routes/update/[slug]/+page.server');
+
+		await expect(
+			load({ params: { slug: 'why-dirac-is-my-hostname' } } as any)
+		).rejects.toMatchObject({
+			status: 308,
+			location: '/blog/why-dirac-is-my-hostname'
+		});
+	});
 });
 
 describe('Blog Home Page Integration', () => {
-  it('should return only first 5 posts for recent posts section', async () => {
-    const { processRawPosts } = await import('../../src/lib/utils/blog');
+	it('should return only first 5 posts for recent posts section', async () => {
+		const { processRawPosts } = await import('../../src/lib/utils/blog');
 
-    // Create 7 posts
-    const manyModules: Record<string, string> = {};
-    for (let i = 1; i <= 7; i++) {
-      manyModules[`/src/updates/post-${i}.md`] = `---
+		// Create 7 posts
+		const manyModules: Record<string, string> = {};
+		for (let i = 1; i <= 7; i++) {
+			manyModules[`/src/updates/post-${i}.md`] = `---
 title: Post ${i}
 publishedAt: 2025-${String(i).padStart(2, '0')}-15
 summary: Summary for post ${i}.
 ---
 
 Content for post ${i}.`;
-    }
+		}
 
-    const posts = processRawPosts(manyModules);
-    const recentPosts = posts.slice(0, 5).map(({ content, ...meta }) => meta);
+		const posts = processRawPosts(manyModules);
+		const recentPosts = posts.slice(0, 5).map(({ content, ...meta }) => meta);
 
-    expect(recentPosts).toHaveLength(5);
-    // Newest first
-    expect(recentPosts[0].slug).toBe('post-7');
-    expect(recentPosts[4].slug).toBe('post-3');
-  });
+		expect(recentPosts).toHaveLength(5);
+		// Newest first
+		expect(recentPosts[0].slug).toBe('post-7');
+		expect(recentPosts[4].slug).toBe('post-3');
+	});
 
-  it('should return all posts if fewer than 5 exist', async () => {
-    const { processRawPosts } = await import('../../src/lib/utils/blog');
+	it('should return all posts if fewer than 5 exist', async () => {
+		const { processRawPosts } = await import('../../src/lib/utils/blog');
 
-    const fewModules: Record<string, string> = {
-      '/src/updates/only-post.md': `---
+		const fewModules: Record<string, string> = {
+			'/src/updates/only-post.md': `---
 title: Only Post
 publishedAt: 2025-01-01
 summary: The only post.
 ---
 
 Content.`
-    };
+		};
 
-    const posts = processRawPosts(fewModules);
-    const recentPosts = posts.slice(0, 5).map(({ content, ...meta }) => meta);
+		const posts = processRawPosts(fewModules);
+		const recentPosts = posts.slice(0, 5).map(({ content, ...meta }) => meta);
 
-    expect(recentPosts).toHaveLength(1);
-    expect(recentPosts[0].slug).toBe('only-post');
-  });
+		expect(recentPosts).toHaveLength(1);
+		expect(recentPosts[0].slug).toBe('only-post');
+	});
 });

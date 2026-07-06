@@ -839,6 +839,8 @@ describe('CMS API /api/cms/[type]/[id] - Branch Coverage', () => {
 		it('should update item and return 200', async () => {
 			const { PUT } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
 			const mockDB = createMockDB();
+			// getContentTypeBySlug (PUT validates + sanitizes fields)
+			mockDB._firstQueue.push(mockContentTypeRow);
 			// updateContentItem: get existing
 			mockDB._firstQueue.push(mockContentItemRow);
 			// updateContentItem: update returning
