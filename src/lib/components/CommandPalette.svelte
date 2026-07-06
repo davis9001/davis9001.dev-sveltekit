@@ -3,6 +3,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
+	import { PROJECT_STATUS_LABELS } from '$lib/projects/types';
 	import {
 		resolvedTheme,
 		systemTheme,
@@ -15,6 +16,42 @@
 	export let hasAIProviders = false;
 	export let portfolioItems: Array<{ slug: string; title: string; summary: string }> = [];
 	export let blogPosts: Array<{ slug: string; title: string; summary: string }> = [];
+
+	interface PaletteProject {
+		name: string;
+		group: string;
+		status: string;
+		primaryLink: string | null;
+	}
+
+	// Open Projects — refreshed from the live API every time the palette
+	// opens so entries always reflect the real data. The last-known list is
+	// kept so results render instantly while the refresh happens.
+	let openProjects: PaletteProject[] = [];
+
+	async function refreshOpenProjects() {
+		try {
+			// Unique query param busts intermediate caches (the API is edge-cached)
+			const res = await fetch(`/api/projects?palette=${Date.now()}`, { cache: 'no-store' });
+			if (!res.ok) return;
+			const data = await res.json();
+			openProjects = (data.groups || []).flatMap(
+				(group: { name: string; projects: Array<Record<string, unknown>> }) =>
+					(group.projects || []).map((p) => ({
+						name: String(p.name ?? ''),
+						group: group.name,
+						status: String(p.status ?? 'active'),
+						primaryLink: typeof p.primaryLink === 'string' ? p.primaryLink : null
+					}))
+			);
+		} catch {
+			// offline / API failure — keep whatever we had
+		}
+	}
+
+	function projectStatusLabel(status: string): string {
+		return PROJECT_STATUS_LABELS[status as keyof typeof PROJECT_STATUS_LABELS] ?? status;
+	}
 
 	let searchInput: HTMLInputElement;
 	let query = '';
@@ -165,6 +202,21 @@
 			action: () => goto(`/blog/${post.slug}`),
 			icon: '📄',
 			badge: 'Blog'
+		})),
+		...openProjects.map((project) => ({
+			id: `project-${project.group}-${project.name}`,
+			label: project.name,
+			description: `${project.group} · ${projectStatusLabel(project.status)}${project.primaryLink ? ' · opens site' : ''}`,
+			action: () => {
+				if (project.primaryLink) {
+					window.open(project.primaryLink, '_blank', 'noopener,noreferrer');
+				} else {
+					goto('/projects');
+				}
+				show = false;
+			},
+			icon: '🚀',
+			badge: 'Project'
 		}))
 	] as Command[];
 
@@ -176,13 +228,14 @@
 	);
 
 	// Reset selection to first item whenever the search query changes
-	$: query, (selectedIndex = 0);
+	$: (query, (selectedIndex = 0));
 
 	$: if (show && !previousShow) {
 		// Only reset when transitioning from closed to open
 		previousShow = true;
 		query = '';
 		selectedIndex = 0;
+		refreshOpenProjects();
 		tick().then(() => {
 			searchInput?.focus();
 		});

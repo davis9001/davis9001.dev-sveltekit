@@ -759,3 +759,134 @@ describe('CommandPalette', () => {
 		});
 	});
 });
+
+describe('CommandPalette Open Projects', () => {
+	const projectsResponse = {
+		updatedAt: '2026-07-06 00:00:00',
+		groups: [
+			{
+				name: '*Space',
+				projects: [
+					{
+						name: 'NebulaKit',
+						status: 'active',
+						priority: 'high',
+						description: '',
+						primaryLink: 'https://nebulakit.starspace.group/',
+						githubUrl: null,
+						extraLinks: [],
+						tasks: [],
+						blockers: ''
+					},
+					{
+						name: 'Nabu',
+						status: 'planning',
+						priority: 'medium',
+						description: '',
+						primaryLink: null,
+						githubUrl: null,
+						extraLinks: [],
+						tasks: [],
+						blockers: ''
+					}
+				]
+			}
+		]
+	};
+
+	let fetchMock: ReturnType<typeof vi.fn>;
+
+	beforeEach(() => {
+		fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => projectsResponse });
+		vi.stubGlobal('fetch', fetchMock);
+		vi.stubGlobal('open', vi.fn());
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		vi.clearAllMocks();
+	});
+
+	async function renderOpenPalette() {
+		const rendered = render(CommandPalette, { props: { show: true } });
+		// allow refreshOpenProjects to resolve and re-render
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		return rendered;
+	}
+
+	it('fetches live project data when the palette opens', async () => {
+		await renderOpenPalette();
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		const [url, options] = fetchMock.mock.calls[0];
+		expect(String(url)).toContain('/api/projects');
+		expect(options).toMatchObject({ cache: 'no-store' });
+	});
+
+	it('renders project entries with group and status', async () => {
+		const { container } = await renderOpenPalette();
+
+		const labels = Array.from(container.querySelectorAll('.command-label')).map(
+			(el) => el.textContent
+		);
+		expect(labels.some((l) => l?.includes('NebulaKit'))).toBe(true);
+		expect(labels.some((l) => l?.includes('Nabu'))).toBe(true);
+
+		const descriptions = Array.from(container.querySelectorAll('.command-description')).map(
+			(el) => el.textContent
+		);
+		expect(descriptions.some((d) => d?.includes('*Space · In Progress'))).toBe(true);
+		expect(descriptions.some((d) => d?.includes('*Space · Planning'))).toBe(true);
+	});
+
+	it('opens the project site when it has a primary link', async () => {
+		const { container } = await renderOpenPalette();
+
+		const nebulaKit = Array.from(container.querySelectorAll('.command')).find((cmd) =>
+			cmd.querySelector('.command-label')?.textContent?.includes('NebulaKit')
+		);
+		await fireEvent.click(nebulaKit as HTMLElement);
+
+		expect(window.open).toHaveBeenCalledWith(
+			'https://nebulakit.starspace.group/',
+			'_blank',
+			'noopener,noreferrer'
+		);
+	});
+
+	it('navigates to /projects for projects without a link', async () => {
+		const { goto } = await import('$app/navigation');
+		const { container } = await renderOpenPalette();
+
+		const nabu = Array.from(container.querySelectorAll('.command')).find((cmd) =>
+			cmd.querySelector('.command-label')?.textContent?.includes('Nabu')
+		);
+		await fireEvent.click(nabu as HTMLElement);
+
+		expect(goto).toHaveBeenCalledWith('/projects');
+	});
+
+	it('re-fetches every time the palette reopens (always synchronized)', async () => {
+		const { component } = await renderOpenPalette();
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+
+		component.show = false;
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		component.show = true;
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	it('keeps the palette usable when the projects API fails', async () => {
+		fetchMock.mockRejectedValue(new Error('offline'));
+		const { container } = await renderOpenPalette();
+
+		// core commands still render
+		const labels = Array.from(container.querySelectorAll('.command-label')).map(
+			(el) => el.textContent
+		);
+		expect(labels.some((l) => l?.includes('Home'))).toBe(true);
+	});
+});
