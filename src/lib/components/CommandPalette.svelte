@@ -16,6 +16,8 @@
 	export let hasAIProviders = false;
 	export let portfolioItems: Array<{ slug: string; title: string; summary: string }> = [];
 	export let blogPosts: Array<{ slug: string; title: string; summary: string }> = [];
+	/** Server-loaded seed so project entries render instantly on first open */
+	export let initialProjects: PaletteProject[] = [];
 
 	interface PaletteProject {
 		name: string;
@@ -24,10 +26,10 @@
 		primaryLink: string | null;
 	}
 
-	// Open Projects — refreshed from the live API every time the palette
-	// opens so entries always reflect the real data. The last-known list is
-	// kept so results render instantly while the refresh happens.
-	let openProjects: PaletteProject[] = [];
+	// Open Projects — seeded from the layout load, then refreshed from the
+	// live API every time the palette opens so entries always reflect the
+	// real data.
+	let openProjects: PaletteProject[] = initialProjects;
 
 	async function refreshOpenProjects() {
 		try {

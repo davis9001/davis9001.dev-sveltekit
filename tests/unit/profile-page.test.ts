@@ -119,6 +119,7 @@ describe('Profile Page', () => {
 				hasAIProviders: false,
 				portfolioItems: [],
 				blogPosts: [],
+				openProjects: [],
 				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
@@ -152,6 +153,7 @@ describe('Profile Page', () => {
 				hasAIProviders: false,
 				portfolioItems: [],
 				blogPosts: [],
+				openProjects: [],
 				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
@@ -180,6 +182,7 @@ describe('Profile Page', () => {
 				hasAIProviders: false,
 				portfolioItems: [],
 				blogPosts: [],
+				openProjects: [],
 				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
@@ -210,6 +213,7 @@ describe('Profile Page', () => {
 				hasAIProviders: false,
 				portfolioItems: [],
 				blogPosts: [],
+				openProjects: [],
 				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
@@ -237,6 +241,7 @@ describe('Profile Page', () => {
 				hasAIProviders: false,
 				portfolioItems: [],
 				blogPosts: [],
+				openProjects: [],
 				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
@@ -263,6 +268,7 @@ describe('Profile Page', () => {
 				hasAIProviders: false,
 				portfolioItems: [],
 				blogPosts: [],
+				openProjects: [],
 				hasAuthConfig: false,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }

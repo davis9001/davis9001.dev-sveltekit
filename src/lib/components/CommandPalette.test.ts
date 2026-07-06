@@ -815,6 +815,24 @@ describe('CommandPalette Open Projects', () => {
 		return rendered;
 	}
 
+	it('renders server-seeded project entries instantly, before any fetch resolves', () => {
+		// fetch never resolves — seeded entries must still be there
+		fetchMock.mockReturnValue(new Promise(() => {}));
+		const { container } = render(CommandPalette, {
+			props: {
+				show: true,
+				initialProjects: [
+					{ name: 'SeededProject', group: '*Space', status: 'active', primaryLink: null }
+				]
+			}
+		});
+
+		const labels = Array.from(container.querySelectorAll('.command-label')).map(
+			(el) => el.textContent
+		);
+		expect(labels.some((l) => l?.includes('SeededProject'))).toBe(true);
+	});
+
 	it('fetches live project data when the palette opens', async () => {
 		await renderOpenPalette();
 

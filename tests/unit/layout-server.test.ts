@@ -169,7 +169,9 @@ describe('Layout Server Load', () => {
 
 		it('should return blogPosts from the CMS (D1) with a TTL cache', async () => {
 			const { clearBlogPostCache } = await import('../../src/lib/cms/blog-queries');
+			const { clearPaletteProjectsCache } = await import('../../src/lib/projects/palette');
 			clearBlogPostCache();
+			clearPaletteProjectsCache();
 
 			const all = vi.fn().mockResolvedValue({
 				results: [
@@ -202,9 +204,60 @@ describe('Layout Server Load', () => {
 				}
 			]);
 
-			// Second load within the TTL hits the cache — no extra query
+			// Second load within the TTL hits both caches — no extra queries
+			// (the shared mock serves one blog + one palette-projects query)
 			await load(event);
-			expect(all).toHaveBeenCalledTimes(1);
+			expect(all).toHaveBeenCalledTimes(2);
+		});
+
+		it('should return openProjects for the command palette seed', async () => {
+			const { clearBlogPostCache } = await import('../../src/lib/cms/blog-queries');
+			const { clearPaletteProjectsCache } = await import('../../src/lib/projects/palette');
+			clearBlogPostCache();
+			clearPaletteProjectsCache();
+
+			const blogAll = vi.fn().mockResolvedValue({ results: [] });
+			const projectsAll = vi.fn().mockResolvedValue({
+				results: [
+					{
+						id: 'p1',
+						group_name: '*Space',
+						name: 'NebulaKit',
+						status: 'active',
+						priority: 'high',
+						description: '',
+						primary_link: 'https://nebulakit.example',
+						github_url: null,
+						extra_links: '[]',
+						tasks: '[]',
+						blockers: '',
+						sort_order: 0,
+						created_at: '2026-01-01',
+						updated_at: '2026-01-02'
+					}
+				]
+			});
+			const db = {
+				prepare: vi.fn((sql: string) => ({
+					bind: vi.fn().mockReturnThis(),
+					all: sql.includes('open_projects') ? projectsAll : blogAll
+				}))
+			};
+
+			const { load } = await import('../../src/routes/+layout.server');
+			const result = (await load({
+				locals: {},
+				platform: mockPlatform({ DB: db })
+			} as any)) as { openProjects: unknown[] };
+
+			expect(result.openProjects).toEqual([
+				{
+					name: 'NebulaKit',
+					group: '*Space',
+					status: 'active',
+					primaryLink: 'https://nebulakit.example'
+				}
+			]);
 		});
 
 		it('should return empty blogPosts without a database', async () => {

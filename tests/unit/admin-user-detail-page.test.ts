@@ -37,6 +37,7 @@ describe('Admin User Detail Page', () => {
 					hasAIProviders: false,
 					portfolioItems: [],
 					blogPosts: [],
+					openProjects: [],
 					hasAuthConfig: false,
 					user: {
 						id: 'u1',

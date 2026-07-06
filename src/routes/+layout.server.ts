@@ -1,4 +1,5 @@
 import { getCachedBlogPosts } from '$lib/cms/blog-queries';
+import { getCachedPaletteProjects } from '$lib/projects/palette';
 import { hasAnyAuthProvider } from '$lib/utils/auth';
 import { buildProject } from '$lib/utils/portfolio';
 import type { LayoutServerLoad } from './$types';
@@ -42,13 +43,17 @@ export const load: LayoutServerLoad = async ({ locals, platform }) => {
 	// Check if any auth provider is configured (env vars or /setup KV)
 	const hasAuthConfig = await hasAnyAuthProvider(platform);
 
-	const blogPosts = await getCachedBlogPosts(platform?.env?.DB);
+	const [blogPosts, openProjects] = await Promise.all([
+		getCachedBlogPosts(platform?.env?.DB),
+		getCachedPaletteProjects(platform?.env?.DB)
+	]);
 
 	return {
 		user: locals.user || null,
 		hasAIProviders,
 		hasAuthConfig,
 		portfolioItems,
-		blogPosts
+		blogPosts,
+		openProjects
 	};
 };
