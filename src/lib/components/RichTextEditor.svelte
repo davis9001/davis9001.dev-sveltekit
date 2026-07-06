@@ -8,6 +8,7 @@
 <script lang="ts">
 	import { embedManifest } from '$lib/cms/embeds/manifest';
 	import { SvelteEmbed } from '$lib/cms/richtext-embed-extension';
+	import { extractImageFiles, uploadImage } from '$lib/cms/richtext-utils';
 	import { Editor } from '@tiptap/core';
 	import Image from '@tiptap/extension-image';
 	import Link from '@tiptap/extension-link';
@@ -71,6 +72,48 @@
 	function insertEmbed(name: string, defaultProps: Record<string, unknown>) {
 		editor?.chain().focus().insertSvelteEmbed(name, defaultProps).run();
 		showEmbedPicker = false;
+	}
+
+	// image upload
+	let fileInput: HTMLInputElement | null = null;
+	let uploading = false;
+	let uploadError = '';
+
+	async function uploadAndInsert(files: File[]) {
+		if (!files.length || !editor) return;
+		uploading = true;
+		uploadError = '';
+		for (const file of files) {
+			const result = await uploadImage(file);
+			if (result.ok) {
+				editor.chain().focus().setImage({ src: result.url, alt: file.name }).run();
+			} else {
+				uploadError = result.error;
+			}
+		}
+		uploading = false;
+	}
+
+	function handleFilePick(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		uploadAndInsert(extractImageFiles({ files: input.files ?? [] }));
+		input.value = '';
+	}
+
+	function handleEditorDrop(event: DragEvent) {
+		const images = extractImageFiles(event.dataTransfer);
+		if (images.length) {
+			event.preventDefault();
+			uploadAndInsert(images);
+		}
+	}
+
+	function handleEditorPaste(event: ClipboardEvent) {
+		const images = extractImageFiles(event.clipboardData);
+		if (images.length) {
+			event.preventDefault();
+			uploadAndInsert(images);
+		}
 	}
 
 	onMount(() => {
@@ -286,6 +329,14 @@
 				disabled={sourceMode}
 				on:click={() => cmd((c) => c.setHorizontalRule())}>—</button
 			>
+			<button
+				type="button"
+				class="rte-btn"
+				title="Insert image (or drag & drop / paste)"
+				aria-label="Insert image"
+				disabled={sourceMode || uploading}
+				on:click={() => fileInput?.click()}>🖼</button
+			>
 			{#if allowEmbeds}
 				<button
 					type="button"
@@ -295,6 +346,9 @@
 					disabled={sourceMode}
 					on:click={() => (showEmbedPicker = true)}>⧉</button
 				>
+			{/if}
+			{#if uploading}
+				<span class="rte-uploading" role="status">Uploading…</span>
 			{/if}
 		</div>
 
@@ -349,7 +403,28 @@
 		</div>
 	{/if}
 
-	<div class="rte-editor" class:rte-hidden={sourceMode} bind:this={element}></div>
+	{#if uploadError}
+		<p class="rte-upload-error" role="alert">{uploadError}</p>
+	{/if}
+
+	<!-- svelte-ignore a11y-no-static-element-interactions -->
+	<div
+		class="rte-editor"
+		class:rte-hidden={sourceMode}
+		bind:this={element}
+		on:drop={handleEditorDrop}
+		on:paste={handleEditorPaste}
+	></div>
+
+	<input
+		type="file"
+		accept="image/png,image/jpeg,image/gif,image/webp"
+		multiple
+		class="rte-file-input"
+		bind:this={fileInput}
+		on:change={handleFilePick}
+		aria-label="Upload image file"
+	/>
 
 	{#if sourceMode}
 		<textarea
@@ -524,6 +599,25 @@
 		border-radius: var(--radius-sm);
 		color: var(--color-text);
 		font-size: 0.8125rem;
+	}
+
+	.rte-uploading {
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+		align-self: center;
+		padding: 0 0.375rem;
+	}
+
+	.rte-upload-error {
+		color: var(--color-danger, #ef4444);
+		font-size: 0.8125rem;
+		padding: 0.375rem 0.75rem;
+		border-bottom: 1px solid var(--color-border);
+		margin: 0;
+	}
+
+	.rte-file-input {
+		display: none;
 	}
 
 	.rte-editor {

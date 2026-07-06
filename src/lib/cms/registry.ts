@@ -40,9 +40,9 @@ export const blogContentType: ContentTypeDefinition = {
 		{
 			name: 'featured_image',
 			label: 'Featured Image',
-			type: 'url',
+			type: 'image',
 			placeholder: 'https://example.com/image.jpg',
-			helpText: 'URL to the featured image',
+			helpText: 'Upload an image or paste a URL',
 			sortOrder: 3
 		},
 		{

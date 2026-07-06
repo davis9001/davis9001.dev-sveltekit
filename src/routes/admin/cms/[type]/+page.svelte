@@ -6,6 +6,7 @@
 -->
 <script lang="ts">
 	import SEO from '$lib/components/SEO.svelte';
+	import ImageField from '$lib/components/ImageField.svelte';
 	import RichTextEditor from '$lib/components/RichTextEditor.svelte';
 	import TaskListField from '$lib/components/TaskListField.svelte';
 	import type { PageData } from './$types';
@@ -627,11 +628,9 @@
 										bind:value={formFields[field.name]}
 									/>
 								{:else if field.type === 'image'}
-									<input
-										id="field-{field.name}"
-										type="url"
+									<ImageField
 										bind:value={formFields[field.name]}
-										placeholder={field.placeholder || 'https://example.com/image.jpg'}
+										placeholder={field.placeholder || 'https://… or upload'}
 									/>
 								{:else if field.type === 'tasklist'}
 									<TaskListField bind:value={formFields[field.name]} />
