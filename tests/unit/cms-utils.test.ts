@@ -8,6 +8,7 @@ import type {
 import {
 	generateSlug,
 	getDefaultFieldValues,
+	getLockedFieldViolations,
 	parseContentItem,
 	parseContentTag,
 	parseContentType,
@@ -90,7 +91,16 @@ describe('CMS Utils', () => {
 				author_id: 'user-1',
 				published_at: '2024-01-01T00:00:00Z',
 				created_at: '2024-01-01T00:00:00Z',
-				updated_at: '2024-01-01T00:00:00Z'
+				updated_at: '2024-01-01T00:00:00Z',
+				timestamp_proof_hash: null,
+				timestamp_proof_tsr: null,
+				timestamp_proof_requested_at: null,
+				timestamp_proof_tsa_url: null,
+				timestamp_proof_error: null,
+				wayback_snapshot_url: null,
+				wayback_checked_at: null,
+				resolution_resolved_at: null,
+				resolution_resolved_by: null
 			};
 
 			const parsed = parseContentItem(row);
@@ -287,6 +297,53 @@ describe('CMS Utils', () => {
 				{ name: 'title', label: 'Title', type: 'text' }
 			];
 			expect(getDefaultFieldValues(definitions)).toEqual({});
+		});
+	});
+
+	describe('getLockedFieldViolations', () => {
+		const definitions: ContentFieldDefinition[] = [
+			{ name: 'body', label: 'Body', type: 'richtext', lockedAfterPublish: true },
+			{ name: 'date_window_start', label: 'Start', type: 'date', lockedAfterPublish: true },
+			{ name: 'resolution_status', label: 'Status', type: 'select' }
+		];
+
+		it('returns empty when no locked field value changed', () => {
+			const existing = { body: 'x', date_window_start: '2027-01-01', resolution_status: 'pending' };
+			const incoming = { body: 'x', date_window_start: '2027-01-01', resolution_status: 'correct' };
+			expect(getLockedFieldViolations(definitions, existing, incoming)).toEqual([]);
+		});
+
+		it('flags a locked field whose value changed', () => {
+			const existing = { body: 'old', date_window_start: '2027-01-01' };
+			const incoming = { body: 'new', date_window_start: '2027-01-01' };
+			expect(getLockedFieldViolations(definitions, existing, incoming)).toEqual(['Body']);
+		});
+
+		it('flags multiple locked fields that changed', () => {
+			const existing = { body: 'old', date_window_start: '2027-01-01' };
+			const incoming = { body: 'new', date_window_start: '2028-01-01' };
+			expect(getLockedFieldViolations(definitions, existing, incoming)).toEqual(['Body', 'Start']);
+		});
+
+		it('does not flag a non-locked field even if it changed', () => {
+			const existing = { body: 'x', resolution_status: 'pending' };
+			const incoming = { body: 'x', resolution_status: 'incorrect' };
+			expect(getLockedFieldViolations(definitions, existing, incoming)).toEqual([]);
+		});
+
+		it('ignores a locked field absent from the incoming patch', () => {
+			const existing = { body: 'x' };
+			const incoming = { resolution_status: 'correct' };
+			expect(getLockedFieldViolations(definitions, existing, incoming)).toEqual([]);
+		});
+
+		it('treats deep-equal object/array values as unchanged', () => {
+			const defs: ContentFieldDefinition[] = [
+				{ name: 'tags', label: 'Tags', type: 'multiselect', lockedAfterPublish: true }
+			];
+			const existing = { tags: ['a', 'b'] };
+			const incoming = { tags: ['a', 'b'] };
+			expect(getLockedFieldViolations(defs, existing, incoming)).toEqual([]);
 		});
 	});
 });

@@ -4,7 +4,8 @@ import {
 	contentTypeRegistry,
 	getContentTypeDefinition,
 	getRegisteredSlugs,
-	isRegisteredContentType
+	isRegisteredContentType,
+	predictionsContentType
 } from '../../src/lib/cms/registry';
 
 describe('CMS Registry', () => {
@@ -53,6 +54,46 @@ describe('CMS Registry', () => {
 			expect(categoryField).toBeTruthy();
 			expect(categoryField!.type).toBe('select');
 			expect(categoryField!.options!.length).toBeGreaterThan(0);
+		});
+	});
+
+	describe('predictionsContentType', () => {
+		it('locks body and the date window after publish', () => {
+			const locked = predictionsContentType.fields.filter((f) => f.lockedAfterPublish);
+			expect(locked.map((f) => f.name).sort()).toEqual([
+				'body',
+				'date_window_end',
+				'date_window_start'
+			]);
+		});
+
+		it('stamps provenance on resolution field changes, and does not lock them', () => {
+			const stamped = predictionsContentType.fields.filter((f) => f.stampProvenanceOnChange);
+			expect(stamped.map((f) => f.name).sort()).toEqual(['resolution_note', 'resolution_status']);
+			for (const field of stamped) {
+				expect(field.lockedAfterPublish).toBeFalsy();
+			}
+		});
+
+		it('defaults resolution_status to pending with the full workflow options', () => {
+			const status = predictionsContentType.fields.find((f) => f.name === 'resolution_status');
+			expect(status).toBeTruthy();
+			expect(status!.defaultValue).toBe('pending');
+			expect(status!.options!.map((o) => o.value).sort()).toEqual([
+				'correct',
+				'incorrect',
+				'partial',
+				'pending'
+			]);
+		});
+
+		it('enables provable-timestamp settings', () => {
+			expect(predictionsContentType.settings.enableTimestampProof).toBe(true);
+			expect(predictionsContentType.settings.lockTitleAndSlugAfterPublish).toBe(true);
+			expect(predictionsContentType.settings.publicArchiveVisible).toBe(true);
+			expect(predictionsContentType.settings.routePrefix).toBe('/predictions');
+			expect(predictionsContentType.settings.listTemplate).toBe('predictions-list');
+			expect(predictionsContentType.settings.itemTemplate).toBe('predictions-item');
 		});
 	});
 

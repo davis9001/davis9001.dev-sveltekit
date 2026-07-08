@@ -52,20 +52,18 @@ describe('CMS Service', () => {
 
 		it('should not batch when no changes needed', async () => {
 			const { syncContentTypes } = await import('../../src/lib/services/cms.js');
-			const { blogContentType } = await import('../../src/lib/cms/registry.js');
+			const { contentTypeRegistry } = await import('../../src/lib/cms/registry.js');
 
 			mockDB.all.mockResolvedValue({
-				results: [
-					{
-						id: 'existing-id',
-						slug: 'blog',
-						name: blogContentType.name,
-						description: blogContentType.description,
-						fields: JSON.stringify(blogContentType.fields),
-						settings: JSON.stringify(blogContentType.settings),
-						icon: blogContentType.icon
-					}
-				]
+				results: contentTypeRegistry.map((ct, i) => ({
+					id: `existing-id-${i}`,
+					slug: ct.slug,
+					name: ct.name,
+					description: ct.description,
+					fields: JSON.stringify(ct.fields),
+					settings: JSON.stringify(ct.settings),
+					icon: ct.icon
+				}))
 			});
 
 			await syncContentTypes(mockDB);
@@ -406,7 +404,12 @@ describe('CMS Service', () => {
 				created_at: '2024-01-01',
 				updated_at: '2024-01-01'
 			});
-			// Second call: update result
+			// Second call: content type lookup (for lock/provenance checks)
+			mockDB.first.mockResolvedValueOnce({
+				fields: '[]',
+				settings: '{}'
+			});
+			// Third call: update result
 			mockDB.first.mockResolvedValueOnce({
 				id: 'ci-1',
 				content_type_id: 'ct-1',
@@ -444,6 +447,330 @@ describe('CMS Service', () => {
 			});
 			expect(item).toBeNull();
 		});
+
+		it('preserves the original publishedAt across an unpublish→republish cycle (regression)', async () => {
+			const { updateContentItem } = await import('../../src/lib/services/cms.js');
+
+			// Step 1: unpublish an already-published item — published_at must be untouched.
+			mockDB.first
+				.mockResolvedValueOnce({
+					id: 'ci-1',
+					content_type_id: 'ct-1',
+					slug: 'hello',
+					title: 'Hello',
+					status: 'published',
+					fields: '{}',
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: null,
+					published_at: '2024-01-01T00:00:00.000Z',
+					created_at: '2024-01-01',
+					updated_at: '2024-01-01'
+				})
+				.mockResolvedValueOnce({ fields: '[]', settings: '{}' })
+				.mockResolvedValueOnce({
+					id: 'ci-1',
+					content_type_id: 'ct-1',
+					slug: 'hello',
+					title: 'Hello',
+					status: 'draft',
+					fields: '{}',
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: null,
+					published_at: '2024-01-01T00:00:00.000Z',
+					created_at: '2024-01-01',
+					updated_at: '2024-01-02'
+				});
+
+			await updateContentItem(mockDB, 'ci-1', { status: 'draft' });
+
+			// The bound published_at value for that UPDATE must be the ORIGINAL
+			// timestamp, not null and not a fresh one.
+			const firstUpdateBind = mockDB.bind.mock.calls[2];
+			expect(firstUpdateBind).toContain('2024-01-01T00:00:00.000Z');
+
+			// Step 2: republish — published_at must STILL be the original value,
+			// not reset to "now". This is the actual regression: the old code
+			// keyed off `existing.status !== 'published'`, so re-publishing a
+			// previously-published-then-unpublished item reset the timestamp.
+			mockDB.first
+				.mockResolvedValueOnce({
+					id: 'ci-1',
+					content_type_id: 'ct-1',
+					slug: 'hello',
+					title: 'Hello',
+					status: 'draft',
+					fields: '{}',
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: null,
+					published_at: '2024-01-01T00:00:00.000Z',
+					created_at: '2024-01-01',
+					updated_at: '2024-01-02'
+				})
+				.mockResolvedValueOnce({ fields: '[]', settings: '{}' })
+				.mockResolvedValueOnce({
+					id: 'ci-1',
+					content_type_id: 'ct-1',
+					slug: 'hello',
+					title: 'Hello',
+					status: 'published',
+					fields: '{}',
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: null,
+					published_at: '2024-01-01T00:00:00.000Z',
+					created_at: '2024-01-01',
+					updated_at: '2024-01-03'
+				});
+
+			await updateContentItem(mockDB, 'ci-1', { status: 'published' });
+
+			const secondUpdateBind = mockDB.bind.mock.calls[5];
+			expect(secondUpdateBind).toContain('2024-01-01T00:00:00.000Z');
+			// A fresh "now" timestamp must NOT have been substituted in.
+			expect(secondUpdateBind).not.toContain(new Date().toISOString().slice(0, 10));
+		});
+
+		describe('lock-after-publish enforcement', () => {
+			function existingRow(overrides: Record<string, unknown> = {}) {
+				return {
+					id: 'ci-1',
+					content_type_id: 'ct-1',
+					slug: 'hello',
+					title: 'Hello',
+					status: 'published',
+					fields: '{"body":"original","resolution_status":"pending"}',
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: null,
+					published_at: '2024-01-01T00:00:00.000Z',
+					created_at: '2024-01-01',
+					updated_at: '2024-01-01',
+					...overrides
+				};
+			}
+
+			const lockedTypeRow = {
+				fields: JSON.stringify([
+					{ name: 'body', label: 'Body', type: 'richtext', lockedAfterPublish: true },
+					{ name: 'resolution_status', label: 'Status', type: 'select' }
+				]),
+				settings: JSON.stringify({ lockTitleAndSlugAfterPublish: true })
+			};
+
+			it('throws when a locked field value would change on a published item', async () => {
+				const { updateContentItem } = await import('../../src/lib/services/cms.js');
+				const { LockedContentError } = await import('../../src/lib/cms/types.js');
+
+				mockDB.first.mockResolvedValueOnce(existingRow()).mockResolvedValueOnce(lockedTypeRow);
+
+				await expect(
+					updateContentItem(mockDB, 'ci-1', {
+						fields: { body: 'CHANGED', resolution_status: 'pending' }
+					})
+				).rejects.toThrow(LockedContentError);
+			});
+
+			it('allows the update when the locked field value is unchanged', async () => {
+				const { updateContentItem } = await import('../../src/lib/services/cms.js');
+
+				mockDB.first
+					.mockResolvedValueOnce(existingRow())
+					.mockResolvedValueOnce(lockedTypeRow)
+					.mockResolvedValueOnce(
+						existingRow({ fields: '{"body":"original","resolution_status":"correct"}' })
+					);
+
+				const result = await updateContentItem(mockDB, 'ci-1', {
+					fields: { body: 'original', resolution_status: 'correct' }
+				});
+
+				expect(result).toBeTruthy();
+			});
+
+			it('throws when the title changes on a published item with lockTitleAndSlugAfterPublish', async () => {
+				const { updateContentItem } = await import('../../src/lib/services/cms.js');
+				const { LockedContentError } = await import('../../src/lib/cms/types.js');
+
+				mockDB.first.mockResolvedValueOnce(existingRow()).mockResolvedValueOnce(lockedTypeRow);
+
+				await expect(
+					updateContentItem(mockDB, 'ci-1', { title: 'A whole new title' })
+				).rejects.toThrow(LockedContentError);
+			});
+
+			it('throws when the slug changes on a published item with lockTitleAndSlugAfterPublish', async () => {
+				const { updateContentItem } = await import('../../src/lib/services/cms.js');
+				const { LockedContentError } = await import('../../src/lib/cms/types.js');
+
+				mockDB.first.mockResolvedValueOnce(existingRow()).mockResolvedValueOnce(lockedTypeRow);
+
+				await expect(updateContentItem(mockDB, 'ci-1', { slug: 'new-slug' })).rejects.toThrow(
+					LockedContentError
+				);
+			});
+
+			it('does not enforce locks on a never-published (draft) item', async () => {
+				const { updateContentItem } = await import('../../src/lib/services/cms.js');
+
+				mockDB.first
+					.mockResolvedValueOnce(existingRow({ status: 'draft', published_at: null }))
+					.mockResolvedValueOnce(lockedTypeRow)
+					.mockResolvedValueOnce(
+						existingRow({ status: 'draft', published_at: null, title: 'Edited' })
+					);
+
+				const result = await updateContentItem(mockDB, 'ci-1', {
+					title: 'Edited',
+					fields: { body: 'freely editable pre-publish', resolution_status: 'pending' }
+				});
+
+				expect(result).toBeTruthy();
+			});
+		});
+
+		describe('resolution-provenance stamping', () => {
+			const stampTypeRow = {
+				fields: JSON.stringify([
+					{ name: 'body', label: 'Body', type: 'richtext', lockedAfterPublish: true },
+					{
+						name: 'resolution_status',
+						label: 'Status',
+						type: 'select',
+						stampProvenanceOnChange: true
+					}
+				]),
+				settings: '{}'
+			};
+
+			function existingRow(overrides: Record<string, unknown> = {}) {
+				return {
+					id: 'ci-1',
+					content_type_id: 'ct-1',
+					slug: 'hello',
+					title: 'Hello',
+					status: 'published',
+					fields: '{"body":"x","resolution_status":"pending"}',
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: null,
+					published_at: '2024-01-01T00:00:00.000Z',
+					created_at: '2024-01-01',
+					updated_at: '2024-01-01',
+					resolution_resolved_at: null,
+					resolution_resolved_by: null,
+					...overrides
+				};
+			}
+
+			it('stamps resolution_resolved_at/by when a stamped field changes', async () => {
+				const { updateContentItem } = await import('../../src/lib/services/cms.js');
+
+				mockDB.first
+					.mockResolvedValueOnce(existingRow())
+					.mockResolvedValueOnce(stampTypeRow)
+					.mockResolvedValueOnce(existingRow({ resolution_resolved_by: 'user-1' }));
+
+				await updateContentItem(
+					mockDB,
+					'ci-1',
+					{ fields: { body: 'x', resolution_status: 'correct' } },
+					'user-1'
+				);
+
+				const updateBind = mockDB.bind.mock.calls[2];
+				expect(updateBind).toContain('user-1');
+			});
+
+			it('does not stamp when the stamped field is unchanged', async () => {
+				const { updateContentItem } = await import('../../src/lib/services/cms.js');
+
+				mockDB.first
+					.mockResolvedValueOnce(existingRow())
+					.mockResolvedValueOnce(stampTypeRow)
+					.mockResolvedValueOnce(existingRow());
+
+				await updateContentItem(
+					mockDB,
+					'ci-1',
+					{ fields: { body: 'x', resolution_status: 'pending' } },
+					'user-1'
+				);
+
+				const updateBind = mockDB.bind.mock.calls[2];
+				expect(updateBind).not.toContain('user-1');
+			});
+		});
+
+		it('falls back to empty definitions/settings when the owning content type is missing', async () => {
+			const { updateContentItem } = await import('../../src/lib/services/cms.js');
+
+			mockDB.first
+				.mockResolvedValueOnce({
+					id: 'ci-1',
+					content_type_id: 'ct-deleted',
+					slug: 'hello',
+					title: 'Hello',
+					status: 'published',
+					fields: '{"body":"x"}',
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: null,
+					published_at: '2024-01-01T00:00:00.000Z',
+					created_at: '2024-01-01',
+					updated_at: '2024-01-01'
+				})
+				.mockResolvedValueOnce(null) // content_types row no longer exists
+				.mockResolvedValueOnce({
+					id: 'ci-1',
+					content_type_id: 'ct-deleted',
+					slug: 'hello',
+					title: 'Hello',
+					status: 'published',
+					fields: '{"body":"x"}',
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: null,
+					published_at: '2024-01-01T00:00:00.000Z',
+					created_at: '2024-01-01',
+					updated_at: '2024-01-01'
+				});
+
+			// No lockedAfterPublish/lockTitleAndSlugAfterPublish to enforce, so this
+			// must succeed rather than throw despite the item being published.
+			const result = await updateContentItem(mockDB, 'ci-1', { fields: { body: 'x' } });
+			expect(result).toBeTruthy();
+		});
+	});
+
+	describe('recordWaybackSnapshot', () => {
+		it('updates the wayback snapshot url and checked-at timestamp', async () => {
+			const { recordWaybackSnapshot } = await import('../../src/lib/services/cms.js');
+
+			mockDB.run.mockResolvedValue({ success: true });
+
+			await recordWaybackSnapshot(mockDB, 'ci-1', {
+				url: 'https://web.archive.org/web/20240101000000/https://davis9001.dev/predictions/foo',
+				checkedAt: '2024-01-01T00:00:00.000Z'
+			});
+
+			expect(mockDB.bind).toHaveBeenCalledWith(
+				'https://web.archive.org/web/20240101000000/https://davis9001.dev/predictions/foo',
+				'2024-01-01T00:00:00.000Z',
+				'ci-1'
+			);
+			expect(mockDB.run).toHaveBeenCalled();
+		});
 	});
 
 	describe('deleteContentItem', () => {
@@ -463,6 +790,45 @@ describe('CMS Service', () => {
 
 			const result = await deleteContentItem(mockDB, 'nonexistent');
 			expect(result).toBe(false);
+		});
+
+		it('throws when deleting a published item whose content type has enableTimestampProof', async () => {
+			const { deleteContentItem } = await import('../../src/lib/services/cms.js');
+			const { LockedContentError } = await import('../../src/lib/cms/types.js');
+
+			mockDB.first.mockResolvedValueOnce({
+				published_at: '2024-01-01T00:00:00.000Z',
+				settings: JSON.stringify({ enableTimestampProof: true })
+			});
+
+			await expect(deleteContentItem(mockDB, 'ci-1')).rejects.toThrow(LockedContentError);
+			expect(mockDB.run).not.toHaveBeenCalled();
+		});
+
+		it('allows deleting a published item whose content type does not have enableTimestampProof', async () => {
+			const { deleteContentItem } = await import('../../src/lib/services/cms.js');
+
+			mockDB.first.mockResolvedValueOnce({
+				published_at: '2024-01-01T00:00:00.000Z',
+				settings: JSON.stringify({})
+			});
+			mockDB.run.mockResolvedValue({ success: true, meta: { changes: 1 } });
+
+			const result = await deleteContentItem(mockDB, 'ci-1');
+			expect(result).toBe(true);
+		});
+
+		it('allows deleting a never-published item even with enableTimestampProof', async () => {
+			const { deleteContentItem } = await import('../../src/lib/services/cms.js');
+
+			mockDB.first.mockResolvedValueOnce({
+				published_at: null,
+				settings: JSON.stringify({ enableTimestampProof: true })
+			});
+			mockDB.run.mockResolvedValue({ success: true, meta: { changes: 1 } });
+
+			const result = await deleteContentItem(mockDB, 'ci-1');
+			expect(result).toBe(true);
 		});
 	});
 

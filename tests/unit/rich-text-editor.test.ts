@@ -54,6 +54,9 @@ vi.mock('@tiptap/core', async (importOriginal) => {
 		destroy() {
 			this.destroyed = true;
 		}
+		setEditable(editable: boolean) {
+			this.options.editable = editable;
+		}
 	}
 	return { ...actual, Editor: MockEditor };
 });
@@ -169,5 +172,23 @@ describe('RichTextEditor', () => {
 		await fireEvent.click(screen.getByText('Apply'));
 
 		expect(screen.queryByLabelText('Link URL')).toBeNull();
+	});
+
+	it('constructs the editor as non-editable and disables all controls when disabled', () => {
+		render(RichTextEditor, { props: { value: '<p>locked</p>', disabled: true } });
+
+		expect(editorState.lastOptions.editable).toBe(false);
+		expect((screen.getByLabelText('Bold') as HTMLButtonElement).disabled).toBe(true);
+		expect((screen.getByLabelText('Edit HTML source') as HTMLButtonElement).disabled).toBe(true);
+		expect((screen.getByLabelText('Upload image file') as HTMLInputElement).disabled).toBe(true);
+	});
+
+	it('calls setEditable when disabled changes reactively', async () => {
+		const { rerender } = render(RichTextEditor, { props: { value: '', disabled: false } });
+		const editor = editorState.instances[0];
+
+		await rerender({ value: '', disabled: true });
+
+		expect(editor.options.editable).toBe(false);
 	});
 });

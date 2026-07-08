@@ -6,12 +6,14 @@
 -->
 <script lang="ts">
 	import SEO from '$lib/components/SEO.svelte';
+	import { formatDateWindow } from '$lib/predictions/format';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
 
 	$: contentType = data.contentType;
 	$: items = data.items || [];
+	$: archiveItems = data.archiveItems || [];
 	$: totalPages = data.totalPages || 1;
 	$: currentPage = data.page || 1;
 
@@ -43,13 +45,67 @@
 		{/if}
 	</header>
 
-	{#if items.length === 0}
+	{#if items.length === 0 && archiveItems.length === 0}
 		<div class="cms-empty-state">
 			<p>No content available yet.</p>
 		</div>
 	{:else}
-		<!-- Blog-style list template -->
-		{#if contentType.settings.listTemplate === 'blog-list'}
+		<!-- Predictions list template -->
+		{#if contentType.settings.listTemplate === 'predictions-list'}
+			{#if items.length > 0}
+				<h2 class="cms-section-heading">Current</h2>
+				<div class="cms-default-list">
+					{#each items as item}
+						<article class="cms-default-item">
+							<h2>
+								<a href="{getRoutePrefix()}/{item.slug}">{item.title}</a>
+							</h2>
+							{#if item.fields.date_window_start || item.fields.date_window_end}
+								<p class="cms-prediction-window">
+									{formatDateWindow(
+										String(item.fields.date_window_start || ''),
+										String(item.fields.date_window_end || '')
+									)}
+								</p>
+							{/if}
+							<span
+								class="cms-prediction-status cms-prediction-status--{item.fields
+									.resolution_status || 'pending'}"
+							>
+								{item.fields.resolution_status || 'pending'}
+							</span>
+						</article>
+					{/each}
+				</div>
+			{/if}
+
+			{#if archiveItems.length > 0}
+				<h2 class="cms-section-heading">Archive</h2>
+				<div class="cms-default-list">
+					{#each archiveItems as item}
+						<article class="cms-default-item">
+							<h2>
+								<a href="{getRoutePrefix()}/{item.slug}">{item.title}</a>
+							</h2>
+							{#if item.fields.date_window_start || item.fields.date_window_end}
+								<p class="cms-prediction-window">
+									{formatDateWindow(
+										String(item.fields.date_window_start || ''),
+										String(item.fields.date_window_end || '')
+									)}
+								</p>
+							{/if}
+							<span
+								class="cms-prediction-status cms-prediction-status--{item.fields
+									.resolution_status || 'pending'}"
+							>
+								{item.fields.resolution_status || 'pending'}
+							</span>
+						</article>
+					{/each}
+				</div>
+			{/if}
+		{:else if contentType.settings.listTemplate === 'blog-list'}
 			<div class="cms-blog-grid">
 				{#each items as item}
 					<article class="cms-blog-card">
@@ -266,6 +322,47 @@
 	.cms-default-item time {
 		font-size: 0.8125rem;
 		color: var(--color-text-secondary);
+	}
+
+	/* Predictions list template */
+	.cms-section-heading {
+		font-size: 1.125rem;
+		font-weight: 600;
+		margin: var(--spacing-xl) 0 var(--spacing-md);
+	}
+
+	.cms-section-heading:first-child {
+		margin-top: 0;
+	}
+
+	.cms-prediction-window {
+		color: var(--color-text-secondary);
+		font-size: 0.875rem;
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.cms-prediction-status {
+		display: inline-block;
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0.125em 0.5em;
+		border-radius: var(--radius-sm);
+		background: var(--color-surface-hover);
+		color: var(--color-text-secondary);
+	}
+
+	.cms-prediction-status--correct {
+		color: #2e7d32;
+	}
+
+	.cms-prediction-status--incorrect {
+		color: #c62828;
+	}
+
+	.cms-prediction-status--partial {
+		color: #ef6c00;
 	}
 
 	/* Pagination */

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import SEO from '$lib/components/SEO.svelte';
 	import ImageField from '$lib/components/ImageField.svelte';
+	import PredictionProof from '$lib/components/PredictionProof.svelte';
 	import RichTextEditor from '$lib/components/RichTextEditor.svelte';
 	import TaskListField from '$lib/components/TaskListField.svelte';
 	import { goto } from '$app/navigation';
@@ -10,6 +11,9 @@
 
 	const { contentType, item, tags } = data;
 
+	const isPublished = !!item.publishedAt;
+	const titleSlugLocked = isPublished && !!contentType.settings?.lockTitleAndSlugAfterPublish;
+
 	function getSortedFields() {
 		if (!contentType?.fields) return [];
 		return [...contentType.fields].sort(
@@ -18,6 +22,10 @@
 	}
 
 	const sortedFields = getSortedFields();
+
+	function isFieldLocked(field: any): boolean {
+		return isPublished && !!field.lockedAfterPublish;
+	}
 
 	function getDefaultFields(): Record<string, any> {
 		const defaults: Record<string, any> = {};
@@ -75,7 +83,55 @@
 	let isLoading = false;
 	let errors: Record<string, string> = {};
 
+	let proofItem = item;
+	let proofActionLoading = false;
+	let proofMessage = '';
+
 	const listUrl = `/admin/cms/${contentType.slug}`;
+
+	async function retryTimestampProof() {
+		proofActionLoading = true;
+		proofMessage = '';
+		try {
+			const res = await fetch(`/api/cms/${contentType.slug}/${item.id}/timestamp-retry`, {
+				method: 'POST'
+			});
+			const resData = await res.json();
+			if (!res.ok) {
+				proofMessage = resData.message || 'Failed to retry timestamp request';
+				return;
+			}
+			proofItem = resData.item;
+			proofMessage = 'Timestamp request retried.';
+		} catch {
+			proofMessage = 'An unexpected error occurred';
+		} finally {
+			proofActionLoading = false;
+		}
+	}
+
+	async function checkWaybackSnapshot() {
+		proofActionLoading = true;
+		proofMessage = '';
+		try {
+			const res = await fetch(`/api/cms/${contentType.slug}/${item.id}/wayback-check`, {
+				method: 'POST'
+			});
+			const resData = await res.json();
+			if (!res.ok) {
+				proofMessage = resData.message || 'Failed to check Wayback snapshot';
+				return;
+			}
+			proofItem = resData.item;
+			proofMessage = resData.item.waybackSnapshotUrl
+				? 'Snapshot found.'
+				: 'No snapshot found yet — try again later.';
+		} catch {
+			proofMessage = 'An unexpected error occurred';
+		} finally {
+			proofActionLoading = false;
+		}
+	}
 
 	function toggleMultiselectValue(fieldName: string, value: string) {
 		const current: string[] = formFields[fieldName] || [];
@@ -180,6 +236,9 @@
 		<div class="edit-main">
 			<!-- Title -->
 			<div class="card">
+				{#if titleSlugLocked}
+					<p class="lock-notice">Title and slug are locked after publishing.</p>
+				{/if}
 				<div class="form-group">
 					<label for="form-title">Title <span class="required">*</span></label>
 					<input
@@ -188,6 +247,7 @@
 						bind:value={formTitle}
 						class:error={errors.title}
 						placeholder="Enter title..."
+						disabled={titleSlugLocked}
 					/>
 					{#if errors.title}<span class="error-message">{errors.title}</span>{/if}
 				</div>
@@ -199,6 +259,7 @@
 						type="text"
 						bind:value={formSlug}
 						placeholder="auto-generated-from-title"
+						disabled={titleSlugLocked}
 					/>
 					<span class="field-help">Leave empty to auto-generate from title</span>
 				</div>
@@ -213,6 +274,7 @@
 							<label for="field-{field.name}">
 								{field.label}
 								{#if field.required}<span class="required">*</span>{/if}
+								{#if isFieldLocked(field)}<span class="lock-badge">locked</span>{/if}
 							</label>
 
 							{#if field.type === 'url'}
@@ -221,6 +283,7 @@
 									type="url"
 									bind:value={formFields[field.name]}
 									placeholder={field.placeholder || ''}
+									disabled={isFieldLocked(field)}
 								/>
 							{:else if field.type === 'email'}
 								<input
@@ -228,15 +291,22 @@
 									type="email"
 									bind:value={formFields[field.name]}
 									placeholder={field.placeholder || ''}
+									disabled={isFieldLocked(field)}
 								/>
 							{:else if field.type === 'color'}
-								<input id="field-{field.name}" type="color" bind:value={formFields[field.name]} />
+								<input
+									id="field-{field.name}"
+									type="color"
+									bind:value={formFields[field.name]}
+									disabled={isFieldLocked(field)}
+								/>
 							{:else if field.type === 'text'}
 								<input
 									id="field-{field.name}"
 									type="text"
 									bind:value={formFields[field.name]}
 									placeholder={field.placeholder || ''}
+									disabled={isFieldLocked(field)}
 								/>
 							{:else if field.type === 'number'}
 								<input
@@ -246,6 +316,7 @@
 									placeholder={field.placeholder || ''}
 									min={field.validation?.min}
 									max={field.validation?.max}
+									disabled={isFieldLocked(field)}
 								/>
 							{:else if field.type === 'textarea'}
 								<textarea
@@ -253,11 +324,13 @@
 									bind:value={formFields[field.name]}
 									placeholder={field.placeholder || ''}
 									rows="4"
+									disabled={isFieldLocked(field)}
 								></textarea>
 							{:else if field.type === 'richtext'}
 								<RichTextEditor
 									bind:value={formFields[field.name]}
 									placeholder={field.placeholder || 'Write your content…'}
+									disabled={isFieldLocked(field)}
 								/>
 							{:else if field.type === 'boolean'}
 								<label class="checkbox-label">
@@ -265,11 +338,16 @@
 										id="field-{field.name}"
 										type="checkbox"
 										bind:checked={formFields[field.name]}
+										disabled={isFieldLocked(field)}
 									/>
 									<span>{field.helpText || 'Enable'}</span>
 								</label>
 							{:else if field.type === 'select'}
-								<select id="field-{field.name}" bind:value={formFields[field.name]}>
+								<select
+									id="field-{field.name}"
+									bind:value={formFields[field.name]}
+									disabled={isFieldLocked(field)}
+								>
 									<option value="">Select...</option>
 									{#each field.options || [] as opt}
 										<option value={opt.value}>{opt.label}</option>
@@ -283,18 +361,25 @@
 												type="checkbox"
 												checked={formFields[field.name]?.includes(opt.value)}
 												on:change={() => toggleMultiselectValue(field.name, opt.value)}
+												disabled={isFieldLocked(field)}
 											/>
 											<span>{opt.label}</span>
 										</label>
 									{/each}
 								</div>
 							{:else if field.type === 'date'}
-								<input id="field-{field.name}" type="date" bind:value={formFields[field.name]} />
+								<input
+									id="field-{field.name}"
+									type="date"
+									bind:value={formFields[field.name]}
+									disabled={isFieldLocked(field)}
+								/>
 							{:else if field.type === 'datetime'}
 								<input
 									id="field-{field.name}"
 									type="datetime-local"
 									bind:value={formFields[field.name]}
+									disabled={isFieldLocked(field)}
 								/>
 							{:else if field.type === 'image'}
 								<ImageField
@@ -310,6 +395,7 @@
 									placeholder={'{"key": "value"}'}
 									rows="5"
 									class="json-field"
+									disabled={isFieldLocked(field)}
 								></textarea>
 							{:else}
 								<input
@@ -317,6 +403,7 @@
 									type="text"
 									bind:value={formFields[field.name]}
 									placeholder={field.placeholder || ''}
+									disabled={isFieldLocked(field)}
 								/>
 							{/if}
 
@@ -415,6 +502,35 @@
 							</div>
 						</div>
 					{/if}
+				</div>
+			{/if}
+
+			<!-- Timestamp proof -->
+			{#if contentType.settings?.enableTimestampProof}
+				<div class="card">
+					<h2 class="card-title">Provenance</h2>
+					<PredictionProof item={proofItem} />
+					{#if proofMessage}
+						<p class="proof-action-message">{proofMessage}</p>
+					{/if}
+					<div class="proof-actions">
+						<button
+							type="button"
+							class="btn btn-secondary btn-full"
+							on:click={retryTimestampProof}
+							disabled={proofActionLoading}
+						>
+							Retry timestamp request
+						</button>
+						<button
+							type="button"
+							class="btn btn-secondary btn-full"
+							on:click={checkWaybackSnapshot}
+							disabled={proofActionLoading}
+						>
+							Check Wayback snapshot
+						</button>
+					</div>
 				</div>
 			{/if}
 
@@ -600,6 +716,43 @@
 
 	.required {
 		color: var(--color-danger, #dc3545);
+	}
+
+	.lock-notice {
+		font-size: 0.8125rem;
+		color: var(--color-text-secondary);
+		background: var(--color-background);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: var(--spacing-sm);
+		margin-bottom: var(--spacing-md);
+	}
+
+	.lock-badge {
+		display: inline-block;
+		font-size: 0.6875rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--color-text-secondary);
+		background: var(--color-background);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-sm);
+		padding: 0.0625rem 0.375rem;
+		margin-left: var(--spacing-xs);
+	}
+
+	.proof-actions {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm);
+		margin-top: var(--spacing-md);
+	}
+
+	.proof-action-message {
+		font-size: 0.8125rem;
+		color: var(--color-text-secondary);
+		margin-top: var(--spacing-sm);
 	}
 
 	.error-message {

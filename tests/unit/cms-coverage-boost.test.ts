@@ -259,6 +259,61 @@ describe('[contentType] page server load', () => {
 		expect(result.contentType).toBeTruthy();
 		expect(result.items).toEqual([]);
 	});
+
+	it('fetches archived items separately when publicArchiveVisible is set', async () => {
+		const { load } = await import('../../src/routes/[contentType]/+page.server.js');
+		const mockDB = createMockDB();
+
+		const archiveVisibleRow = {
+			...mockContentTypeRow,
+			slug: 'predictions',
+			settings: JSON.stringify({ publicArchiveVisible: true })
+		};
+
+		// syncContentTypes
+		mockDB._allQueue.push({ results: [archiveVisibleRow] });
+		// isContentTypeSlug
+		mockDB._firstQueue.push({ id: 'ct-1' });
+		// getContentTypeBySlug
+		mockDB._firstQueue.push(archiveVisibleRow);
+		// listContentItems (published): count + items
+		mockDB._firstQueue.push({ count: 1 });
+		mockDB._allQueue.push({ results: [mockContentItemRow] });
+		// listContentItems (archived): count + items
+		mockDB._firstQueue.push({ count: 1 });
+		mockDB._allQueue.push({
+			results: [{ ...mockContentItemRow, id: 'item-2', slug: 'old-one', status: 'archived' }]
+		});
+
+		const result = (await load({
+			params: { contentType: 'predictions' },
+			platform: { env: { DB: mockDB } },
+			url: new URL('http://localhost/predictions')
+		} as any)) as any;
+
+		expect(result.items).toHaveLength(1);
+		expect(result.archiveItems).toHaveLength(1);
+		expect(result.archiveItems[0].slug).toBe('old-one');
+	});
+
+	it('omits archiveItems (empty array) when publicArchiveVisible is not set', async () => {
+		const { load } = await import('../../src/routes/[contentType]/+page.server.js');
+		const mockDB = createMockDB();
+
+		mockDB._allQueue.push({ results: [mockContentTypeRow] });
+		mockDB._firstQueue.push({ id: 'ct-1' });
+		mockDB._firstQueue.push(mockContentTypeRow);
+		mockDB._firstQueue.push({ count: 1 });
+		mockDB._allQueue.push({ results: [mockContentItemRow] });
+
+		const result = (await load({
+			params: { contentType: 'blog' },
+			platform: { env: { DB: mockDB } },
+			url: new URL('http://localhost/blog')
+		} as any)) as any;
+
+		expect(result.archiveItems).toEqual([]);
+	});
 });
 
 // ─── [contentType]/[slug]/+page.server.ts ─────────────────────────────────────
@@ -413,6 +468,70 @@ describe('[contentType]/[slug] page server load', () => {
 		} as any)) as any;
 
 		expect(result.tags).toEqual([]);
+	});
+
+	it('should 404 an archived item when publicArchiveVisible is not set', async () => {
+		const { load } = await import('../../src/routes/[contentType]/[slug]/+page.server.js');
+		const mockDB = createMockDB();
+		mockDB._allQueue.push({ results: [] });
+		mockDB._firstQueue.push({ id: 'ct-1' });
+		mockDB._firstQueue.push(mockContentTypeRow);
+		mockDB._firstQueue.push({ ...mockContentItemRow, status: 'archived' });
+
+		try {
+			await load({
+				params: { contentType: 'blog', slug: 'old-post' },
+				platform: { env: { DB: mockDB } }
+			} as any);
+			expect.fail('Should have thrown');
+		} catch (err: any) {
+			expect(err.status).toBe(404);
+		}
+	});
+
+	it('should serve an archived item when publicArchiveVisible is set', async () => {
+		const { load } = await import('../../src/routes/[contentType]/[slug]/+page.server.js');
+		const mockDB = createMockDB();
+		const archiveVisibleRow = {
+			...mockContentTypeRow,
+			slug: 'predictions',
+			settings: JSON.stringify({ publicArchiveVisible: true })
+		};
+		mockDB._allQueue.push({ results: [] });
+		mockDB._firstQueue.push({ id: 'ct-1' });
+		mockDB._firstQueue.push(archiveVisibleRow);
+		mockDB._firstQueue.push({ ...mockContentItemRow, status: 'archived' });
+
+		const result = (await load({
+			params: { contentType: 'predictions', slug: 'old-prediction' },
+			platform: { env: { DB: mockDB } }
+		} as any)) as any;
+
+		expect(result.item.status).toBe('archived');
+	});
+
+	it('should still 404 a draft item even when publicArchiveVisible is set', async () => {
+		const { load } = await import('../../src/routes/[contentType]/[slug]/+page.server.js');
+		const mockDB = createMockDB();
+		const archiveVisibleRow = {
+			...mockContentTypeRow,
+			slug: 'predictions',
+			settings: JSON.stringify({ publicArchiveVisible: true })
+		};
+		mockDB._allQueue.push({ results: [] });
+		mockDB._firstQueue.push({ id: 'ct-1' });
+		mockDB._firstQueue.push(archiveVisibleRow);
+		mockDB._firstQueue.push({ ...mockContentItemRow, status: 'draft' });
+
+		try {
+			await load({
+				params: { contentType: 'predictions', slug: 'draft-prediction' },
+				platform: { env: { DB: mockDB } }
+			} as any);
+			expect.fail('Should have thrown');
+		} catch (err: any) {
+			expect(err.status).toBe(404);
+		}
 	});
 
 	it('should handle platform being undefined', async () => {
@@ -839,10 +958,14 @@ describe('CMS API /api/cms/[type]/[id] - Branch Coverage', () => {
 		it('should update item and return 200', async () => {
 			const { PUT } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
 			const mockDB = createMockDB();
-			// getContentTypeBySlug (PUT validates + sanitizes fields)
+			// route: getContentTypeBySlug
 			mockDB._firstQueue.push(mockContentTypeRow);
+			// route: pre-fetch existing (to detect first-publish transition)
+			mockDB._firstQueue.push(mockContentItemRow);
 			// updateContentItem: get existing
 			mockDB._firstQueue.push(mockContentItemRow);
+			// updateContentItem: content type lookup (for lock/provenance checks)
+			mockDB._firstQueue.push(mockContentTypeRow);
 			// updateContentItem: update returning
 			mockDB._firstQueue.push({ ...mockContentItemRow, title: 'Updated' });
 
@@ -1844,6 +1967,8 @@ describe('CMS Service - Additional Coverage', () => {
 			const mockDB = createMockDB();
 			// get existing (draft)
 			mockDB._firstQueue.push({ ...mockContentItemRow, status: 'draft', published_at: null });
+			// content type lookup (for lock/provenance checks)
+			mockDB._firstQueue.push(mockContentTypeRow);
 			// update returning
 			mockDB._firstQueue.push({ ...mockContentItemRow, status: 'published' });
 
@@ -1858,6 +1983,8 @@ describe('CMS Service - Additional Coverage', () => {
 			const mockDB = createMockDB();
 			// get existing
 			mockDB._firstQueue.push(mockContentItemRow);
+			// content type lookup (for lock/provenance checks)
+			mockDB._firstQueue.push(mockContentTypeRow);
 			// update returning
 			mockDB._firstQueue.push(mockContentItemRow);
 

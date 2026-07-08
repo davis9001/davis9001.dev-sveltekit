@@ -432,7 +432,10 @@
 								</a>
 								<button
 									class="btn-icon btn-icon-danger"
-									title="Delete"
+									title={contentType.settings?.enableTimestampProof && item.publishedAt
+										? 'Cannot delete a published item once its timestamp proof is enabled — archive it instead'
+										: 'Delete'}
+									disabled={contentType.settings?.enableTimestampProof && !!item.publishedAt}
 									on:click={() => confirmDelete(item)}
 								>
 									<svg
@@ -1145,6 +1148,16 @@
 
 	.btn-icon-danger:hover {
 		color: var(--color-danger, #dc3545);
+	}
+
+	.btn-icon:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.btn-icon:disabled:hover {
+		background: transparent;
+		color: var(--color-text-secondary);
 	}
 
 	/* Modal */

@@ -6,7 +6,9 @@
 -->
 <script lang="ts">
 	import CmsContent from '$lib/components/CmsContent.svelte';
+	import PredictionProof from '$lib/components/PredictionProof.svelte';
 	import SEO from '$lib/components/SEO.svelte';
+	import { formatDateWindow } from '$lib/predictions/format';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -44,8 +46,48 @@
 		&larr; Back to {contentType.name}
 	</a>
 
-	<!-- Blog item template -->
-	{#if contentType.settings.itemTemplate === 'blog-item'}
+	{#if item.status === 'archived'}
+		<p class="cms-archived-notice">This item has been archived.</p>
+	{/if}
+
+	<!-- Predictions item template -->
+	{#if contentType.settings.itemTemplate === 'predictions-item'}
+		<article class="cms-default-article">
+			<header>
+				<h1>{item.title}</h1>
+				{#if item.fields.date_window_start || item.fields.date_window_end}
+					<p class="cms-prediction-window">
+						{formatDateWindow(
+							String(item.fields.date_window_start || ''),
+							String(item.fields.date_window_end || '')
+						)}
+					</p>
+				{/if}
+				<span
+					class="cms-prediction-status cms-prediction-status--{item.fields.resolution_status ||
+						'pending'}"
+				>
+					{item.fields.resolution_status || 'pending'}
+				</span>
+				{#if item.publishedAt}
+					<time datetime={item.publishedAt}>Posted {formatDate(item.publishedAt)}</time>
+				{/if}
+			</header>
+
+			<div class="cms-default-article-fields cms-content">
+				<CmsContent html={String(item.fields.body || '')} />
+			</div>
+
+			{#if item.fields.resolution_note}
+				<div class="cms-prediction-resolution">
+					<h2 class="cms-section-heading">Resolution</h2>
+					<p>{item.fields.resolution_note}</p>
+				</div>
+			{/if}
+		</article>
+
+		<PredictionProof {item} />
+	{:else if contentType.settings.itemTemplate === 'blog-item'}
 		<article class="cms-blog-article">
 			<header class="cms-blog-article-header">
 				{#if item.fields.category}
@@ -343,5 +385,60 @@
 		max-width: 100%;
 		height: auto;
 		border-radius: var(--radius-md);
+	}
+
+	/* Predictions item template */
+	.cms-archived-notice {
+		display: inline-block;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		color: var(--color-text-secondary);
+		background: var(--color-surface-hover);
+		padding: var(--spacing-xs) var(--spacing-sm);
+		border-radius: var(--radius-sm);
+		margin-bottom: var(--spacing-lg);
+	}
+
+	.cms-prediction-window {
+		color: var(--color-text-secondary);
+		font-size: 1rem;
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.cms-prediction-status {
+		display: inline-block;
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0.125em 0.5em;
+		border-radius: var(--radius-sm);
+		background: var(--color-surface-hover);
+		color: var(--color-text-secondary);
+		margin-bottom: var(--spacing-sm);
+	}
+
+	.cms-prediction-status--correct {
+		color: #2e7d32;
+	}
+
+	.cms-prediction-status--incorrect {
+		color: #c62828;
+	}
+
+	.cms-prediction-status--partial {
+		color: #ef6c00;
+	}
+
+	.cms-prediction-resolution {
+		margin-top: var(--spacing-xl);
+		padding-top: var(--spacing-lg);
+		border-top: 1px solid var(--color-border);
+	}
+
+	.cms-section-heading {
+		font-size: 1.125rem;
+		font-weight: 600;
+		margin-bottom: var(--spacing-sm);
 	}
 </style>

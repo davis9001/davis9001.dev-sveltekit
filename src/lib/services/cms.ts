@@ -8,6 +8,7 @@
 
 import { contentTypeRegistry } from '$lib/cms/registry';
 import type {
+	ContentFieldDefinition,
 	ContentItem,
 	ContentItemFilters,
 	ContentItemParsed,
@@ -15,13 +16,21 @@ import type {
 	ContentTagParsed,
 	ContentType,
 	ContentTypeParsed,
+	ContentTypeSettings,
 	CreateContentItemInput,
 	CreateContentTypeInput,
 	PaginatedResult,
 	UpdateContentItemInput,
 	UpdateContentTypeInput
 } from '$lib/cms/types';
-import { generateSlug, parseContentItem, parseContentTag, parseContentType } from '$lib/cms/utils';
+import { LockedContentError } from '$lib/cms/types';
+import {
+	generateSlug,
+	getLockedFieldViolations,
+	parseContentItem,
+	parseContentTag,
+	parseContentType
+} from '$lib/cms/utils';
 import type { D1Database } from '@cloudflare/workers-types';
 
 /**
@@ -311,11 +320,20 @@ export async function listContentItems(
 
 /**
  * Update a content item.
+ *
+ * `actorId` is only used for resolution-provenance stamping (see
+ * ContentFieldDefinition.stampProvenanceOnChange) — it must come from
+ * `locals.user.id`, never from the request body.
+ *
+ * Throws LockedContentError if the item has ever been published and the
+ * patch would change a field marked `lockedAfterPublish`, or the title/slug
+ * when the content type has `lockTitleAndSlugAfterPublish`.
  */
 export async function updateContentItem(
 	db: D1Database,
 	id: string,
-	input: UpdateContentItemInput
+	input: UpdateContentItemInput,
+	actorId?: string
 ): Promise<ContentItemParsed | null> {
 	// Get existing item
 	const existing = await db
@@ -327,6 +345,40 @@ export async function updateContentItem(
 		return null;
 	}
 
+	const contentTypeRow = await db
+		.prepare('SELECT fields, settings FROM content_types WHERE id = ?')
+		.bind(existing.content_type_id)
+		.first<{ fields: string; settings: string }>();
+	const definitions = contentTypeRow
+		? (JSON.parse(contentTypeRow.fields) as ContentFieldDefinition[])
+		: [];
+	const settings = contentTypeRow
+		? (JSON.parse(contentTypeRow.settings) as ContentTypeSettings)
+		: {};
+	const existingFieldsObj = JSON.parse(existing.fields) as Record<string, unknown>;
+
+	// Locked fields are only enforced once the item has ever been published —
+	// keyed on published_at (has it EVER been published), not current status,
+	// since an unpublish→edit→republish cycle must not be able to launder them.
+	if (existing.published_at !== null) {
+		if (input.fields) {
+			const violations = getLockedFieldViolations(definitions, existingFieldsObj, input.fields);
+			if (violations.length > 0) {
+				throw new LockedContentError(
+					`Cannot edit locked field(s) after publishing: ${violations.join(', ')}`
+				);
+			}
+		}
+		if (settings.lockTitleAndSlugAfterPublish) {
+			if (input.title !== undefined && input.title !== existing.title) {
+				throw new LockedContentError('Cannot edit the title after publishing');
+			}
+			if (input.slug !== undefined && input.slug !== existing.slug) {
+				throw new LockedContentError('Cannot edit the slug after publishing');
+			}
+		}
+	}
+
 	const title = input.title ?? existing.title;
 	const slug = input.slug ?? existing.slug;
 	const status = input.status ?? existing.status;
@@ -336,10 +388,28 @@ export async function updateContentItem(
 		input.seoDescription !== undefined ? input.seoDescription : existing.seo_description;
 	const seoImage = input.seoImage !== undefined ? input.seoImage : existing.seo_image;
 
-	// Set published_at when first publishing
+	// Set published_at only the first time this item is ever published — keyed
+	// on published_at being null so far, not current status (same reasoning
+	// as the lock check above).
 	let publishedAt = existing.published_at;
-	if (status === 'published' && existing.status !== 'published') {
+	if (status === 'published' && existing.published_at === null) {
 		publishedAt = new Date().toISOString();
+	}
+
+	// Resolution-provenance stamping: any field flagged stampProvenanceOnChange
+	// that actually changed value bumps resolution_resolved_at/by, regardless
+	// of publish-lock state (this is how resolution status/note get tracked).
+	let resolutionResolvedAt = existing.resolution_resolved_at;
+	let resolutionResolvedBy = existing.resolution_resolved_by;
+	if (input.fields) {
+		const stampFieldNames = definitions.filter((d) => d.stampProvenanceOnChange).map((d) => d.name);
+		const changed = stampFieldNames.some(
+			(name) => JSON.stringify(existingFieldsObj[name]) !== JSON.stringify(input.fields![name])
+		);
+		if (changed) {
+			resolutionResolvedAt = new Date().toISOString();
+			resolutionResolvedBy = actorId ?? null;
+		}
 	}
 
 	const row = await db
@@ -347,11 +417,24 @@ export async function updateContentItem(
 			`UPDATE content_items
 			 SET title = ?, slug = ?, status = ?, fields = ?,
 			     seo_title = ?, seo_description = ?, seo_image = ?,
-			     published_at = ?, updated_at = CURRENT_TIMESTAMP
+			     published_at = ?, resolution_resolved_at = ?, resolution_resolved_by = ?,
+			     updated_at = CURRENT_TIMESTAMP
 			 WHERE id = ?
 			 RETURNING *`
 		)
-		.bind(title, slug, status, fields, seoTitle, seoDescription, seoImage, publishedAt, id)
+		.bind(
+			title,
+			slug,
+			status,
+			fields,
+			seoTitle,
+			seoDescription,
+			seoImage,
+			publishedAt,
+			resolutionResolvedAt,
+			resolutionResolvedBy,
+			id
+		)
 		.first<ContentItem>();
 
 	if (row && input.tagIds) {
@@ -362,9 +445,74 @@ export async function updateContentItem(
 }
 
 /**
+ * Record an RFC 3161 timestamp-proof attempt (success or failure). Never
+ * part of Create/UpdateContentItemInput — only called from the background
+ * proof job and the manual retry endpoint, so a generic PUT payload can
+ * never spoof proof state.
+ */
+export async function recordTimestampProofAttempt(
+	db: D1Database,
+	id: string,
+	data: {
+		hash: string;
+		tsr: string | null;
+		requestedAt: string;
+		tsaUrl: string | null;
+		error: string | null;
+	}
+): Promise<void> {
+	await db
+		.prepare(
+			`UPDATE content_items
+			 SET timestamp_proof_hash = ?, timestamp_proof_tsr = ?, timestamp_proof_requested_at = ?,
+			     timestamp_proof_tsa_url = ?, timestamp_proof_error = ?
+			 WHERE id = ?`
+		)
+		.bind(data.hash, data.tsr, data.requestedAt, data.tsaUrl, data.error, id)
+		.run();
+}
+
+/** Record a discovered Wayback Machine snapshot. Safe to call repeatedly. */
+export async function recordWaybackSnapshot(
+	db: D1Database,
+	id: string,
+	data: { url: string; checkedAt: string }
+): Promise<void> {
+	await db
+		.prepare(
+			'UPDATE content_items SET wayback_snapshot_url = ?, wayback_checked_at = ? WHERE id = ?'
+		)
+		.bind(data.url, data.checkedAt, id)
+		.run();
+}
+
+/**
  * Delete a content item.
+ *
+ * Throws LockedContentError if the item has ever been published and its
+ * content type has timestamp proofs enabled — deleting it would erase the
+ * proof/resolution history from the site's own record. Archiving remains
+ * available for these items.
  */
 export async function deleteContentItem(db: D1Database, id: string): Promise<boolean> {
+	const existing = await db
+		.prepare(
+			`SELECT ci.published_at, ct.settings
+			 FROM content_items ci JOIN content_types ct ON ct.id = ci.content_type_id
+			 WHERE ci.id = ?`
+		)
+		.bind(id)
+		.first<{ published_at: string | null; settings: string }>();
+
+	if (existing && existing.published_at !== null) {
+		const settings = JSON.parse(existing.settings) as ContentTypeSettings;
+		if (settings.enableTimestampProof) {
+			throw new LockedContentError(
+				'Cannot delete a published item once its timestamp proof is enabled — archive it instead'
+			);
+		}
+	}
+
 	const result = await db.prepare('DELETE FROM content_items WHERE id = ?').bind(id).run();
 
 	return (result.meta?.changes || 0) > 0;

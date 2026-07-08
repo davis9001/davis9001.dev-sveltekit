@@ -15,6 +15,14 @@ import type {
 	ContentTypeSettings
 } from './types';
 
+/** The public route prefix for a content type — matches the [contentType] route's own fallback. */
+export function getContentTypeRoutePrefix(contentType: {
+	settings: ContentTypeSettings;
+	slug: string;
+}): string {
+	return contentType.settings.routePrefix || `/${contentType.slug}`;
+}
+
 /**
  * Generate a URL-friendly slug from a title string.
  */
@@ -64,8 +72,39 @@ export function parseContentItem(row: ContentItem): ContentItemParsed {
 		authorId: row.author_id,
 		publishedAt: row.published_at,
 		createdAt: row.created_at,
-		updatedAt: row.updated_at
+		updatedAt: row.updated_at,
+		timestampProofHash: row.timestamp_proof_hash,
+		timestampProofTsr: row.timestamp_proof_tsr,
+		timestampProofRequestedAt: row.timestamp_proof_requested_at,
+		timestampProofTsaUrl: row.timestamp_proof_tsa_url,
+		timestampProofError: row.timestamp_proof_error,
+		waybackSnapshotUrl: row.wayback_snapshot_url,
+		waybackCheckedAt: row.wayback_checked_at,
+		resolutionResolvedAt: row.resolution_resolved_at,
+		resolutionResolvedBy: row.resolution_resolved_by
 	};
+}
+
+/**
+ * Names of fields whose value would change under the incoming patch, among
+ * those marked `lockedAfterPublish` — empty means the patch doesn't touch
+ * any locked field. Only fields present in `incomingFields` are checked,
+ * since callers may omit fields entirely from a patch.
+ */
+export function getLockedFieldViolations(
+	definitions: ContentFieldDefinition[],
+	existingFields: Record<string, unknown>,
+	incomingFields: Record<string, unknown>
+): string[] {
+	const violations: string[] = [];
+	for (const def of definitions) {
+		if (!def.lockedAfterPublish) continue;
+		if (!(def.name in incomingFields)) continue;
+		if (JSON.stringify(existingFields[def.name]) !== JSON.stringify(incomingFields[def.name])) {
+			violations.push(def.label);
+		}
+	}
+	return violations;
 }
 
 /**

@@ -57,6 +57,10 @@ export interface ContentFieldDefinition {
 	sortOrder?: number;
 	/** Group name for visual grouping in forms */
 	group?: string;
+	/** Once the item has ever been published, this field can no longer be changed */
+	lockedAfterPublish?: boolean;
+	/** Changing this field's value stamps resolution_resolved_at/resolution_resolved_by */
+	stampProvenanceOnChange?: boolean;
 }
 
 /** Settings for a content type */
@@ -83,6 +87,12 @@ export interface ContentTypeSettings {
 	listTemplate?: string;
 	/** Template to use for rendering single items (default: 'default') */
 	itemTemplate?: string;
+	/** Once the item has ever been published, title/slug can no longer be changed */
+	lockTitleAndSlugAfterPublish?: boolean;
+	/** Request an RFC 3161 timestamp proof + Wayback snapshot on first publish */
+	enableTimestampProof?: boolean;
+	/** Archived items of this type still render publicly (grouped as "Archive") instead of 404ing */
+	publicArchiveVisible?: boolean;
 }
 
 /**
@@ -154,6 +164,15 @@ export interface ContentItem {
 	published_at: string | null;
 	created_at: string;
 	updated_at: string;
+	timestamp_proof_hash: string | null;
+	timestamp_proof_tsr: string | null;
+	timestamp_proof_requested_at: string | null;
+	timestamp_proof_tsa_url: string | null;
+	timestamp_proof_error: string | null;
+	wayback_snapshot_url: string | null;
+	wayback_checked_at: string | null;
+	resolution_resolved_at: string | null;
+	resolution_resolved_by: string | null;
 }
 
 /** Content item with parsed fields (for runtime use) */
@@ -171,6 +190,23 @@ export interface ContentItemParsed {
 	publishedAt: string | null;
 	createdAt: string;
 	updatedAt: string;
+	timestampProofHash: string | null;
+	timestampProofTsr: string | null;
+	timestampProofRequestedAt: string | null;
+	timestampProofTsaUrl: string | null;
+	timestampProofError: string | null;
+	waybackSnapshotUrl: string | null;
+	waybackCheckedAt: string | null;
+	resolutionResolvedAt: string | null;
+	resolutionResolvedBy: string | null;
+}
+
+/** Thrown when an update would change a field locked after first publish */
+export class LockedContentError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = 'LockedContentError';
+	}
 }
 
 /** Content tag as stored in D1 */

@@ -42,8 +42,11 @@ export const load: PageServerLoad = async ({ params, platform }) => {
 		throw error(404, 'Content not found');
 	}
 
-	// Only show published items on public routes
-	if (item.status !== 'published') {
+	// Only show published items on public routes, except archived items of
+	// types that opted into staying publicly visible (grouped as "Archive"
+	// on the list page) — drafts always 404.
+	const archiveVisible = item.status === 'archived' && contentType.settings.publicArchiveVisible;
+	if (item.status !== 'published' && !archiveVisible) {
 		throw error(404, 'Content not found');
 	}
 

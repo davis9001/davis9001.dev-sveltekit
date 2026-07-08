@@ -20,6 +20,8 @@
 	export let placeholder = 'Write something…';
 	/** Show the Svelte-embed toolbar button (on for CMS content) */
 	export let allowEmbeds = true;
+	/** Read-only mode — e.g. a lockedAfterPublish field once the item is published */
+	export let disabled = false;
 
 	let element: HTMLDivElement;
 	let editor: Editor | null = null;
@@ -101,6 +103,7 @@
 	}
 
 	function handleEditorDrop(event: DragEvent) {
+		if (disabled) return;
 		const images = extractImageFiles(event.dataTransfer);
 		if (images.length) {
 			event.preventDefault();
@@ -109,6 +112,7 @@
 	}
 
 	function handleEditorPaste(event: ClipboardEvent) {
+		if (disabled) return;
 		const images = extractImageFiles(event.clipboardData);
 		if (images.length) {
 			event.preventDefault();
@@ -133,6 +137,7 @@
 				SvelteEmbed.configure({ onEditProps: openPropsEditor })
 			],
 			content: value || '',
+			editable: !disabled,
 			onUpdate: ({ editor: e }) => {
 				internalUpdate = true;
 				value = e.getHTML();
@@ -142,6 +147,8 @@
 			}
 		});
 	});
+
+	$: editor?.setEditable(!disabled);
 
 	onDestroy(() => {
 		editor?.destroy();
@@ -213,7 +220,7 @@
 					!active('blockquote')}
 				title="Paragraph"
 				aria-label="Paragraph"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.setParagraph())}>¶</button
 			>
 			<button
@@ -222,7 +229,7 @@
 				class:rte-active={active('heading', { level: 2 })}
 				title="Heading 2"
 				aria-label="Heading 2"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.toggleHeading({ level: 2 }))}>H2</button
 			>
 			<button
@@ -231,7 +238,7 @@
 				class:rte-active={active('heading', { level: 3 })}
 				title="Heading 3"
 				aria-label="Heading 3"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.toggleHeading({ level: 3 }))}>H3</button
 			>
 		</div>
@@ -243,7 +250,7 @@
 				class:rte-active={active('bold')}
 				title="Bold (Ctrl+B)"
 				aria-label="Bold"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.toggleBold())}>B</button
 			>
 			<button
@@ -252,7 +259,7 @@
 				class:rte-active={active('italic')}
 				title="Italic (Ctrl+I)"
 				aria-label="Italic"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.toggleItalic())}>I</button
 			>
 			<button
@@ -261,7 +268,7 @@
 				class:rte-active={active('strike')}
 				title="Strikethrough"
 				aria-label="Strikethrough"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.toggleStrike())}>S</button
 			>
 			<button
@@ -270,7 +277,7 @@
 				class:rte-active={active('code')}
 				title="Inline code"
 				aria-label="Inline code"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.toggleCode())}>&lt;&gt;</button
 			>
 			<button
@@ -279,7 +286,7 @@
 				class:rte-active={active('link')}
 				title="Link"
 				aria-label="Link"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={openLinkInput}>🔗</button
 			>
 		</div>
@@ -291,7 +298,7 @@
 				class:rte-active={active('bulletList')}
 				title="Bullet list"
 				aria-label="Bullet list"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.toggleBulletList())}>••</button
 			>
 			<button
@@ -300,7 +307,7 @@
 				class:rte-active={active('orderedList')}
 				title="Numbered list"
 				aria-label="Numbered list"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.toggleOrderedList())}>1.</button
 			>
 			<button
@@ -309,7 +316,7 @@
 				class:rte-active={active('blockquote')}
 				title="Blockquote"
 				aria-label="Blockquote"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.toggleBlockquote())}>❝</button
 			>
 			<button
@@ -318,7 +325,7 @@
 				class:rte-active={active('codeBlock')}
 				title="Code block"
 				aria-label="Code block"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.toggleCodeBlock())}>{'{ }'}</button
 			>
 			<button
@@ -326,7 +333,7 @@
 				class="rte-btn"
 				title="Horizontal rule"
 				aria-label="Horizontal rule"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.setHorizontalRule())}>—</button
 			>
 			<button
@@ -334,7 +341,7 @@
 				class="rte-btn"
 				title="Insert image (or drag & drop / paste)"
 				aria-label="Insert image"
-				disabled={sourceMode || uploading}
+				disabled={sourceMode || uploading || disabled}
 				on:click={() => fileInput?.click()}>🖼</button
 			>
 			{#if allowEmbeds}
@@ -343,7 +350,7 @@
 					class="rte-btn"
 					title="Insert Svelte embed"
 					aria-label="Insert Svelte embed"
-					disabled={sourceMode}
+					disabled={sourceMode || disabled}
 					on:click={() => (showEmbedPicker = true)}>⧉</button
 				>
 			{/if}
@@ -360,7 +367,7 @@
 				class="rte-btn"
 				title="Undo (Ctrl+Z)"
 				aria-label="Undo"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.undo())}>↶</button
 			>
 			<button
@@ -368,7 +375,7 @@
 				class="rte-btn"
 				title="Redo (Ctrl+Shift+Z)"
 				aria-label="Redo"
-				disabled={sourceMode}
+				disabled={sourceMode || disabled}
 				on:click={() => cmd((c) => c.redo())}>↷</button
 			>
 			<button
@@ -377,6 +384,7 @@
 				class:rte-active={sourceMode}
 				title="Edit HTML source"
 				aria-label="Edit HTML source"
+				{disabled}
 				on:click={toggleSource}>HTML</button
 			>
 		</div>
@@ -422,6 +430,7 @@
 		multiple
 		class="rte-file-input"
 		bind:this={fileInput}
+		{disabled}
 		on:change={handleFilePick}
 		aria-label="Upload image file"
 	/>
@@ -433,6 +442,7 @@
 			rows="14"
 			aria-label="HTML source"
 			spellcheck="false"
+			readonly={disabled}
 		></textarea>
 	{/if}
 </div>

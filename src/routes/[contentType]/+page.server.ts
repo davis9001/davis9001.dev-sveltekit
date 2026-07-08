@@ -49,8 +49,22 @@ export const load: PageServerLoad = async ({ params, platform, url }) => {
 
 	const result = await listContentItems(db, contentType.id, filters);
 
+	// Archived items of opted-in types stay publicly visible, grouped separately —
+	// they must never just disappear or 404.
+	let archiveItems: typeof result.items = [];
+	if (contentType.settings.publicArchiveVisible) {
+		const archiveResult = await listContentItems(db, contentType.id, {
+			status: 'archived',
+			pageSize: 100,
+			sortBy: filters.sortBy,
+			sortDirection: filters.sortDirection
+		});
+		archiveItems = archiveResult.items;
+	}
+
 	return {
 		contentType,
-		...result
+		...result,
+		archiveItems
 	};
 };

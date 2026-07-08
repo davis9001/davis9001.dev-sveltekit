@@ -6,7 +6,8 @@
  */
 import type { ContentItemFilters } from '$lib/cms/types';
 import { sanitizeRichtextFields } from '$lib/cms/sanitize';
-import { validateFields } from '$lib/cms/utils';
+import { getContentTypeRoutePrefix, validateFields } from '$lib/cms/utils';
+import { runTimestampProofJob } from '$lib/predictions/proof-job';
 import { createContentItem, getContentTypeBySlug, listContentItems } from '$lib/services/cms';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -60,7 +61,7 @@ export const GET: RequestHandler = async ({ platform, locals, params, url }) => 
 	}
 };
 
-export const POST: RequestHandler = async ({ platform, locals, params, request }) => {
+export const POST: RequestHandler = async ({ platform, locals, params, request, url }) => {
 	if (!locals.user) {
 		throw error(401, 'Unauthorized');
 	}
@@ -106,6 +107,11 @@ export const POST: RequestHandler = async ({ platform, locals, params, request }
 
 		if (!item) {
 			throw error(500, 'Failed to create content item');
+		}
+
+		if (item.status === 'published' && contentType.settings.enableTimestampProof) {
+			const publicUrl = `${url.origin}${getContentTypeRoutePrefix(contentType)}/${item.slug}`;
+			platform?.context?.waitUntil(runTimestampProofJob(db, item, publicUrl));
 		}
 
 		return json({ item }, { status: 201 });

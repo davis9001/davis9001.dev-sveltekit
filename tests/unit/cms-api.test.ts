@@ -331,6 +331,120 @@ describe('CMS API - Content Items', () => {
 				expect(err.status).toBe(400);
 			}
 		});
+
+		it('fires the timestamp proof job when a predictions-like item is published immediately', async () => {
+			const { POST } = await import('../../src/routes/api/cms/[type]/+server.js');
+
+			const predictionsTypeRow = {
+				id: 'ct-2',
+				slug: 'predictions',
+				name: 'Predictions',
+				fields: JSON.stringify([{ name: 'body', label: 'Body', type: 'richtext' }]),
+				settings: JSON.stringify({ enableTimestampProof: true }),
+				icon: 'crystal-ball',
+				sort_order: 0,
+				created_at: '2024-01-01',
+				updated_at: '2024-01-01'
+			};
+
+			mockDB.first
+				.mockResolvedValueOnce(predictionsTypeRow) // getContentTypeBySlug
+				.mockResolvedValueOnce(predictionsTypeRow) // createContentItem: get content type
+				.mockResolvedValueOnce(null) // slug check
+				.mockResolvedValueOnce({
+					id: 'ci-1',
+					content_type_id: 'ct-2',
+					slug: 'the-future',
+					title: 'The Future',
+					status: 'published',
+					fields: JSON.stringify({ body: 'It will happen' }),
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: 'user-1',
+					published_at: '2024-01-01T00:00:00.000Z',
+					created_at: '2024-01-01',
+					updated_at: '2024-01-01'
+				});
+
+			const waitUntil = vi.fn();
+			const request = new Request('http://localhost/api/cms/predictions', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					title: 'The Future',
+					status: 'published',
+					fields: { body: 'It will happen' }
+				})
+			});
+
+			const response = await POST({
+				platform: { ...mockPlatform, context: { waitUntil } },
+				locals: mockLocals,
+				params: { type: 'predictions' },
+				request,
+				url: new URL('http://localhost/api/cms/predictions')
+			} as any);
+
+			expect(response.status).toBe(201);
+			expect(waitUntil).toHaveBeenCalledTimes(1);
+		});
+
+		it('does not fire the timestamp proof job for a draft item', async () => {
+			const { POST } = await import('../../src/routes/api/cms/[type]/+server.js');
+
+			const predictionsTypeRow = {
+				id: 'ct-2',
+				slug: 'predictions',
+				name: 'Predictions',
+				fields: JSON.stringify([{ name: 'body', label: 'Body', type: 'richtext' }]),
+				settings: JSON.stringify({ enableTimestampProof: true }),
+				icon: 'crystal-ball',
+				sort_order: 0,
+				created_at: '2024-01-01',
+				updated_at: '2024-01-01'
+			};
+
+			mockDB.first
+				.mockResolvedValueOnce(predictionsTypeRow)
+				.mockResolvedValueOnce(predictionsTypeRow)
+				.mockResolvedValueOnce(null)
+				.mockResolvedValueOnce({
+					id: 'ci-1',
+					content_type_id: 'ct-2',
+					slug: 'the-future',
+					title: 'The Future',
+					status: 'draft',
+					fields: JSON.stringify({ body: 'It will happen' }),
+					seo_title: null,
+					seo_description: null,
+					seo_image: null,
+					author_id: 'user-1',
+					published_at: null,
+					created_at: '2024-01-01',
+					updated_at: '2024-01-01'
+				});
+
+			const waitUntil = vi.fn();
+			const request = new Request('http://localhost/api/cms/predictions', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					title: 'The Future',
+					fields: { body: 'It will happen' }
+				})
+			});
+
+			await POST({
+				platform: { ...mockPlatform, context: { waitUntil } },
+				locals: mockLocals,
+				params: { type: 'predictions' },
+				request,
+				url: new URL('http://localhost/api/cms/predictions')
+			} as any);
+
+			expect(waitUntil).not.toHaveBeenCalled();
+		});
 	});
 
 	describe('GET /api/cms/[type]/[id]', () => {
@@ -400,6 +514,22 @@ describe('CMS API - Content Items', () => {
 				created_at: '2024-01-01',
 				updated_at: '2024-01-01'
 			});
+			// route: pre-fetch existing (to detect first-publish transition)
+			mockDB.first.mockResolvedValueOnce({
+				id: 'ci-1',
+				content_type_id: 'ct-1',
+				slug: 'hello',
+				title: 'Hello',
+				status: 'draft',
+				fields: '{"body":"Old"}',
+				seo_title: null,
+				seo_description: null,
+				seo_image: null,
+				author_id: null,
+				published_at: null,
+				created_at: '2024-01-01',
+				updated_at: '2024-01-01'
+			});
 			// updateContentItem: get existing
 			mockDB.first.mockResolvedValueOnce({
 				id: 'ci-1',
@@ -413,6 +543,20 @@ describe('CMS API - Content Items', () => {
 				seo_image: null,
 				author_id: null,
 				published_at: null,
+				created_at: '2024-01-01',
+				updated_at: '2024-01-01'
+			});
+			// updateContentItem: content type lookup (for lock/provenance checks)
+			mockDB.first.mockResolvedValueOnce({
+				id: 'ct-1',
+				slug: 'blog',
+				name: 'Blog Posts',
+				description: '',
+				fields: '[{"name":"body","label":"Body","type":"richtext","sortOrder":1}]',
+				settings: '{}',
+				icon: 'article',
+				sort_order: 0,
+				is_system: 1,
 				created_at: '2024-01-01',
 				updated_at: '2024-01-01'
 			});
@@ -497,6 +641,22 @@ describe('CMS API - Content Items', () => {
 		it('should 400 when field validation fails on update', async () => {
 			const { PUT } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
 			mockDB.first.mockResolvedValueOnce(contentTypeRow);
+			// route: pre-fetch existing (to detect first-publish transition)
+			mockDB.first.mockResolvedValueOnce({
+				id: 'ci-1',
+				content_type_id: 'ct-1',
+				slug: 'hello',
+				title: 'Hello',
+				status: 'draft',
+				fields: '{}',
+				seo_title: null,
+				seo_description: null,
+				seo_image: null,
+				author_id: null,
+				published_at: null,
+				created_at: '2024-01-01',
+				updated_at: '2024-01-01'
+			});
 
 			try {
 				await PUT({
@@ -513,24 +673,29 @@ describe('CMS API - Content Items', () => {
 
 		it('should sanitize richtext fields on update', async () => {
 			const { PUT } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
+			const existingRow = {
+				id: 'ci-1',
+				content_type_id: 'ct-1',
+				slug: 'hello',
+				title: 'Hello',
+				status: 'draft',
+				fields: '{}',
+				seo_title: null,
+				seo_description: null,
+				seo_image: null,
+				author_id: null,
+				published_at: null,
+				created_at: '2024-01-01',
+				updated_at: '2024-01-01'
+			};
 			mockDB.first
 				.mockResolvedValueOnce(contentTypeRow)
+				// route: pre-fetch existing (to detect first-publish transition)
+				.mockResolvedValueOnce(existingRow)
 				// updateContentItem: get existing
-				.mockResolvedValueOnce({
-					id: 'ci-1',
-					content_type_id: 'ct-1',
-					slug: 'hello',
-					title: 'Hello',
-					status: 'draft',
-					fields: '{}',
-					seo_title: null,
-					seo_description: null,
-					seo_image: null,
-					author_id: null,
-					published_at: null,
-					created_at: '2024-01-01',
-					updated_at: '2024-01-01'
-				})
+				.mockResolvedValueOnce(existingRow)
+				// updateContentItem: content type lookup (for lock/provenance checks)
+				.mockResolvedValueOnce(contentTypeRow)
 				// updateContentItem: refetch
 				.mockResolvedValueOnce({
 					id: 'ci-1',
@@ -562,6 +727,124 @@ describe('CMS API - Content Items', () => {
 			expect(boundFieldsJson).toBeTruthy();
 			expect(boundFieldsJson).not.toContain('script');
 			expect(boundFieldsJson).toContain('<p>ok</p>');
+		});
+
+		const lockedTypeRow = {
+			id: 'ct-2',
+			slug: 'predictions',
+			name: 'Predictions',
+			description: '',
+			fields: JSON.stringify([
+				{ name: 'body', label: 'Body', type: 'richtext', lockedAfterPublish: true }
+			]),
+			settings: JSON.stringify({ enableTimestampProof: true }),
+			icon: 'crystal-ball',
+			sort_order: 0,
+			is_system: 1,
+			created_at: '2024-01-01',
+			updated_at: '2024-01-01'
+		};
+
+		const publishedPredictionRow = {
+			id: 'ci-1',
+			content_type_id: 'ct-2',
+			slug: 'the-future',
+			title: 'The Future',
+			status: 'published',
+			fields: JSON.stringify({ body: 'original' }),
+			seo_title: null,
+			seo_description: null,
+			seo_image: null,
+			author_id: null,
+			published_at: '2024-01-01T00:00:00.000Z',
+			created_at: '2024-01-01',
+			updated_at: '2024-01-01'
+		};
+
+		it('translates LockedContentError into a 400 when a locked field changes post-publish', async () => {
+			const { PUT } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
+
+			mockDB.first
+				.mockResolvedValueOnce(lockedTypeRow) // getContentTypeBySlug
+				.mockResolvedValueOnce(publishedPredictionRow) // route: pre-fetch existing
+				.mockResolvedValueOnce(publishedPredictionRow) // updateContentItem: get existing
+				.mockResolvedValueOnce(lockedTypeRow); // updateContentItem: content type lookup
+
+			try {
+				await PUT({
+					platform: mockPlatform,
+					locals: mockLocals,
+					params: { type: 'predictions', id: 'ci-1' },
+					request: new Request('http://localhost/api/cms/predictions/ci-1', {
+						method: 'PUT',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ fields: { body: 'CHANGED' } })
+					})
+				} as any);
+				expect.fail('Should have thrown');
+			} catch (err: any) {
+				expect(err.status).toBe(400);
+			}
+		});
+
+		it('fires the timestamp proof job on the first publish transition', async () => {
+			const { PUT } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
+
+			const draftPredictionRow = {
+				...publishedPredictionRow,
+				status: 'draft',
+				published_at: null
+			};
+			const nowPublishedRow = { ...publishedPredictionRow };
+
+			mockDB.first
+				.mockResolvedValueOnce(lockedTypeRow) // getContentTypeBySlug
+				.mockResolvedValueOnce(draftPredictionRow) // route: pre-fetch existing
+				.mockResolvedValueOnce(draftPredictionRow) // updateContentItem: get existing
+				.mockResolvedValueOnce(lockedTypeRow) // updateContentItem: content type lookup
+				.mockResolvedValueOnce(nowPublishedRow); // updateContentItem: refetch
+
+			const waitUntil = vi.fn();
+			const response = await PUT({
+				platform: { ...mockPlatform, context: { waitUntil } },
+				locals: mockLocals,
+				params: { type: 'predictions', id: 'ci-1' },
+				request: new Request('http://localhost/api/cms/predictions/ci-1', {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ status: 'published' })
+				}),
+				url: new URL('http://localhost/api/cms/predictions/ci-1')
+			} as any);
+
+			expect(response.status).toBe(200);
+			expect(waitUntil).toHaveBeenCalledTimes(1);
+		});
+
+		it('does not fire the timestamp proof job when the item was already published', async () => {
+			const { PUT } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
+
+			mockDB.first
+				.mockResolvedValueOnce(lockedTypeRow) // getContentTypeBySlug
+				.mockResolvedValueOnce(publishedPredictionRow) // route: pre-fetch existing
+				.mockResolvedValueOnce(publishedPredictionRow) // updateContentItem: get existing
+				.mockResolvedValueOnce(lockedTypeRow) // updateContentItem: content type lookup
+				.mockResolvedValueOnce(publishedPredictionRow); // updateContentItem: refetch
+
+			const waitUntil = vi.fn();
+			await PUT({
+				platform: { ...mockPlatform, context: { waitUntil } },
+				locals: mockLocals,
+				params: { type: 'predictions', id: 'ci-1' },
+				request: new Request('http://localhost/api/cms/predictions/ci-1', {
+					method: 'PUT',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ fields: { body: 'original' } })
+				}),
+				url: new URL('http://localhost/api/cms/predictions/ci-1')
+			} as any);
+
+			expect(waitUntil).not.toHaveBeenCalled();
 		});
 	});
 
@@ -596,6 +879,26 @@ describe('CMS API - Content Items', () => {
 				expect.fail('Should have thrown');
 			} catch (err: any) {
 				expect(err.status).toBe(404);
+			}
+		});
+
+		it('translates LockedContentError into a 400 when deleting a published, proof-enabled item', async () => {
+			const { DELETE } = await import('../../src/routes/api/cms/[type]/[id]/+server.js');
+
+			mockDB.first.mockResolvedValueOnce({
+				published_at: '2024-01-01T00:00:00.000Z',
+				settings: JSON.stringify({ enableTimestampProof: true })
+			});
+
+			try {
+				await DELETE({
+					platform: mockPlatform,
+					locals: mockLocals,
+					params: { type: 'predictions', id: 'ci-1' }
+				} as any);
+				expect.fail('Should have thrown');
+			} catch (err: any) {
+				expect(err.status).toBe(400);
 			}
 		});
 	});

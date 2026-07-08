@@ -131,4 +131,16 @@ describe('sanitizeRichtextFields', () => {
 		sanitizeRichtextFields(fields, definitions);
 		expect(fields.body).toBe('<script>x</script>');
 	});
+
+	it('is idempotent — sanitizing already-sanitized output is byte-identical', () => {
+		// Locked-field enforcement diffs stored vs. incoming field JSON. If
+		// sanitizing twice ever changed the bytes, an untouched save on a
+		// locked field would falsely trip LockedContentError.
+		const raw = {
+			body: '<p>Hello <strong>world</strong></p><ul><li>one</li></ul><script>x</script>'
+		};
+		const once = sanitizeRichtextFields(raw, definitions);
+		const twice = sanitizeRichtextFields(once, definitions);
+		expect(twice.body).toBe(once.body);
+	});
 });
