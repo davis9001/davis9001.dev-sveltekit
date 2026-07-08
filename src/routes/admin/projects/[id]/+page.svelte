@@ -7,6 +7,8 @@
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import { parseRepoUrl } from '$lib/github/url';
 	import {
 		PROJECT_PRIORITIES,
 		PROJECT_STATUS_LABELS as STATUS_LABELS,
@@ -33,12 +35,162 @@
 		sortOrder: data.project.sortOrder
 	};
 
+	$: repo = parseRepoUrl(form.githubUrl);
+
 	let saving = false;
 	let saved = false;
 	let errorMessage = '';
 	let confirmingDelete = false;
 	let deleting = false;
 	let savedTimer: ReturnType<typeof setTimeout> | null = null;
+
+	// GitHub Projects v2 sync state
+	let githubProjectUrl = data.project.githubProjectUrl ?? '';
+	let githubProjectId = data.project.githubProjectId;
+	let githubSyncEnabled = data.project.githubSyncEnabled;
+	let githubLastSyncedAt = data.project.githubLastSyncedAt;
+	let githubLastSyncError = data.project.githubLastSyncError;
+	let githubPriorityFieldFound = data.project.githubPriorityFieldFound;
+	let githubErrorMessage = '';
+	let linking = false;
+	let unlinking = false;
+	let syncing = false;
+	let syncSummary: { appended: number; unlinked: number; conflicts: unknown[] } | null = null;
+
+	// Board picker — avoids making the admin hand-type a GitHub Projects URL.
+	interface AvailableBoard {
+		id: string;
+		number: number;
+		title: string;
+		url: string;
+		source: string;
+	}
+	let availableBoards: AvailableBoard[] = [];
+	let loadingBoards = false;
+	let boardsError = '';
+	let selectedBoardUrl = '';
+
+	function boardLabel(b: AvailableBoard): string {
+		const group =
+			b.source === 'repository'
+				? 'This repo'
+				: b.source === 'viewer'
+					? 'Your boards'
+					: b.source.replace('org:', '');
+		return `${group} — ${b.title} (#${b.number})`;
+	}
+
+	async function loadBoards() {
+		loadingBoards = true;
+		boardsError = '';
+		try {
+			const res = await fetch(`/api/admin/projects/${data.project.id}/github/boards`);
+			const body = await res.json().catch(() => ({}));
+			if (res.ok) {
+				availableBoards = body.boards ?? [];
+			} else {
+				boardsError = body.message || 'Could not load boards automatically.';
+			}
+		} catch {
+			boardsError = 'Could not load boards automatically.';
+		} finally {
+			loadingBoards = false;
+		}
+	}
+
+	onMount(() => {
+		if (!githubProjectId) loadBoards();
+	});
+
+	function linkSelectedBoard() {
+		githubProjectUrl = selectedBoardUrl;
+		linkGithub();
+	}
+
+	async function linkGithub() {
+		githubErrorMessage = '';
+		if (!githubProjectUrl.trim()) {
+			githubErrorMessage = 'Paste a GitHub Projects board URL first.';
+			return;
+		}
+		linking = true;
+		try {
+			const res = await fetch(`/api/admin/projects/${data.project.id}/github/link`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ projectUrl: githubProjectUrl.trim() })
+			});
+			const body = await res.json().catch(() => ({}));
+			if (res.ok) {
+				githubProjectId = body.project.githubProjectId;
+				githubSyncEnabled = body.project.githubSyncEnabled;
+				githubPriorityFieldFound = body.project.githubPriorityFieldFound;
+				githubLastSyncError = body.project.githubLastSyncError;
+				if (!body.fieldsFound?.status) {
+					githubErrorMessage = 'Linked, but no "Status" field was found on that board.';
+				}
+			} else {
+				githubErrorMessage = body.message || 'Failed to link GitHub board';
+			}
+		} catch {
+			githubErrorMessage = 'Failed to link GitHub board';
+		} finally {
+			linking = false;
+		}
+	}
+
+	async function unlinkGithub() {
+		githubErrorMessage = '';
+		unlinking = true;
+		try {
+			const res = await fetch(`/api/admin/projects/${data.project.id}/github/unlink`, {
+				method: 'POST'
+			});
+			if (res.ok) {
+				const body = await res.json();
+				githubProjectId = null;
+				githubSyncEnabled = false;
+				githubProjectUrl = '';
+				githubLastSyncedAt = null;
+				githubLastSyncError = null;
+				githubPriorityFieldFound = false;
+				syncSummary = null;
+				form.tasks = body.project.tasks.map((t: Task) => ({ ...t }));
+				loadBoards();
+			} else {
+				githubErrorMessage = 'Failed to unlink GitHub board';
+			}
+		} catch {
+			githubErrorMessage = 'Failed to unlink GitHub board';
+		} finally {
+			unlinking = false;
+		}
+	}
+
+	async function syncGithubNow() {
+		githubErrorMessage = '';
+		syncSummary = null;
+		syncing = true;
+		try {
+			const res = await fetch(`/api/admin/projects/${data.project.id}/github/sync`, {
+				method: 'POST'
+			});
+			const body = await res.json().catch(() => ({}));
+			if (res.ok) {
+				form.tasks = body.project.tasks.map((t: Task) => ({ ...t }));
+				githubLastSyncedAt = body.project.githubLastSyncedAt;
+				githubLastSyncError = body.project.githubLastSyncError;
+				githubPriorityFieldFound = body.project.githubPriorityFieldFound;
+				syncSummary = body.summary;
+			} else {
+				githubErrorMessage = body.message || 'Failed to sync with GitHub';
+			}
+		} catch {
+			githubErrorMessage = 'Failed to sync with GitHub';
+		} finally {
+			syncing = false;
+		}
+	}
 
 	function addExtraLink() {
 		form.extraLinks = [...form.extraLinks, { label: '', href: '' }];
@@ -209,6 +361,83 @@
 		</div>
 
 		<fieldset class="form-group">
+			<legend>GitHub Sync</legend>
+			{#if githubErrorMessage}
+				<div class="error-toast" role="alert">{githubErrorMessage}</div>
+			{/if}
+			{#if !githubProjectId}
+				{#if loadingBoards}
+					<p class="github-sync-meta">Looking for boards…</p>
+				{:else if boardsError}
+					<p class="github-sync-note">{boardsError}</p>
+				{:else if availableBoards.length > 0}
+					<div class="row-editor">
+						<select
+							value={selectedBoardUrl}
+							on:change={(e) => (selectedBoardUrl = e.currentTarget.value)}
+							aria-label="Select a GitHub Projects board"
+						>
+							<option value="">Choose a board…</option>
+							{#each availableBoards as b (b.id)}
+								<option value={b.url}>{boardLabel(b)}</option>
+							{/each}
+						</select>
+						<button
+							class="btn btn-secondary"
+							on:click={linkSelectedBoard}
+							disabled={!selectedBoardUrl || linking}
+						>
+							{linking ? 'Linking...' : 'Link selected board'}
+						</button>
+					</div>
+					<p class="github-sync-meta">Or paste a board URL directly:</p>
+				{/if}
+				<div class="row-editor">
+					<input
+						type="url"
+						bind:value={githubProjectUrl}
+						placeholder="https://github.com/orgs/<org>/projects/<number>"
+						aria-label="GitHub Projects board URL"
+					/>
+					<button class="btn btn-secondary" on:click={linkGithub} disabled={linking}>
+						{linking ? 'Linking...' : 'Link'}
+					</button>
+				</div>
+			{:else}
+				<p class="github-sync-status">
+					Linked to
+					<a href={githubProjectUrl} target="_blank" rel="noopener noreferrer">{githubProjectUrl}</a
+					>
+					{#if !githubPriorityFieldFound}
+						<span class="github-sync-note">(no "Priority" field found on this board)</span>
+					{/if}
+				</p>
+				{#if githubLastSyncedAt}
+					<p class="github-sync-meta">
+						Last synced {new Date(githubLastSyncedAt).toLocaleString()}
+					</p>
+				{/if}
+				{#if githubLastSyncError}
+					<div class="error-toast" role="alert">{githubLastSyncError}</div>
+				{/if}
+				{#if syncSummary}
+					<p class="github-sync-meta">
+						{syncSummary.appended} new, {syncSummary.unlinked} unlinked, {syncSummary.conflicts
+							.length} conflicts resolved
+					</p>
+				{/if}
+				<div class="row-editor">
+					<button class="btn btn-secondary" on:click={syncGithubNow} disabled={syncing}>
+						{syncing ? 'Syncing...' : 'Sync now'}
+					</button>
+					<button class="btn btn-danger-outline" on:click={unlinkGithub} disabled={unlinking}>
+						{unlinking ? 'Unlinking...' : 'Unlink'}
+					</button>
+				</div>
+			{/if}
+		</fieldset>
+
+		<fieldset class="form-group">
 			<legend>Extra links</legend>
 			{#each form.extraLinks as link, i}
 				<div class="row-editor">
@@ -272,6 +501,18 @@
 						aria-label="Task {i + 1} text"
 						class="task-text-input"
 					/>
+					{#if task.githubIssueNumber && repo}
+						<a
+							class="task-issue-link"
+							href="https://github.com/{repo.owner}/{repo.repo}/issues/{task.githubIssueNumber}"
+							target="_blank"
+							rel="noopener noreferrer"
+							title="View issue #{task.githubIssueNumber} on GitHub"
+							aria-label="View issue #{task.githubIssueNumber} on GitHub"
+						>
+							#{task.githubIssueNumber}
+						</a>
+					{/if}
 					<button
 						class="icon-btn icon-danger"
 						title="Remove task"
@@ -467,6 +708,41 @@
 
 	.task-text-input {
 		flex: 1;
+	}
+
+	.task-issue-link {
+		flex: none;
+		font-size: 0.75rem;
+		font-weight: 600;
+		color: var(--color-text-secondary);
+		text-decoration: none;
+		padding: 0.15rem 0.4rem;
+		border-radius: var(--radius-sm);
+		background: var(--color-background);
+	}
+
+	.task-issue-link:hover {
+		color: var(--color-primary);
+	}
+
+	.github-sync-status {
+		font-size: 0.875rem;
+		color: var(--color-text);
+	}
+
+	.github-sync-status a {
+		color: var(--color-primary);
+		word-break: break-all;
+	}
+
+	.github-sync-note {
+		color: var(--color-text-secondary);
+		font-size: 0.8125rem;
+	}
+
+	.github-sync-meta {
+		font-size: 0.8125rem;
+		color: var(--color-text-secondary);
 	}
 
 	.icon-btn {

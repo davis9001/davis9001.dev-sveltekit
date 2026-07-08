@@ -92,6 +92,19 @@ export function validateProjectInput(
 		}
 		input.sortOrder = raw.sortOrder;
 	}
+	// Only these two GitHub-sync fields are settable via the generic request
+	// body — githubProjectId/githubLastSyncedAt/githubLastSyncError/
+	// githubPriorityFieldFound are server-derived (see OpenProjectInput) and
+	// only ever set by internal code, never from untrusted JSON.
+	if ('githubProjectUrl' in raw) {
+		input.githubProjectUrl =
+			typeof raw.githubProjectUrl === 'string' && raw.githubProjectUrl.trim()
+				? raw.githubProjectUrl.trim()
+				: null;
+	}
+	if ('githubSyncEnabled' in raw) {
+		input.githubSyncEnabled = Boolean(raw.githubSyncEnabled);
+	}
 
 	return { ok: true, input };
 }

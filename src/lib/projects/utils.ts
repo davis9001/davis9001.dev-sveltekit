@@ -17,6 +17,24 @@ import {
 	type Task
 } from './types';
 
+/** Pick well-formed GitHub sync bookkeeping fields off a raw task, if present */
+function normalizeTaskGithubFields(raw: Partial<Task>): Partial<Task> {
+	const fields: Partial<Task> = {};
+	if (typeof raw.githubItemId === 'string' && raw.githubItemId) {
+		fields.githubItemId = raw.githubItemId;
+	}
+	if (typeof raw.githubIssueId === 'string' && raw.githubIssueId) {
+		fields.githubIssueId = raw.githubIssueId;
+	}
+	if (typeof raw.githubIssueNumber === 'number' && Number.isFinite(raw.githubIssueNumber)) {
+		fields.githubIssueNumber = raw.githubIssueNumber;
+	}
+	if (typeof raw.updatedAt === 'string' && raw.updatedAt) {
+		fields.updatedAt = raw.updatedAt;
+	}
+	return fields;
+}
+
 /**
  * Canonicalise one task entry. Tasks carry a workflow status (the admin
  * board is a task kanban); `done` mirrors `status === 'complete'`.
@@ -42,7 +60,8 @@ function normalizeTask(entry: unknown, forceDone = false): Task {
 		text: String(raw.text ?? ''),
 		done: status === 'complete',
 		status,
-		priority: asPriority(raw.priority)
+		priority: asPriority(raw.priority),
+		...normalizeTaskGithubFields(raw)
 	};
 }
 

@@ -58,6 +58,12 @@ function makeProject(overrides: Partial<OpenProject> = {}): OpenProject {
 		sortOrder: 0,
 		createdAt: '2026-01-01 00:00:00',
 		updatedAt: '2026-01-02 00:00:00',
+		githubProjectUrl: null,
+		githubProjectId: null,
+		githubSyncEnabled: false,
+		githubLastSyncedAt: null,
+		githubLastSyncError: null,
+		githubPriorityFieldFound: false,
 		...overrides
 	};
 }
@@ -152,7 +158,26 @@ describe('Open Projects utils', () => {
 	describe('toPublicGroups', () => {
 		it('strips internal fields and keeps the public key set', () => {
 			const groups = toPublicGroups([
-				makeProject({ tasks: [{ text: 't', done: true, status: 'complete', priority: 'medium' }] })
+				makeProject({
+					githubSyncEnabled: true,
+					githubProjectUrl: 'https://github.com/orgs/starspacegroup/projects/3',
+					githubProjectId: 'PVT_kwxxx',
+					githubLastSyncedAt: '2026-01-02 00:00:00',
+					githubLastSyncError: 'boom',
+					githubPriorityFieldFound: true,
+					tasks: [
+						{
+							text: 't',
+							done: true,
+							status: 'complete',
+							priority: 'medium',
+							githubItemId: 'PVTI_xxx',
+							githubIssueId: 'I_xxx',
+							githubIssueNumber: 42,
+							updatedAt: '2026-01-02T00:00:00Z'
+						}
+					]
+				})
 			]);
 			const project = groups[0].projects[0] as unknown as Record<string, unknown>;
 			expect(Object.keys(project).sort()).toEqual([
@@ -168,6 +193,12 @@ describe('Open Projects utils', () => {
 			]);
 			expect(project.id).toBeUndefined();
 			expect(project.sortOrder).toBeUndefined();
+			// GitHub sync bookkeeping — project- and task-level — must never leak
+			for (const key of Object.keys(project)) {
+				expect(key.toLowerCase().startsWith('github')).toBe(key === 'githubUrl');
+			}
+			const task = (project.tasks as Record<string, unknown>[])[0];
+			expect(Object.keys(task).sort()).toEqual(['done', 'text']);
 		});
 	});
 

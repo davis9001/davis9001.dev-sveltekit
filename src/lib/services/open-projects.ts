@@ -31,6 +31,12 @@ interface OpenProjectRow {
 	sort_order: number;
 	created_at: string;
 	updated_at: string;
+	github_project_url: string | null;
+	github_project_id: string | null;
+	github_sync_enabled: number;
+	github_last_synced_at: string | null;
+	github_last_sync_error: string | null;
+	github_priority_field_found: number;
 }
 
 function parseJsonArray(value: string): unknown {
@@ -56,7 +62,13 @@ function rowToProject(row: OpenProjectRow): OpenProject {
 		blockers: row.blockers ?? '',
 		sortOrder: row.sort_order,
 		createdAt: row.created_at,
-		updatedAt: row.updated_at
+		updatedAt: row.updated_at,
+		githubProjectUrl: row.github_project_url ?? null,
+		githubProjectId: row.github_project_id ?? null,
+		githubSyncEnabled: Boolean(row.github_sync_enabled),
+		githubLastSyncedAt: row.github_last_synced_at ?? null,
+		githubLastSyncError: row.github_last_sync_error ?? null,
+		githubPriorityFieldFound: Boolean(row.github_priority_field_found)
 	};
 }
 
@@ -141,7 +153,16 @@ const PATCH_COLUMNS: Record<string, { column: string; serialize?: (v: unknown) =
 	extraLinks: { column: 'extra_links', serialize: (v) => JSON.stringify(v ?? []) },
 	tasks: { column: 'tasks', serialize: (v) => JSON.stringify(v ?? []) },
 	blockers: { column: 'blockers' },
-	sortOrder: { column: 'sort_order' }
+	sortOrder: { column: 'sort_order' },
+	githubProjectUrl: { column: 'github_project_url' },
+	githubProjectId: { column: 'github_project_id' },
+	githubSyncEnabled: { column: 'github_sync_enabled', serialize: (v) => (v ? 1 : 0) },
+	githubLastSyncedAt: { column: 'github_last_synced_at' },
+	githubLastSyncError: { column: 'github_last_sync_error' },
+	githubPriorityFieldFound: {
+		column: 'github_priority_field_found',
+		serialize: (v) => (v ? 1 : 0)
+	}
 };
 
 /**

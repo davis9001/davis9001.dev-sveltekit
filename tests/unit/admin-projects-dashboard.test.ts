@@ -33,6 +33,12 @@ function makeProject(overrides: Partial<OpenProject> = {}): OpenProject {
 		sortOrder: 0,
 		createdAt: '2026-01-01',
 		updatedAt: '2026-01-02',
+		githubProjectUrl: null,
+		githubProjectId: null,
+		githubSyncEnabled: false,
+		githubLastSyncedAt: null,
+		githubLastSyncError: null,
+		githubPriorityFieldFound: false,
 		...overrides
 	};
 }

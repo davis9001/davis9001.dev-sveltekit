@@ -49,12 +49,21 @@ const plainUser = { id: 'u2', isOwner: false, isAdmin: false };
 function makeEvent(options: {
 	user?: unknown;
 	db?: unknown;
+	kv?: unknown;
+	waitUntil?: (promise: Promise<unknown>) => void;
 	body?: unknown;
 	params?: Record<string, string>;
 }) {
+	const env: Record<string, unknown> = {};
+	if (options.db !== undefined) env.DB = options.db;
+	if (options.kv !== undefined) env.KV = options.kv;
+	const hasPlatform = options.db !== undefined || options.kv !== undefined || options.waitUntil;
+
 	return {
 		locals: { user: options.user },
-		platform: options.db === undefined ? undefined : { env: { DB: options.db } },
+		platform: hasPlatform
+			? { env, context: options.waitUntil ? { waitUntil: options.waitUntil } : undefined }
+			: undefined,
 		params: options.params ?? { id: 'p1' },
 		request: {
 			json: async () => {
@@ -192,12 +201,71 @@ describe('Admin Open Projects API', () => {
 	describe('PUT /api/admin/projects/[id]', () => {
 		it('patches fields and returns the fresh project', async () => {
 			const { db, first } = createMockDb();
-			first.mockResolvedValueOnce({ id: 'p1' }).mockResolvedValueOnce(makeRow({ name: 'Renamed' }));
+			first
+				.mockResolvedValueOnce(makeRow()) // getOpenProject (pre-fetch for the GitHub sync hook)
+				.mockResolvedValueOnce({ id: 'p1' }) // updateOpenProject existence check
+				.mockResolvedValueOnce(makeRow({ name: 'Renamed' })); // updateOpenProject re-fetch
 
 			const response = await itemPUT(makeEvent({ user: adminUser, db, body: { name: 'Renamed' } }));
 			const body = await response.json();
 
 			expect(body.project.name).toBe('Renamed');
+		});
+
+		it('does not trigger a GitHub push when sync is not enabled', async () => {
+			const { db, first } = createMockDb();
+			first
+				.mockResolvedValueOnce(makeRow({ github_sync_enabled: 0 }))
+				.mockResolvedValueOnce({ id: 'p1' })
+				.mockResolvedValueOnce(makeRow({ name: 'Renamed', github_sync_enabled: 0 }));
+			const waitUntil = vi.fn();
+
+			await itemPUT(makeEvent({ user: adminUser, db, waitUntil, body: { name: 'Renamed' } }));
+
+			expect(waitUntil).not.toHaveBeenCalled();
+		});
+
+		it('triggers a background GitHub push when sync is enabled, and persists the result', async () => {
+			const { db, first } = createMockDb();
+			first
+				.mockResolvedValueOnce(
+					makeRow({
+						github_sync_enabled: 1,
+						github_project_id: 'PVT_1',
+						tasks: JSON.stringify([
+							{ text: 'a', done: false, status: 'planning', priority: 'medium' }
+						])
+					})
+				) // getOpenProject pre-fetch
+				.mockResolvedValueOnce({ id: 'p1' }) // updateOpenProject existence check (the PUT itself)
+				.mockResolvedValueOnce(
+					makeRow({ name: 'Renamed', github_sync_enabled: 1, github_project_id: 'PVT_1' })
+				) // updateOpenProject re-fetch (the PUT itself)
+				.mockResolvedValueOnce({ id: 'p1' }) // background job's updateOpenProject existence check
+				.mockResolvedValueOnce(makeRow({ name: 'Renamed', github_sync_enabled: 1 })); // background job re-fetch
+			const kv = {
+				get: vi.fn().mockResolvedValue(JSON.stringify({ token: 'tok', login: 'x', updatedAt: 'x' }))
+			};
+			const waitUntilPromises: Promise<unknown>[] = [];
+			const waitUntil = vi.fn((p: Promise<unknown>) => waitUntilPromises.push(p));
+			globalThis.fetch = vi.fn().mockResolvedValue({
+				ok: true,
+				headers: new Headers(),
+				json: async () => ({ data: { node: { fields: { nodes: [] } } } })
+			});
+
+			const response = await itemPUT(
+				makeEvent({ user: adminUser, db, kv, waitUntil, body: { name: 'Renamed' } })
+			);
+			const body = await response.json();
+
+			// The client's response reflects the synchronous PUT result immediately —
+			// it does not wait on the background push.
+			expect(body.project.name).toBe('Renamed');
+			expect(waitUntil).toHaveBeenCalledTimes(1);
+
+			await Promise.all(waitUntilPromises);
+			vi.restoreAllMocks();
 		});
 
 		it('404s for unknown ids', async () => {

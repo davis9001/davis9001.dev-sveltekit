@@ -1,12 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 
-	const navItems = [
+	// GitHub Sync is owner-only — its PAT's blast radius spans any repo/board
+	// it can reach, so it's hidden from non-owner admins here in addition to
+	// the page's own owner-only server guard.
+	$: navItems = [
 		{ path: '/admin', label: 'Dashboard', icon: 'home' },
 		{ path: '/admin/projects', label: 'Projects', icon: 'rocket' },
 		{ path: '/admin/users', label: 'Users', icon: 'users' },
 		{ path: '/admin/auth-keys', label: 'Auth Keys', icon: 'key' },
 		{ path: '/admin/ai-keys', label: 'AI Keys', icon: 'sparkles' },
+		...($page.data.user?.isOwner
+			? [{ path: '/admin/github-sync', label: 'GitHub Sync', icon: 'github' }]
+			: []),
 		{ path: '/admin/cms', label: 'CMS', icon: 'document' },
 		{ path: '/admin/spotify', label: 'Spotify', icon: 'music' }
 	];
@@ -95,6 +101,20 @@
 							stroke-width="2"
 						>
 							<path d="M12 3v18m0-18l-3 3m3-3l3 3M3 12h18M3 12l3-3m-3 3l3 3m12-3l-3-3m3 3l-3 3" />
+						</svg>
+					{:else if item.icon === 'github'}
+						<svg
+							class="nav-icon"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"
+							/>
 						</svg>
 					{:else if item.icon === 'document'}
 						<svg
