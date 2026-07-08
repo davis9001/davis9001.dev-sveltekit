@@ -124,11 +124,13 @@
 
 	.proof-hash-wrap {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		gap: var(--spacing-sm);
 	}
 
 	.proof-hash {
+		flex: 1;
+		min-width: 0;
 		font-family: 'Fira Code', 'Consolas', monospace;
 		font-size: 0.8125rem;
 		word-break: break-all;

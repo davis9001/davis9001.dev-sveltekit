@@ -415,6 +415,35 @@
 				</div>
 			{/if}
 
+			<!-- Timestamp proof -->
+			{#if contentType.settings?.enableTimestampProof}
+				<div class="card">
+					<h2 class="card-title">Provenance</h2>
+					<PredictionProof item={proofItem} />
+					{#if proofMessage}
+						<p class="proof-action-message">{proofMessage}</p>
+					{/if}
+					<div class="proof-actions">
+						<button
+							type="button"
+							class="btn btn-secondary"
+							on:click={retryTimestampProof}
+							disabled={proofActionLoading}
+						>
+							Retry timestamp request
+						</button>
+						<button
+							type="button"
+							class="btn btn-secondary"
+							on:click={checkWaybackSnapshot}
+							disabled={proofActionLoading}
+						>
+							Check Wayback snapshot
+						</button>
+					</div>
+				</div>
+			{/if}
+
 			<!-- Tags -->
 			{#if contentType.settings?.hasTags && tags.length > 0}
 				<div class="card">
@@ -502,35 +531,6 @@
 							</div>
 						</div>
 					{/if}
-				</div>
-			{/if}
-
-			<!-- Timestamp proof -->
-			{#if contentType.settings?.enableTimestampProof}
-				<div class="card">
-					<h2 class="card-title">Provenance</h2>
-					<PredictionProof item={proofItem} />
-					{#if proofMessage}
-						<p class="proof-action-message">{proofMessage}</p>
-					{/if}
-					<div class="proof-actions">
-						<button
-							type="button"
-							class="btn btn-secondary btn-full"
-							on:click={retryTimestampProof}
-							disabled={proofActionLoading}
-						>
-							Retry timestamp request
-						</button>
-						<button
-							type="button"
-							class="btn btn-secondary btn-full"
-							on:click={checkWaybackSnapshot}
-							disabled={proofActionLoading}
-						>
-							Check Wayback snapshot
-						</button>
-					</div>
 				</div>
 			{/if}
 
@@ -744,7 +744,7 @@
 
 	.proof-actions {
 		display: flex;
-		flex-direction: column;
+		flex-wrap: wrap;
 		gap: var(--spacing-sm);
 		margin-top: var(--spacing-md);
 	}
