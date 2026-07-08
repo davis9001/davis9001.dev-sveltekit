@@ -55,8 +55,8 @@ describe('computeStats', () => {
 				status: 'active',
 				priority: 'high',
 				tasks: [
-					{ text: 'a', done: true, status: 'complete' },
-					{ text: 'b', done: false, status: 'planning' }
+					{ text: 'a', done: true, status: 'complete', priority: 'medium' },
+					{ text: 'b', done: false, status: 'planning', priority: 'medium' }
 				],
 				blockers: 'stuck'
 			}),
@@ -64,7 +64,7 @@ describe('computeStats', () => {
 				id: 'p-2',
 				status: 'blocked',
 				priority: 'low',
-				tasks: [{ text: 'c', done: true, status: 'complete' }]
+				tasks: [{ text: 'c', done: true, status: 'complete', priority: 'medium' }]
 			}),
 			makeProject({ id: 'p-3', status: 'active', blockers: '   ' })
 		]);
@@ -93,9 +93,9 @@ describe('taskProgress', () => {
 	it('computes rounded percent', () => {
 		expect(
 			taskProgress([
-				{ text: 'a', done: true, status: 'complete' },
-				{ text: 'b', done: false, status: 'planning' },
-				{ text: 'c', done: false, status: 'planning' }
+				{ text: 'a', done: true, status: 'complete', priority: 'medium' },
+				{ text: 'b', done: false, status: 'planning', priority: 'medium' },
+				{ text: 'c', done: false, status: 'planning', priority: 'medium' }
 			])
 		).toEqual({ done: 1, total: 3, percent: 33 });
 	});
@@ -112,7 +112,7 @@ describe('filterProjects', () => {
 			status: 'active',
 			priority: 'high',
 			description: 'CMS framework',
-			tasks: [{ text: 'write docs', done: false, status: 'planning' }]
+			tasks: [{ text: 'write docs', done: false, status: 'planning', priority: 'medium' }]
 		}),
 		makeProject({
 			id: 'b',
@@ -326,7 +326,7 @@ describe('/admin/projects page server load', () => {
 			id: 'p1',
 			name: 'NebulaKit',
 			status: 'active',
-			tasks: [{ text: 'Ship', done: false, status: 'planning' }]
+			tasks: [{ text: 'Ship', done: false, status: 'planning', priority: 'medium' }]
 		});
 	});
 });
@@ -370,11 +370,9 @@ describe('/admin/projects/[id] page server load', () => {
 		const statement = {
 			bind: vi.fn().mockReturnThis(),
 			first: vi.fn().mockResolvedValue(projectRow),
-			all: vi
-				.fn()
-				.mockResolvedValue({
-					results: [projectRow, { ...projectRow, id: 'p2', group_name: 'Personal' }]
-				})
+			all: vi.fn().mockResolvedValue({
+				results: [projectRow, { ...projectRow, id: 'p2', group_name: 'Personal' }]
+			})
 		};
 		const db = { prepare: vi.fn().mockReturnValue(statement) };
 
@@ -399,16 +397,32 @@ describe('flattenTasks', () => {
 				name: 'Alpha',
 				group: '*Space',
 				tasks: [
-					{ text: 't1', done: false, status: 'planning' },
-					{ text: 't2', done: false, status: 'blocked' }
+					{ text: 't1', done: false, status: 'planning', priority: 'medium' },
+					{ text: 't2', done: false, status: 'blocked', priority: 'medium' }
 				]
 			}),
 			makeProject({ id: 'b', name: 'Beta', group: 'Personal', tasks: [] })
 		]);
 
 		expect(tasks).toEqual([
-			{ projectId: 'a', projectName: 'Alpha', group: '*Space', index: 0, text: 't1', status: 'planning' },
-			{ projectId: 'a', projectName: 'Alpha', group: '*Space', index: 1, text: 't2', status: 'blocked' }
+			{
+				projectId: 'a',
+				projectName: 'Alpha',
+				group: '*Space',
+				index: 0,
+				text: 't1',
+				status: 'planning',
+				priority: 'medium'
+			},
+			{
+				projectId: 'a',
+				projectName: 'Alpha',
+				group: '*Space',
+				index: 1,
+				text: 't2',
+				status: 'blocked',
+				priority: 'medium'
+			}
 		]);
 	});
 });
@@ -417,17 +431,22 @@ describe('setTaskStatus', () => {
 	it('moves a task and keeps done in sync', async () => {
 		const { setTaskStatus } = await import('../../src/lib/admin/projects-dashboard');
 		const tasks = [
-			{ text: 'a', done: false, status: 'planning' as const },
-			{ text: 'b', done: false, status: 'active' as const }
+			{ text: 'a', done: false, status: 'planning' as const, priority: 'medium' as const },
+			{ text: 'b', done: false, status: 'active' as const, priority: 'medium' as const }
 		];
 
 		const toDone = setTaskStatus(tasks, 0, 'complete');
-		expect(toDone[0]).toEqual({ text: 'a', done: true, status: 'complete' });
+		expect(toDone[0]).toEqual({ text: 'a', done: true, status: 'complete', priority: 'medium' });
 		expect(toDone[1]).toBe(tasks[1] === toDone[1] ? toDone[1] : toDone[1]); // other entries preserved
 		expect(toDone[1]).toEqual(tasks[1]);
 
 		const backToActive = setTaskStatus(toDone, 0, 'active');
-		expect(backToActive[0]).toEqual({ text: 'a', done: false, status: 'active' });
+		expect(backToActive[0]).toEqual({
+			text: 'a',
+			done: false,
+			status: 'active',
+			priority: 'medium'
+		});
 
 		// original untouched (immutability)
 		expect(tasks[0].status).toBe('planning');
@@ -435,7 +454,9 @@ describe('setTaskStatus', () => {
 
 	it('returns the original array for invalid indexes', async () => {
 		const { setTaskStatus } = await import('../../src/lib/admin/projects-dashboard');
-		const tasks = [{ text: 'a', done: false, status: 'planning' as const }];
+		const tasks = [
+			{ text: 'a', done: false, status: 'planning' as const, priority: 'medium' as const }
+		];
 		expect(setTaskStatus(tasks, -1, 'complete')).toBe(tasks);
 		expect(setTaskStatus(tasks, 5, 'complete')).toBe(tasks);
 	});
@@ -448,11 +469,14 @@ describe('computeTaskStats', () => {
 			makeProject({
 				id: 'a',
 				tasks: [
-					{ text: 't1', done: false, status: 'planning' },
-					{ text: 't2', done: true, status: 'complete' }
+					{ text: 't1', done: false, status: 'planning', priority: 'medium' },
+					{ text: 't2', done: true, status: 'complete', priority: 'medium' }
 				]
 			}),
-			makeProject({ id: 'b', tasks: [{ text: 't3', done: false, status: 'blocked' }] })
+			makeProject({
+				id: 'b',
+				tasks: [{ text: 't3', done: false, status: 'blocked', priority: 'medium' }]
+			})
 		]);
 
 		expect(stats.total).toBe(3);

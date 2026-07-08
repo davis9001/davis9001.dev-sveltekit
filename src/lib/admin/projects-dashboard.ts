@@ -90,6 +90,7 @@ export interface BoardTask {
 	index: number;
 	text: string;
 	status: ProjectStatus;
+	priority: ProjectPriority;
 }
 
 /** Flatten every project's tasks into board cards */
@@ -103,7 +104,8 @@ export function flattenTasks(projects: OpenProject[]): BoardTask[] {
 				group: project.group,
 				index,
 				text: task.text,
-				status: task.status
+				status: task.status,
+				priority: task.priority
 			});
 		});
 	}
@@ -121,6 +123,14 @@ export function setTaskStatus(tasks: Task[], index: number, status: ProjectStatu
 	return tasks.map((task, i) =>
 		i === index ? { ...task, status, done: status === 'complete' } : task
 	);
+}
+
+/** Return a new tasks array with the task at `index` set to `priority`. */
+export function setTaskPriority(tasks: Task[], index: number, priority: ProjectPriority): Task[] {
+	if (index < 0 || index >= tasks.length) {
+		return tasks;
+	}
+	return tasks.map((task, i) => (i === index ? { ...task, priority } : task));
 }
 
 export interface TaskStats {

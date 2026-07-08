@@ -11,9 +11,15 @@ export type ProjectPriority = 'high' | 'medium' | 'low';
 /**
  * A project task. Tasks flow through the same statuses as projects (the
  * admin board is a task kanban); `done` is kept in sync with
- * `status === 'complete'` and is what the public API exposes.
+ * `status === 'complete'` and is what the public API exposes. `priority`
+ * is an admin-only concern (like project priority) — never exposed publicly.
  */
-export type Task = { text: string; done: boolean; status: ProjectStatus };
+export type Task = {
+	text: string;
+	done: boolean;
+	status: ProjectStatus;
+	priority: ProjectPriority;
+};
 
 export type ExtraLink = { label: string; href: string };
 

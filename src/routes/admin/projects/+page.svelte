@@ -16,6 +16,7 @@
 		moveProject,
 		PROJECT_PRIORITIES,
 		PROJECT_STATUSES,
+		setTaskPriority,
 		setTaskStatus,
 		taskProgress,
 		type BoardTask
@@ -153,6 +154,12 @@
 		saveProject(project, { priority: priority as ProjectPriority });
 	}
 
+	function setTaskPriorityOn(project: OpenProject, index: number, priority: string) {
+		saveProject(project, {
+			tasks: setTaskPriority(project.tasks, index, priority as ProjectPriority)
+		});
+	}
+
 	function toggleTask(project: OpenProject, index: number) {
 		const target = project.tasks[index];
 		if (!target) return;
@@ -172,7 +179,7 @@
 		if (!text) return;
 		newTaskText = { ...newTaskText, [project.id]: '' };
 		saveProject(project, {
-			tasks: [...project.tasks, { text, done: false, status: 'planning' }]
+			tasks: [...project.tasks, { text, done: false, status: 'planning', priority: 'medium' }]
 		});
 	}
 
@@ -254,7 +261,14 @@
 					primaryLink: createForm.primaryLink.trim() || null,
 					githubUrl: createForm.githubUrl.trim() || null,
 					tasks: createForm.firstTask.trim()
-						? [{ text: createForm.firstTask.trim(), done: false, status: 'planning' }]
+						? [
+								{
+									text: createForm.firstTask.trim(),
+									done: false,
+									status: 'planning',
+									priority: 'medium'
+								}
+							]
 						: []
 				})
 			});
@@ -386,7 +400,7 @@
 		saveProject(project, {
 			tasks: [
 				...project.tasks,
-				{ text, done: composerStatus === 'complete', status: composerStatus }
+				{ text, done: composerStatus === 'complete', status: composerStatus, priority: 'medium' }
 			]
 		});
 		// stay open for rapid entry
@@ -418,6 +432,12 @@
 		const project = projects.find((p) => p.id === task.projectId);
 		if (!project) return;
 		removeTask(project, task.index);
+	}
+
+	function setBoardTaskPriority(task: BoardTask, priority: string) {
+		const project = projects.find((p) => p.id === task.projectId);
+		if (!project) return;
+		setTaskPriorityOn(project, task.index, priority);
 	}
 </script>
 
@@ -667,6 +687,17 @@
 													aria-label="Toggle task: {task.text}"
 												/>
 												<span class="task-text">{task.text}</span>
+												<select
+													class="pill-select pill-select-sm"
+													style="--pill-color: {PRIORITY_COLORS[task.priority]}"
+													value={task.priority}
+													on:change={(e) => setTaskPriorityOn(project, ti, e.currentTarget.value)}
+													aria-label="Priority for task: {task.text}"
+												>
+													{#each PROJECT_PRIORITIES as p}
+														<option value={p}>{p[0].toUpperCase() + p.slice(1)}</option>
+													{/each}
+												</select>
 												<button
 													class="task-remove"
 													title="Remove task"
@@ -810,14 +841,27 @@
 								</button>
 							{/if}
 							<div class="board-card-foot">
-								<a
-									class="board-task-project"
-									href="/admin/projects/{task.projectId}"
-									title="Open {task.projectName}"
+								<div class="board-card-foot-meta">
+									<a
+										class="board-task-project"
+										href="/admin/projects/{task.projectId}"
+										title="Open {task.projectName}"
+									>
+										{task.projectName}
+									</a>
+									<span class="board-card-group">{task.group}</span>
+								</div>
+								<select
+									class="pill-select pill-select-sm"
+									style="--pill-color: {PRIORITY_COLORS[task.priority]}"
+									value={task.priority}
+									on:change={(e) => setBoardTaskPriority(task, e.currentTarget.value)}
+									aria-label="Priority for task: {task.text}"
 								>
-									{task.projectName}
-								</a>
-								<span class="board-card-group">{task.group}</span>
+									{#each PROJECT_PRIORITIES as p}
+										<option value={p}>{p[0].toUpperCase() + p.slice(1)}</option>
+									{/each}
+								</select>
 								<button
 									class="board-task-remove"
 									title="Remove task"
@@ -1338,6 +1382,12 @@
 		cursor: pointer;
 	}
 
+	.pill-select-sm {
+		padding: 0.05em 0.4em;
+		font-size: 0.625rem;
+		flex: none;
+	}
+
 	.card-desc {
 		font-size: 0.8125rem;
 		color: var(--color-text-secondary);
@@ -1745,6 +1795,14 @@
 		justify-content: space-between;
 		gap: var(--spacing-xs);
 		margin-top: 0.25rem;
+	}
+
+	.board-card-foot-meta {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-xs);
+		min-width: 0;
+		overflow: hidden;
 	}
 
 	.board-task-project {

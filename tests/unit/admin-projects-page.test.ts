@@ -251,7 +251,9 @@ describe('Admin Projects Dashboard page', () => {
 		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-2');
 		expect(call).toBeTruthy();
 		const body = JSON.parse(call![1].body);
-		expect(body.tasks).toEqual([{ text: 'New thing', done: false, status: 'planning' }]);
+		expect(body.tasks).toEqual([
+			{ text: 'New thing', done: false, status: 'planning', priority: 'medium' }
+		]);
 	});
 
 	it('quick-adds a task to a column via the board composer', async () => {
@@ -268,7 +270,7 @@ describe('Admin Projects Dashboard page', () => {
 		const call = fetchMock.mock.calls.find(([url]) => url === '/api/admin/projects/p-2');
 		expect(call).toBeTruthy();
 		expect(JSON.parse(call![1].body).tasks).toEqual([
-			{ text: 'Unblock runners', done: false, status: 'blocked' }
+			{ text: 'Unblock runners', done: false, status: 'blocked', priority: 'medium' }
 		]);
 
 		// the new task card appears in the Blocked column (optimistic)

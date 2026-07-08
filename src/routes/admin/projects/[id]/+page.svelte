@@ -49,7 +49,7 @@
 	}
 
 	function addTask() {
-		form.tasks = [...form.tasks, { text: '', done: false, status: 'planning' }];
+		form.tasks = [...form.tasks, { text: '', done: false, status: 'planning', priority: 'medium' }];
 	}
 
 	function removeTask(index: number) {
@@ -252,6 +252,19 @@
 							<option value={s}>{STATUS_LABELS[s]}</option>
 						{/each}
 					</select>
+					<select
+						class="task-priority-select"
+						value={task.priority}
+						on:change={(e) => {
+							const priority = e.currentTarget.value as (typeof PROJECT_PRIORITIES)[number];
+							form.tasks[i] = { ...task, priority };
+						}}
+						aria-label="Task {i + 1} priority"
+					>
+						{#each PROJECT_PRIORITIES as p}
+							<option value={p}>{p[0].toUpperCase() + p.slice(1)}</option>
+						{/each}
+					</select>
 					<input
 						type="text"
 						bind:value={task.text}
@@ -446,7 +459,8 @@
 		flex: 1;
 	}
 
-	.task-status-select {
+	.task-status-select,
+	.task-priority-select {
 		flex: none;
 		max-width: 8.5rem;
 	}

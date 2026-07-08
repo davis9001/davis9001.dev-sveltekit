@@ -25,7 +25,7 @@ import {
 function normalizeTask(entry: unknown, forceDone = false): Task {
 	if (typeof entry === 'string') {
 		const status: ProjectStatus = forceDone ? 'complete' : 'planning';
-		return { text: entry, done: status === 'complete', status };
+		return { text: entry, done: status === 'complete', status, priority: 'medium' };
 	}
 
 	const raw = (entry ?? {}) as Partial<Task>;
@@ -38,7 +38,12 @@ function normalizeTask(entry: unknown, forceDone = false): Task {
 		status = raw.done ? 'complete' : 'planning';
 	}
 
-	return { text: String(raw.text ?? ''), done: status === 'complete', status };
+	return {
+		text: String(raw.text ?? ''),
+		done: status === 'complete',
+		status,
+		priority: asPriority(raw.priority)
+	};
 }
 
 /** Normalise a tasks value — handles legacy string[], {text,done}[], and {text,done,status}[] shapes */

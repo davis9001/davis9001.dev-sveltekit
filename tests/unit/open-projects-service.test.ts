@@ -78,23 +78,29 @@ function createMockDb() {
 describe('Open Projects utils', () => {
 	describe('normalizeTasks', () => {
 		it('normalizes legacy string tasks and object tasks', () => {
-			expect(normalizeTasks(['a', { text: 'b', done: true, status: 'complete' }])).toEqual([
-				{ text: 'a', done: false, status: 'planning' },
-				{ text: 'b', done: true, status: 'complete' }
+			expect(
+				normalizeTasks(['a', { text: 'b', done: true, status: 'complete', priority: 'medium' }])
+			).toEqual([
+				{ text: 'a', done: false, status: 'planning', priority: 'medium' },
+				{ text: 'b', done: true, status: 'complete', priority: 'medium' }
 			]);
 		});
 
 		it('appends completed_tasks as done', () => {
 			expect(normalizeTasks([], ['x', { text: 'y' }])).toEqual([
-				{ text: 'x', done: true, status: 'complete' },
-				{ text: 'y', done: true, status: 'complete' }
+				{ text: 'x', done: true, status: 'complete', priority: 'medium' },
+				{ text: 'y', done: true, status: 'complete', priority: 'medium' }
 			]);
 		});
 
 		it('handles non-array inputs and malformed entries', () => {
 			expect(normalizeTasks('junk', 42)).toEqual([]);
-			expect(normalizeTasks([{}])).toEqual([{ text: '', done: false, status: 'planning' }]);
-			expect(normalizeTasks([null])).toEqual([{ text: '', done: false, status: 'planning' }]);
+			expect(normalizeTasks([{}])).toEqual([
+				{ text: '', done: false, status: 'planning', priority: 'medium' }
+			]);
+			expect(normalizeTasks([null])).toEqual([
+				{ text: '', done: false, status: 'planning', priority: 'medium' }
+			]);
 		});
 	});
 
@@ -145,7 +151,9 @@ describe('Open Projects utils', () => {
 
 	describe('toPublicGroups', () => {
 		it('strips internal fields and keeps the public key set', () => {
-			const groups = toPublicGroups([makeProject({ tasks: [{ text: 't', done: true, status: 'complete' }] })]);
+			const groups = toPublicGroups([
+				makeProject({ tasks: [{ text: 't', done: true, status: 'complete', priority: 'medium' }] })
+			]);
 			const project = groups[0].projects[0] as unknown as Record<string, unknown>;
 			expect(Object.keys(project).sort()).toEqual([
 				'blockers',
@@ -164,46 +172,46 @@ describe('Open Projects utils', () => {
 	});
 
 	describe('toPublicBoardTasks', () => {
-	it('flattens tasks in group order with project context and status', async () => {
-		const { toPublicBoardTasks } = await import('../../src/lib/projects/utils');
-		const cards = toPublicBoardTasks([
-			makeProject({
-				id: 'b',
-				group: 'Personal',
-				name: 'Beta',
-				primaryLink: null,
-				tasks: [{ text: 'p1', done: false, status: 'planning' }]
-			}),
-			makeProject({
-				id: 'a',
-				group: '*Space',
-				name: 'Alpha',
-				primaryLink: 'https://alpha.example',
-				tasks: [{ text: 's1', done: false, status: 'active' }]
-			})
-		]);
+		it('flattens tasks in group order with project context and status', async () => {
+			const { toPublicBoardTasks } = await import('../../src/lib/projects/utils');
+			const cards = toPublicBoardTasks([
+				makeProject({
+					id: 'b',
+					group: 'Personal',
+					name: 'Beta',
+					primaryLink: null,
+					tasks: [{ text: 'p1', done: false, status: 'planning', priority: 'medium' }]
+				}),
+				makeProject({
+					id: 'a',
+					group: '*Space',
+					name: 'Alpha',
+					primaryLink: 'https://alpha.example',
+					tasks: [{ text: 's1', done: false, status: 'active', priority: 'medium' }]
+				})
+			]);
 
-		// *Space group comes first regardless of input order
-		expect(cards).toEqual([
-			{
-				text: 's1',
-				status: 'active',
-				projectName: 'Alpha',
-				group: '*Space',
-				projectLink: 'https://alpha.example'
-			},
-			{
-				text: 'p1',
-				status: 'planning',
-				projectName: 'Beta',
-				group: 'Personal',
-				projectLink: null
-			}
-		]);
+			// *Space group comes first regardless of input order
+			expect(cards).toEqual([
+				{
+					text: 's1',
+					status: 'active',
+					projectName: 'Alpha',
+					group: '*Space',
+					projectLink: 'https://alpha.example'
+				},
+				{
+					text: 'p1',
+					status: 'planning',
+					projectName: 'Beta',
+					group: 'Personal',
+					projectLink: null
+				}
+			]);
+		});
 	});
-});
 
-describe('latestUpdatedAt', () => {
+	describe('latestUpdatedAt', () => {
 		it('returns the max raw datetime string', () => {
 			expect(
 				latestUpdatedAt([
@@ -241,7 +249,7 @@ describe('Open Projects service', () => {
 				priority: 'high',
 				primaryLink: 'https://example.com',
 				extraLinks: [{ label: 'Docs', href: 'https://docs.example.com' }],
-				tasks: [{ text: 'Ship it', done: false, status: 'planning' }]
+				tasks: [{ text: 'Ship it', done: false, status: 'planning', priority: 'medium' }]
 			});
 		});
 
@@ -319,7 +327,7 @@ describe('Open Projects service', () => {
 				group: '*Space',
 				name: 'New',
 				sortOrder: 3,
-				tasks: [{ text: 'a', done: false, status: 'planning' }],
+				tasks: [{ text: 'a', done: false, status: 'planning', priority: 'medium' }],
 				extraLinks: [{ label: 'L', href: 'H' }]
 			});
 
@@ -330,7 +338,9 @@ describe('Open Projects service', () => {
 			expect(maxSql).toBeUndefined();
 			const insertBind = bind.mock.calls.find((args) => args.length === 12);
 			expect(insertBind?.[8]).toBe('[{"label":"L","href":"H"}]');
-			expect(insertBind?.[9]).toBe('[{"text":"a","done":false,"status":"planning"}]');
+			expect(insertBind?.[9]).toBe(
+				'[{"text":"a","done":false,"status":"planning","priority":"medium"}]'
+			);
 			expect(insertBind?.[11]).toBe(3);
 		});
 
@@ -360,7 +370,7 @@ describe('Open Projects service', () => {
 
 			const project = await updateOpenProject(db, 'p1', {
 				name: 'Renamed',
-				tasks: [{ text: 'x', done: true, status: 'complete' }]
+				tasks: [{ text: 'x', done: true, status: 'complete', priority: 'medium' }]
 			});
 
 			expect(project?.name).toBe('Renamed');
@@ -372,7 +382,11 @@ describe('Open Projects service', () => {
 			expect(updateSql).toContain('updated_at = CURRENT_TIMESTAMP');
 			expect(updateSql).not.toContain('group_name = ?');
 			const updateBind = bind.mock.calls.find((args) => args.includes('Renamed'));
-			expect(updateBind).toEqual(['Renamed', '[{"text":"x","done":true,"status":"complete"}]', 'p1']);
+			expect(updateBind).toEqual([
+				'Renamed',
+				'[{"text":"x","done":true,"status":"complete","priority":"medium"}]',
+				'p1'
+			]);
 		});
 
 		it('maps camelCase keys to snake_case columns', async () => {
@@ -453,31 +467,31 @@ describe('Open Projects service', () => {
 describe('normalizeTasks status derivation', () => {
 	it('derives status from done for legacy tasks', () => {
 		expect(normalizeTasks([{ text: 'a', done: true }])).toEqual([
-			{ text: 'a', done: true, status: 'complete' }
+			{ text: 'a', done: true, status: 'complete', priority: 'medium' }
 		]);
 		expect(normalizeTasks([{ text: 'a', done: false }])).toEqual([
-			{ text: 'a', done: false, status: 'planning' }
+			{ text: 'a', done: false, status: 'planning', priority: 'medium' }
 		]);
 	});
 
 	it('prefers an explicit valid status and recomputes done', () => {
-		expect(normalizeTasks([{ text: 'a', done: true, status: 'blocked' }])).toEqual([
-			{ text: 'a', done: false, status: 'blocked' }
-		]);
-		expect(normalizeTasks([{ text: 'a', done: false, status: 'complete' }])).toEqual([
-			{ text: 'a', done: true, status: 'complete' }
-		]);
+		expect(
+			normalizeTasks([{ text: 'a', done: true, status: 'blocked', priority: 'medium' }])
+		).toEqual([{ text: 'a', done: false, status: 'blocked', priority: 'medium' }]);
+		expect(
+			normalizeTasks([{ text: 'a', done: false, status: 'complete', priority: 'medium' }])
+		).toEqual([{ text: 'a', done: true, status: 'complete', priority: 'medium' }]);
 	});
 
 	it('falls back on invalid statuses', () => {
-		expect(normalizeTasks([{ text: 'a', done: true, status: 'bogus' }])).toEqual([
-			{ text: 'a', done: true, status: 'complete' }
-		]);
+		expect(
+			normalizeTasks([{ text: 'a', done: true, status: 'bogus', priority: 'medium' }])
+		).toEqual([{ text: 'a', done: true, status: 'complete', priority: 'medium' }]);
 	});
 
 	it('forces complete for legacy completed_tasks regardless of status', () => {
 		expect(normalizeTasks([], [{ text: 'x', status: 'planning' }])).toEqual([
-			{ text: 'x', done: true, status: 'complete' }
+			{ text: 'x', done: true, status: 'complete', priority: 'medium' }
 		]);
 	});
 });
