@@ -356,6 +356,43 @@
 		margin: var(--spacing-md) 0;
 	}
 
+	/* Float utilities: let body text wrap around a figure. The wrapper carries
+	   the class (the sanitizer strips class off <img> but allows it on div/p). */
+	.cms-content :global(.cms-float-right),
+	.cms-content :global(.cms-float-left) {
+		max-width: 45%;
+		margin-top: 0;
+	}
+	.cms-content :global(.cms-float-right) {
+		float: right;
+		margin-left: var(--spacing-lg);
+		margin-bottom: var(--spacing-sm);
+	}
+	.cms-content :global(.cms-float-left) {
+		float: left;
+		margin-right: var(--spacing-lg);
+		margin-bottom: var(--spacing-sm);
+	}
+	.cms-content :global(.cms-float-right img),
+	.cms-content :global(.cms-float-left img) {
+		margin: 0;
+		width: 100%;
+	}
+	/* Headings after a float start a fresh block below it. */
+	.cms-content :global(h2) {
+		clear: both;
+	}
+	/* On narrow screens, don't wrap — stack full width. */
+	@media (max-width: 640px) {
+		.cms-content :global(.cms-float-right),
+		.cms-content :global(.cms-float-left) {
+			float: none;
+			max-width: 100%;
+			margin-left: 0;
+			margin-right: 0;
+		}
+	}
+
 	/* Default article template */
 	.cms-default-article header {
 		margin-bottom: var(--spacing-xl);
