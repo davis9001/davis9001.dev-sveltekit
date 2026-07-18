@@ -3,7 +3,22 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.ico" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.ico" sizes="48x48" />
+		<link
+			rel="icon"
+			type="image/png"
+			href="%sveltekit.assets%/favicon-dark.png"
+			media="(prefers-color-scheme: dark)"
+		/>
+		<link
+			rel="icon"
+			type="image/png"
+			href="%sveltekit.assets%/favicon-light.png"
+			media="(prefers-color-scheme: light)"
+		/>
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
+		<link rel="manifest" href="%sveltekit.assets%/site.webmanifest" />
+		<meta name="apple-mobile-web-app-title" content="davis9001" />
 		<meta name="author" content="David Monaghan" />
 		<meta name="theme-color" content="#09090b" />
 		<script>
@@ -39,7 +54,9 @@
 		<script async src="https://www.googletagmanager.com/gtag/js?id=G-CGCVGMFE98"></script>
 		<script>
 			window.dataLayer = window.dataLayer || [];
-			function gtag(){dataLayer.push(arguments);}
+			function gtag() {
+				dataLayer.push(arguments);
+			}
 			gtag('js', new Date());
 			gtag('config', 'G-CGCVGMFE98');
 		</script>
