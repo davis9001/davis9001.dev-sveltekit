@@ -10,7 +10,22 @@
 	import { formatBlogDate } from '$lib/utils/blog';
 	import SEO from '$lib/components/SEO.svelte';
 	import type { CrowTarget } from '$lib/utils/crow';
-	import { computeContainedImageBounds, imageLandmarkToViewport, findTextNodeOffset, computeRowInkCounts, findGlyphLedges, findInkCenterInRow, computeRowInteriorGapCounts, findCounterBottoms, findInteriorGapCenter, derivePerchSpotsFromPretextLines, samplePerchSpotsFromRect, dedupePerchSpots, type TextCharAnchor, type RectPerchSamplingOptions } from '$lib/utils/crow';
+	import {
+		computeContainedImageBounds,
+		imageLandmarkToViewport,
+		findTextNodeOffset,
+		computeRowInkCounts,
+		findGlyphLedges,
+		findInkCenterInRow,
+		computeRowInteriorGapCounts,
+		findCounterBottoms,
+		findInteriorGapCenter,
+		derivePerchSpotsFromPretextLines,
+		samplePerchSpotsFromRect,
+		dedupePerchSpots,
+		type TextCharAnchor,
+		type RectPerchSamplingOptions
+	} from '$lib/utils/crow';
 	import { openCommandPalette } from '$lib/stores/commandPalette';
 	import { browser } from '$app/environment';
 	import type { PageData } from './$types';
@@ -44,8 +59,16 @@
 
 	type PretextLine = { text: string };
 	type PretextModule = {
-		prepareWithSegments: (text: string, font: string, options?: { whiteSpace?: 'normal' | 'pre-wrap' }) => any;
-		layoutWithLines: (prepared: any, maxWidth: number, lineHeight: number) => { lines: PretextLine[] };
+		prepareWithSegments: (
+			text: string,
+			font: string,
+			options?: { whiteSpace?: 'normal' | 'pre-wrap' }
+		) => any;
+		layoutWithLines: (
+			prepared: any,
+			maxWidth: number,
+			lineHeight: number
+		) => { lines: PretextLine[] };
 	};
 
 	let pretextModule: PretextModule | null = null;
@@ -82,8 +105,8 @@
 			'position:absolute;visibility:hidden;pointer-events:none;' +
 			'width:9ch;height:18em;font:inherit';
 		document.body.appendChild(measure);
-		const chPx = measure.offsetWidth;   // 9ch in pixels
-		const emPx = measure.offsetHeight;  // 18em in pixels
+		const chPx = measure.offsetWidth; // 9ch in pixels
+		const emPx = measure.offsetHeight; // 18em in pixels
 		document.body.removeChild(measure);
 		return { offsetX: -chPx, offsetY: emPx };
 	}
@@ -101,9 +124,7 @@
 		// contained image lands. Body landmarks are fractions *within the image*
 		// so they track correctly at any viewport size or font setting.
 		const { offsetX, offsetY } = measureBgOffset();
-		const imgBounds = computeContainedImageBounds(
-			vw, vh, IMG_NAT_W, IMG_NAT_H, offsetX, offsetY
-		);
+		const imgBounds = computeContainedImageBounds(vw, vh, IMG_NAT_W, IMG_NAT_H, offsetX, offsetY);
 
 		// ── Body landmark coordinates ──
 		// Fractions within the 420×736 source image.
@@ -115,7 +136,7 @@
 
 		// ── White halo / circle above head ──
 		// Top of the white semicircle, centered on person.
-		const halo = imageLandmarkToViewport(0.50, -0.01, imgBounds);
+		const halo = imageLandmarkToViewport(0.5, -0.01, imgBounds);
 		targets.push({
 			id: 'halo',
 			x: halo.x,
@@ -244,8 +265,7 @@
 				scanCtx.font = fontStr;
 				const metrics = scanCtx.measureText(fullText[ci]);
 				const cw = Math.ceil(metrics.width) || 1;
-				const ch =
-					Math.ceil(metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) || 1;
+				const ch = Math.ceil(metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent) || 1;
 				scanCanvas.width = cw;
 				scanCanvas.height = ch;
 				scanCtx.font = fontStr; // must re-set after canvas resize
@@ -291,7 +311,9 @@
 
 			if (pretextModule) {
 				try {
-					const prepared = pretextModule.prepareWithSegments(fullText, fontStr, { whiteSpace: 'normal' });
+					const prepared = pretextModule.prepareWithSegments(fullText, fontStr, {
+						whiteSpace: 'normal'
+					});
 					const layout = pretextModule.layoutWithLines(prepared, rect.width, lineHeightPx);
 					const lineTexts = layout.lines.map((line) => line.text);
 					const lineSpots = derivePerchSpotsFromPretextLines(fullText, charAnchors, lineTexts);
@@ -303,13 +325,62 @@
 		}
 
 		// Add broader UI perches so the murder can land naturally across the page.
-		spots.push(...collectElementPerchSpots('.hero-logo', { spacingPx: 80, minCount: 1, maxCount: 3, yOffsetPx: -2 }));
-		spots.push(...collectElementPerchSpots('.hero-subtitle, .hero-role', { spacingPx: 78, minCount: 1, maxCount: 5, yOffsetPx: -1 }));
-		spots.push(...collectElementPerchSpots('.hero-cta', { spacingPx: 54, minCount: 2, maxCount: 6, yOffsetPx: -2 }));
-		spots.push(...collectElementPerchSpots('.cmd-palette-hint', { spacingPx: 48, minCount: 2, maxCount: 4, yOffsetPx: -2 }));
-		spots.push(...collectElementPerchSpots('.hero-scroll-hint', { spacingPx: 20, minCount: 1, maxCount: 2, yOffsetPx: -2 }));
-		spots.push(...collectElementPerchSpots('.content-card h2, .content-card h3', { spacingPx: 72, minCount: 1, maxCount: 6, yOffsetPx: -1 }));
-		spots.push(...collectElementPerchSpots('.content-card a, .content-card button', { spacingPx: 62, minCount: 1, maxCount: 4, yOffsetPx: -2 }));
+		spots.push(
+			...collectElementPerchSpots('.hero-logo', {
+				spacingPx: 80,
+				minCount: 1,
+				maxCount: 3,
+				yOffsetPx: -2
+			})
+		);
+		spots.push(
+			...collectElementPerchSpots('.hero-subtitle, .hero-role', {
+				spacingPx: 78,
+				minCount: 1,
+				maxCount: 5,
+				yOffsetPx: -1
+			})
+		);
+		spots.push(
+			...collectElementPerchSpots('.hero-cta', {
+				spacingPx: 54,
+				minCount: 2,
+				maxCount: 6,
+				yOffsetPx: -2
+			})
+		);
+		spots.push(
+			...collectElementPerchSpots('.cmd-palette-hint', {
+				spacingPx: 48,
+				minCount: 2,
+				maxCount: 4,
+				yOffsetPx: -2
+			})
+		);
+		spots.push(
+			...collectElementPerchSpots('.hero-scroll-hint', {
+				spacingPx: 20,
+				minCount: 1,
+				maxCount: 2,
+				yOffsetPx: -2
+			})
+		);
+		spots.push(
+			...collectElementPerchSpots('.content-card h2, .content-card h3', {
+				spacingPx: 72,
+				minCount: 1,
+				maxCount: 6,
+				yOffsetPx: -1
+			})
+		);
+		spots.push(
+			...collectElementPerchSpots('.content-card a, .content-card button', {
+				spacingPx: 62,
+				minCount: 1,
+				maxCount: 4,
+				yOffsetPx: -2
+			})
+		);
 
 		murderPerchSpots = dedupePerchSpots(spots, 16, 220);
 
@@ -395,7 +466,7 @@
 		requestAnimationFrame(() => {
 			populateAsciiCharactersProgressively();
 		});
-		
+
 		// Load ASCII animation script
 		const script = document.createElement('script');
 		script.src = '/ascii-animate.js';
@@ -405,8 +476,10 @@
 			try {
 				const mod = await import('@chenglou/pretext');
 				pretextModule = {
-					prepareWithSegments: (text, font, options) => mod.prepareWithSegments(text, font, options),
-					layoutWithLines: (prepared, maxWidth, lineHeight) => mod.layoutWithLines(prepared, maxWidth, lineHeight)
+					prepareWithSegments: (text, font, options) =>
+						mod.prepareWithSegments(text, font, options),
+					layoutWithLines: (prepared, maxWidth, lineHeight) =>
+						mod.layoutWithLines(prepared, maxWidth, lineHeight)
 				};
 			} catch {
 				pretextModule = null;
@@ -425,7 +498,8 @@
 </script>
 
 <SEO
-	title="Home"
+	title="davis9001"
+	rawTitle
 	description="The personal website of David Monaghan aka davis9001."
 	path="/"
 />
@@ -459,7 +533,10 @@
 	></div>
 
 	<!-- ASCII Animation Grid -->
-	<div class="fixed top-0 left-0 z-10 select-none font-mono items-center grid grid-cols-23 sm:grid-cols-42 lg:grid-cols-99 justify-center text-foreground text-center w-screen h-screen min-w-screen min-h-screen" aria-busy={!asciiGridReady}>
+	<div
+		class="fixed top-0 left-0 z-10 select-none font-mono items-center grid grid-cols-23 sm:grid-cols-42 lg:grid-cols-99 justify-center text-foreground text-center w-screen h-screen min-w-screen min-h-screen"
+		aria-busy={!asciiGridReady}
+	>
 		{#each asciiCharacters as char}
 			<div class="inline-block w-5 text-secondary ascii-character">
 				{char}
@@ -475,7 +552,10 @@
 	{/if}
 
 	<!-- ===== HERO SECTION — Full viewport ===== -->
-	<section class="hero-section relative z-40 min-h-screen flex flex-col items-center justify-center" role="banner">
+	<section
+		class="hero-section relative z-40 min-h-screen flex flex-col items-center justify-center"
+		role="banner"
+	>
 		<div class="hero-content">
 			<img
 				class="hero-logo"
@@ -490,27 +570,34 @@
 			<p class="hero-role">Software and Community Architect</p>
 
 			<nav class="hero-ctas" aria-label="Quick links">
-				<a href="/projects" class="hero-cta hero-cta--special">
-					Open Projects
-				</a>
-				<a href="/portfolio" class="hero-cta">
-					Portfolio of Projects
-				</a>
-				<a href="/send" class="hero-cta">
-					Send a Message
-				</a>
+				<a href="/projects" class="hero-cta hero-cta--special"> Open Projects </a>
+				<a href="/portfolio" class="hero-cta"> Portfolio of Projects </a>
+				<a href="/send" class="hero-cta"> Send a Message </a>
 			</nav>
 
 			<SocialLinks />
 
-			<button class="cmd-palette-hint" on:click={openCommandPalette} aria-label="Open command palette">
+			<button
+				class="cmd-palette-hint"
+				on:click={openCommandPalette}
+				aria-label="Open command palette"
+			>
 				<kbd>{isMac ? '⌘' : 'Ctrl'}</kbd><span>+</span><kbd>K</kbd>
 			</button>
 		</div>
 
 		<!-- Scroll hint -->
 		<div class="hero-scroll-hint" aria-hidden="true">
-			<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<svg
+				width="24"
+				height="24"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
 				<path d="M6 9l6 6 6-6" />
 			</svg>
 		</div>
@@ -544,10 +631,7 @@
 								alt="davis9001 logo"
 								class="w-5 h-5 sm:w-6 sm:h-6"
 							/>
-							<a
-								href="/blog"
-								class="text-secondary hover:text-foreground transition-colors"
-							>
+							<a href="/blog" class="text-secondary hover:text-foreground transition-colors">
 								Updates (Blog)
 							</a>
 						</h3>
@@ -735,8 +819,15 @@
 	}
 
 	@keyframes hero-bob {
-		0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.35; }
-		50% { transform: translateX(-50%) translateY(10px); opacity: 0.6; }
+		0%,
+		100% {
+			transform: translateX(-50%) translateY(0);
+			opacity: 0.35;
+		}
+		50% {
+			transform: translateX(-50%) translateY(10px);
+			opacity: 0.6;
+		}
 	}
 
 	/* ── Content Section ── */
