@@ -53,7 +53,7 @@
 	/** Character perch spots for the murder of crows (positions on the title text) */
 	let murderPerchSpots: Array<{ x: number; y: number }> = [];
 
-	// Natural dimensions of /davis9001-2.webp (420 × 736)
+	// Natural dimensions of /davis9001-2-hoodie.webp (420 × 736)
 	const IMG_NAT_W = 420;
 	const IMG_NAT_H = 736;
 
@@ -526,7 +526,7 @@
 	<div
 		class="fixed inset-0 z-30 bg-cover bg-center bg-no-repeat"
 		style="
-			background-image: url('/davis9001-2.webp');
+			background-image: url('/davis9001-2-hoodie.webp');
 			background-size: contain;
 			background-position: -9ch 18em;
 		"
