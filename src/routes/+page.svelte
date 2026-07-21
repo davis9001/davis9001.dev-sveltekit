@@ -134,13 +134,15 @@
 		// Calibrated from debug dots — linear interpolation between two known points.
 		// (iy=0.04 → ~13% viewport, iy=0.40 → ~95% viewport)
 
-		// ── White halo / circle above head ──
-		// Top of the white semicircle, centered on person.
-		const halo = imageLandmarkToViewport(0.5, -0.01, imgBounds);
+		// ── Top of head ──
+		// Crow perches on the top of David's head/hair. (The white hat that
+		// used to sit above the head — landmark iy=-0.01 — was removed from the
+		// hero photo, so the landing spot moved down onto the head itself.)
+		const headTop = imageLandmarkToViewport(0.5, 0.045, imgBounds);
 		targets.push({
-			id: 'halo',
-			x: halo.x,
-			y: halo.y,
+			id: 'head',
+			x: headTop.x,
+			y: headTop.y,
 			scale: 1.56,
 			zIndex: 35
 		});
