@@ -748,7 +748,7 @@
 	@media print {
 		@page {
 			size: 8.5in 11in;
-			margin: 0 0.3in;
+			margin: 0;
 		}
 
 		/* Hide all decorative / interactive chrome */
@@ -769,8 +769,11 @@
 			min-height: unset !important;
 		}
 
+		/* Side gutters as content padding (not @page margin) so they survive
+		   the print dialog's "Margins: None" setting and never get clipped
+		   by the printer's non-printable edge. Kept at 0.3in to stay 1 page. */
 		.resume-page {
-			padding: 0;
+			padding: 0 0.3in;
 		}
 
 		.resume-card {
