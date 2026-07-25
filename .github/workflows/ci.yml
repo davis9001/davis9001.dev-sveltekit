@@ -31,14 +31,27 @@ jobs:
       - name: Run unit tests with coverage
         run: bun run test:coverage
 
-      - name: Check coverage threshold (90%)
+      - name: Check coverage threshold (95%)
         run: |
-          COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
-          echo "Coverage: $COVERAGE%"
-          if (( $(echo "$COVERAGE < 90" | bc -l) )); then
-            echo "Coverage is below 90%!"
+          set -euo pipefail
+          SUMMARY=coverage/coverage-summary.json
+          # Fail loudly if the report is missing. The previous version piped a
+          # missing file into jq, which left COVERAGE empty and made the
+          # comparison silently succeed — the gate passed no matter what.
+          if [ ! -f "$SUMMARY" ]; then
+            echo "::error::$SUMMARY not found — check the vitest coverage reporters"
             exit 1
           fi
+          status=0
+          for metric in statements branches functions lines; do
+            pct=$(jq -r ".total.${metric}.pct" "$SUMMARY")
+            echo "$metric: $pct%"
+            if ! awk -v p="$pct" 'BEGIN { exit (p >= 95) ? 0 : 1 }'; then
+              echo "::error::$metric coverage is $pct%, below the 95% floor"
+              status=1
+            fi
+          done
+          exit $status
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3

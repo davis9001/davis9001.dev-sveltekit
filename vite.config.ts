@@ -71,11 +71,13 @@ export default defineConfig(({ mode }) => {
 					// Hooks are tested implicitly through integration tests
 					'src/hooks.server.ts'
 				],
+				// Matches the 95% hard floor in CLAUDE.md. These were 90 while the
+				// doc said 95, so the written rule enforced nothing.
 				thresholds: {
-					lines: 90,
-					functions: 90,
-					branches: 90,
-					statements: 90
+					lines: 95,
+					functions: 95,
+					branches: 95,
+					statements: 95
 				}
 			},
 			poolOptions: {
