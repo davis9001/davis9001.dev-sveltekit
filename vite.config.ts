@@ -48,7 +48,10 @@ export default defineConfig(({ mode }) => {
 			setupFiles: ['./tests/setup.ts'],
 			coverage: {
 				provider: 'v8',
-				reporter: ['text', 'json', 'html', 'lcov'],
+				// 'json-summary' emits coverage/coverage-summary.json, which the CI
+				// coverage-threshold step reads via jq. Without it that step fails on
+				// every run — including fully green ones — because the file is absent.
+				reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
 				exclude: [
 					'node_modules/',
 					'tests/',
