@@ -367,7 +367,13 @@ describe('CMS API - Content Items', () => {
 					updated_at: '2024-01-01'
 				});
 
-			const waitUntil = vi.fn();
+			// Collect the detached proof-job promise so it can be awaited below.
+			// A bare vi.fn() starts the job and drops it, so its fetch() calls
+			// resolve after this test ends and land in a later test's fetch mock.
+			const waitUntilPromises: Promise<unknown>[] = [];
+			const waitUntil = vi.fn((pending: Promise<unknown>) => {
+				waitUntilPromises.push(pending);
+			});
 			const request = new Request('http://localhost/api/cms/predictions', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -388,6 +394,7 @@ describe('CMS API - Content Items', () => {
 
 			expect(response.status).toBe(201);
 			expect(waitUntil).toHaveBeenCalledTimes(1);
+			await Promise.allSettled(waitUntilPromises);
 		});
 
 		it('does not fire the timestamp proof job for a draft item', async () => {
@@ -804,7 +811,13 @@ describe('CMS API - Content Items', () => {
 				.mockResolvedValueOnce(lockedTypeRow) // updateContentItem: content type lookup
 				.mockResolvedValueOnce(nowPublishedRow); // updateContentItem: refetch
 
-			const waitUntil = vi.fn();
+			// Collect the detached proof-job promise so it can be awaited below.
+			// A bare vi.fn() starts the job and drops it, so its fetch() calls
+			// resolve after this test ends and land in a later test's fetch mock.
+			const waitUntilPromises: Promise<unknown>[] = [];
+			const waitUntil = vi.fn((pending: Promise<unknown>) => {
+				waitUntilPromises.push(pending);
+			});
 			const response = await PUT({
 				platform: { ...mockPlatform, context: { waitUntil } },
 				locals: mockLocals,
@@ -819,6 +832,7 @@ describe('CMS API - Content Items', () => {
 
 			expect(response.status).toBe(200);
 			expect(waitUntil).toHaveBeenCalledTimes(1);
+			await Promise.allSettled(waitUntilPromises);
 		});
 
 		it('does not fire the timestamp proof job when the item was already published', async () => {
