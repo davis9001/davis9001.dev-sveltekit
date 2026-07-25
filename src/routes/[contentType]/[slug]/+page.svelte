@@ -397,15 +397,32 @@
 	   a newer follow-up. The wrapper div carries the class; nested <p> keeps the
 	   markup sanitizer-safe (class is allowed on div/p). */
 	.cms-content :global(.cms-alert) {
+		/* Tinted with the warning colour rather than --color-surface, which sits
+		   too close to --color-background to read as a distinct box. The plain
+		   declarations are fallbacks for engines without color-mix(). */
 		background: var(--color-surface);
+		background: color-mix(in srgb, var(--color-warning) 18%, var(--color-background));
 		border: 1px solid var(--color-border);
-		border-left: 4px solid var(--color-warning);
+		border-color: color-mix(in srgb, var(--color-warning) 38%, var(--color-border));
+		border-left: 5px solid var(--color-warning);
 		border-radius: var(--radius-md);
-		padding: var(--spacing-md) var(--spacing-lg);
+		padding: var(--spacing-lg);
 		margin: 0 0 var(--spacing-xl);
 		font-size: 0.9375rem;
 		line-height: 1.65;
 		color: var(--color-text-secondary);
+	}
+	/* Eyebrow label, supplied per-alert by the body content so the class stays
+	   generic: <span class="cms-alert-label">Outdated post</span> */
+	.cms-content :global(.cms-alert-label) {
+		display: block;
+		margin-bottom: var(--spacing-xs);
+		font-size: 0.6875rem;
+		font-weight: 700;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--color-warning);
+		filter: brightness(0.88);
 	}
 	.cms-content :global(.cms-alert p) {
 		margin: 0;
