@@ -393,6 +393,33 @@
 		}
 	}
 
+	/* Editorial alert inside body content — e.g. a stale-post notice pointing at
+	   a newer follow-up. The wrapper div carries the class; nested <p> keeps the
+	   markup sanitizer-safe (class is allowed on div/p). */
+	.cms-content :global(.cms-alert) {
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-left: 4px solid var(--color-warning);
+		border-radius: var(--radius-md);
+		padding: var(--spacing-md) var(--spacing-lg);
+		margin: 0 0 var(--spacing-xl);
+		font-size: 0.9375rem;
+		line-height: 1.65;
+		color: var(--color-text-secondary);
+	}
+	.cms-content :global(.cms-alert p) {
+		margin: 0;
+	}
+	.cms-content :global(.cms-alert p + p) {
+		margin-top: var(--spacing-sm);
+	}
+	.cms-content :global(.cms-alert strong) {
+		color: var(--color-text);
+	}
+	.cms-content :global(.cms-alert a) {
+		font-weight: 600;
+	}
+
 	/* Default article template */
 	.cms-default-article header {
 		margin-bottom: var(--spacing-xl);
