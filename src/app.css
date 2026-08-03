@@ -1031,3 +1031,67 @@ transition-duration: 150ms;
 .lg\:grid-cols-99 { grid-template-columns: repeat(99, minmax(0, 1fr)); }
 .lg\:gap-6 { gap: 1.5rem; }
 }
+/* === Inline CMS charts (.cms-chart) ===
+   Charts are authored as inline SVG in post bodies. The CMS sanitizer
+   (src/lib/cms/sanitize.ts) strips <style>, style attributes, scripts and every
+   animate* tag, but it does pass `class` through on SVG elements — so the
+   motion has to live here rather than in the markup.
+
+   CmsContent adds .chart-anim on mount (JS present → safe to hide the marks)
+   and .in-view when the figure scrolls into the viewport, so a chart below the
+   fold still plays instead of finishing unseen. With JS off, no class is ever
+   added and the chart simply renders. */
+.cms-chart.chart-anim .cg {
+	transform: scaleX(0);
+	transform-box: fill-box;
+	transform-origin: left center;
+}
+.cms-chart.chart-anim .cf { opacity: 0; }
+.cms-chart.chart-anim .cd { opacity: 0; transform-box: view-box; }
+.cms-chart.chart-anim .cd-a { transform-origin: 126px 168px; }
+.cms-chart.chart-anim .cd-b { transform-origin: 394px 168px; }
+
+.cms-chart.chart-anim.in-view .cg {
+	animation: cms-chart-grow 0.72s cubic-bezier(0.22, 0.7, 0.28, 1) forwards;
+}
+.cms-chart.chart-anim.in-view .cf {
+	animation: cms-chart-fade 0.5s ease-out forwards;
+}
+.cms-chart.chart-anim.in-view .cd {
+	animation: cms-chart-wheel 0.85s cubic-bezier(0.22, 0.7, 0.28, 1) forwards;
+}
+
+@keyframes cms-chart-grow {
+	from { transform: scaleX(0); }
+	to { transform: scaleX(1); }
+}
+@keyframes cms-chart-fade {
+	from { opacity: 0; transform: translateY(4px); }
+	to { opacity: 1; transform: none; }
+}
+@keyframes cms-chart-wheel {
+	from { opacity: 0; transform: rotate(-26deg) scale(0.9); }
+	to { opacity: 1; transform: none; }
+}
+
+/* Stagger. Delays stay small on purpose: the figure should read as one
+   gesture, not a queue. */
+.cms-chart .s0 { animation-delay: 0ms; }
+.cms-chart .s1 { animation-delay: 70ms; }
+.cms-chart .s2 { animation-delay: 140ms; }
+.cms-chart .s3 { animation-delay: 210ms; }
+.cms-chart .s4 { animation-delay: 280ms; }
+.cms-chart .s5 { animation-delay: 350ms; }
+.cms-chart .s6 { animation-delay: 420ms; }
+.cms-chart .cd-b { animation-delay: 120ms; }
+
+/* Motion is decoration here — the numbers are already on the page. */
+@media (prefers-reduced-motion: reduce) {
+	.cms-chart.chart-anim .cg,
+	.cms-chart.chart-anim .cf,
+	.cms-chart.chart-anim .cd {
+		opacity: 1;
+		transform: none;
+		animation: none;
+	}
+}
