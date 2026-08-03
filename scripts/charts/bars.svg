@@ -1,0 +1,27 @@
+<svg viewBox="0 0 520 412" class="cms-chart" width="100%" role="img" aria-label="Grouped bar chart comparing broken small-business web presence between Lewiston–Auburn, Maine and Chandler, Arizona. Dead domain that loads nothing: 27 in Maine, 32 in Chandler. Broken link on their map listing: 16 in Maine, 11 in Chandler. A social page or a rented subdomain: 12 in Maine, 13 in Chandler. 111 open businesses in total." xmlns="http://www.w3.org/2000/svg">
+  <text x="0" y="20" font-size="18" font-weight="700" fill="currentColor">111 open businesses with a broken front door</text>
+  <text x="0" y="44" font-size="13" fill="currentColor" fill-opacity="0.62">Two metros, 3,325 listings, 518 of them with a website to check</text>
+  <rect class="cf s0" x="0" y="65" width="10" height="10" rx="2.5" fill="#ea580c" />
+  <text class="cf s0" x="16" y="74" font-size="12.5" fill="currentColor" fill-opacity="0.72">Lewiston–Auburn, Maine</text>
+  <rect class="cf s0" x="238" y="65" width="10" height="10" rx="2.5" fill="#0891b2" />
+  <text class="cf s0" x="254" y="74" font-size="12.5" fill="currentColor" fill-opacity="0.72">Chandler, Arizona</text>
+  <text class="cf s0" x="0" y="104" font-size="14.5" fill="currentColor" fill-opacity="0.85">Dead domain — nothing loads at all</text>
+  <path class="cg s0" d="M0 116h377.9a3.5 3.5 0 0 1 3.5 3.5v8a3.5 3.5 0 0 1 -3.5 3.5h-377.9z" fill="#ea580c" />
+  <text class="cf s1" x="390.4" y="123.5" dominant-baseline="middle" font-size="13" font-weight="700" fill="currentColor" fill-opacity="0.78">27</text>
+  <path class="cg s1" d="M0 137h448.5a3.5 3.5 0 0 1 3.5 3.5v8a3.5 3.5 0 0 1 -3.5 3.5h-448.5z" fill="#0891b2" />
+  <text class="cf s2" x="461.0" y="144.5" dominant-baseline="middle" font-size="13" font-weight="700" fill="currentColor" fill-opacity="0.78">32</text>
+  <text class="cf s2" x="0" y="182" font-size="14.5" fill="currentColor" fill-opacity="0.85">Broken link on their map listing</text>
+  <path class="cg s2" d="M0 194h222.5a3.5 3.5 0 0 1 3.5 3.5v8a3.5 3.5 0 0 1 -3.5 3.5h-222.5z" fill="#ea580c" />
+  <text class="cf s3" x="235.0" y="201.5" dominant-baseline="middle" font-size="13" font-weight="700" fill="currentColor" fill-opacity="0.78">16</text>
+  <path class="cg s3" d="M0 215h151.9a3.5 3.5 0 0 1 3.5 3.5v8a3.5 3.5 0 0 1 -3.5 3.5h-151.9z" fill="#0891b2" />
+  <text class="cf s4" x="164.4" y="222.5" dominant-baseline="middle" font-size="13" font-weight="700" fill="currentColor" fill-opacity="0.78">11</text>
+  <text class="cf s4" x="0" y="260" font-size="14.5" fill="currentColor" fill-opacity="0.85">A social page or a rented subdomain</text>
+  <path class="cg s4" d="M0 272h166.0a3.5 3.5 0 0 1 3.5 3.5v8a3.5 3.5 0 0 1 -3.5 3.5h-166z" fill="#ea580c" />
+  <text class="cf s5" x="178.5" y="279.5" dominant-baseline="middle" font-size="13" font-weight="700" fill="currentColor" fill-opacity="0.78">12</text>
+  <path class="cg s5" d="M0 293h180.1a3.5 3.5 0 0 1 3.5 3.5v8a3.5 3.5 0 0 1 -3.5 3.5h-180.1z" fill="#0891b2" />
+  <text class="cf s6" x="192.6" y="300.5" dominant-baseline="middle" font-size="13" font-weight="700" fill="currentColor" fill-opacity="0.78">13</text>
+  <line x1="0" y1="330" x2="452" y2="330" stroke="currentColor" stroke-opacity="0.14" stroke-width="1" />
+  <text x="0" y="352" font-size="11.5" fill="currentColor" fill-opacity="0.5">Both metros swept and checked identically. A further 26 sites sat behind bot filters and</text>
+  <text x="0" y="369" font-size="11.5" fill="currentColor" fill-opacity="0.5">could not be judged either way; seven sweeps of neighbouring Maine towns added only four</text>
+  <text x="0" y="386" font-size="11.5" fill="currentColor" fill-opacity="0.5">businesses these two had not already found.</text>
+</svg>

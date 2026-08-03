@@ -1,0 +1,36 @@
+<svg viewBox="0 0 520 406" class="cms-chart" width="100%" role="img" aria-label="Two donut charts. Of 518 businesses whose listing carried a website, 111 have a broken web presence, 381 have a working site and 26 could not be checked. Of those 111 broken ones, 105 show no sign of having closed, 4 have a local headline saying they closed, and 2 were sold or renamed." xmlns="http://www.w3.org/2000/svg">
+  <text x="0" y="20" font-size="18" font-weight="700" fill="currentColor">One in five broken — and almost all of them still open</text>
+  <text x="0" y="44" font-size="13" fill="currentColor" fill-opacity="0.62">Lewiston–Auburn, Maine and Chandler, Arizona · 518 businesses checked</text>
+  <text class="cf s0" x="126" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor" fill-opacity="0.7">All 518 checked</text>
+  <g class="cd">
+  <circle class="cr s0" cx="126" cy="168" r="52" pathLength="100" fill="none" stroke="#ea580c" stroke-width="24" stroke-dasharray="20.98 999" transform="rotate(-89.20 126 168)" />
+  <circle class="cr s1" cx="126" cy="168" r="52" pathLength="100" fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="24" stroke-dasharray="73.11 999" transform="rotate(-12.06 126 168)" />
+  <circle class="cr s2" cx="126" cy="168" r="52" pathLength="100" fill="none" stroke="currentColor" stroke-opacity="0.14" stroke-width="24" stroke-dasharray="4.57 999" transform="rotate(252.73 126 168)" />
+  </g>
+  <text class="cf s3" x="126" y="170" text-anchor="middle" font-size="27" font-weight="700" fill="currentColor">111</text>
+  <text class="cf s4" x="126" y="189" text-anchor="middle" font-size="11.5" fill="currentColor" fill-opacity="0.6">in trouble</text>
+  <rect class="cf s4" x="44" y="253" width="9" height="9" rx="2" fill="#ea580c" />
+  <text class="cf s4" x="59" y="262" font-size="12" fill="currentColor" fill-opacity="0.72">111 broken</text>
+  <rect class="cf s5" x="44" y="273" width="9" height="9" rx="2" fill="currentColor" fill-opacity="0.28" />
+  <text class="cf s5" x="59" y="282" font-size="12" fill="currentColor" fill-opacity="0.72">381 working</text>
+  <rect class="cf s6" x="44" y="293" width="9" height="9" rx="2" fill="currentColor" fill-opacity="0.14" />
+  <text class="cf s6" x="59" y="302" font-size="12" fill="currentColor" fill-opacity="0.72">26 couldn't be checked</text>
+  <text class="cf s0" x="394" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor" fill-opacity="0.7">Those 111</text>
+  <g class="cd">
+  <circle class="cr s3" cx="394" cy="168" r="52" pathLength="100" fill="none" stroke="#ea580c" stroke-width="24" stroke-dasharray="94.15 999" transform="rotate(-89.20 394 168)" />
+  <circle class="cr s4" cx="394" cy="168" r="52" pathLength="100" fill="none" stroke="currentColor" stroke-opacity="0.5" stroke-width="24" stroke-dasharray="3.16 999" transform="rotate(251.34 394 168)" />
+  <circle class="cr s5" cx="394" cy="168" r="52" pathLength="100" fill="none" stroke="currentColor" stroke-opacity="0.28" stroke-width="24" stroke-dasharray="1.36 999" transform="rotate(264.31 394 168)" />
+  </g>
+  <text class="cf s3" x="394" y="170" text-anchor="middle" font-size="27" font-weight="700" fill="currentColor">105</text>
+  <text class="cf s4" x="394" y="189" text-anchor="middle" font-size="11.5" fill="currentColor" fill-opacity="0.6">still trading</text>
+  <rect class="cf s4" x="312" y="253" width="9" height="9" rx="2" fill="#ea580c" />
+  <text class="cf s4" x="327" y="262" font-size="12" fill="currentColor" fill-opacity="0.72">105 no sign they closed</text>
+  <rect class="cf s5" x="312" y="273" width="9" height="9" rx="2" fill="currentColor" fill-opacity="0.5" />
+  <text class="cf s5" x="327" y="282" font-size="12" fill="currentColor" fill-opacity="0.72">4 a headline says closed</text>
+  <rect class="cf s6" x="312" y="293" width="9" height="9" rx="2" fill="currentColor" fill-opacity="0.28" />
+  <text class="cf s6" x="327" y="302" font-size="12" fill="currentColor" fill-opacity="0.72">2 sold or renamed</text>
+  <line x1="0" y1="324" x2="452" y2="324" stroke="currentColor" stroke-opacity="0.14" stroke-width="1" />
+  <text x="0" y="346" font-size="11.5" fill="currentColor" fill-opacity="0.5">“Still trading” means no local-news headline says otherwise — keyword matches on headlines,</text>
+  <text x="0" y="363" font-size="11.5" fill="currentColor" fill-opacity="0.5">so a lead to read rather than a verdict. Seven further sweeps of neighbouring towns added</text>
+  <text x="0" y="380" font-size="11.5" fill="currentColor" fill-opacity="0.5">only four businesses these two metros had not already found.</text>
+</svg>

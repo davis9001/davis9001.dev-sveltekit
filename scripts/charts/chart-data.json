@@ -1,0 +1,21 @@
+{
+  "ME": {
+    "dead": 27,
+    "rented": 12,
+    "warm": 16
+  },
+  "AZ": {
+    "dead": 32,
+    "rented": 13,
+    "warm": 11
+  },
+  "checked": 518,
+  "harvested": 3325,
+  "unver": 26,
+  "inTrouble": 111,
+  "working": 381,
+  "died": 4,
+  "changed": 2,
+  "noSignOfClosure": 105,
+  "otherSweepsAdded": 4
+}
