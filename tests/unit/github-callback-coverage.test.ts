@@ -1,5 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// A permissive D1 mock: selects miss, writes succeed. Enough for the auth
+// callbacks to run their user upsert and create a server-side session, which
+// login now requires (the cookie is an opaque id, not a self-contained token).
+function makePermissiveDB() {
+	const chain: any = {
+		bind: () => chain,
+		first: async () => null,
+		run: async () => ({ success: true }),
+		all: async () => ({ results: [] })
+	};
+	return { prepare: () => chain };
+}
+
 // Mock console to avoid noise
 vi.spyOn(console, 'log').mockImplementation(() => {});
 vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -75,6 +88,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						KV: mockKV
 					}
 				}
@@ -97,6 +111,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						KV: mockKV
 					}
 				}
@@ -118,7 +133,9 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				url: new URL('http://localhost/api/auth/github/callback?code=test-code'),
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
-					env: {}
+					env: {
+						DB: makePermissiveDB()
+					}
 				}
 			};
 
@@ -147,6 +164,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						GITHUB_CLIENT_ID: 'client-id',
 						GITHUB_CLIENT_SECRET: 'client-secret'
 					}
@@ -175,6 +193,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						GITHUB_CLIENT_ID: 'client-id',
 						GITHUB_CLIENT_SECRET: 'client-secret'
 					}
@@ -210,6 +229,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						GITHUB_CLIENT_ID: 'client-id',
 						GITHUB_CLIENT_SECRET: 'client-secret'
 					}
@@ -256,6 +276,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						GITHUB_CLIENT_ID: 'client-id',
 						GITHUB_CLIENT_SECRET: 'client-secret',
 						GITHUB_OWNER_ID: 'owneruser', // username, not numeric
@@ -304,6 +325,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						GITHUB_CLIENT_ID: 'client-id',
 						GITHUB_CLIENT_SECRET: 'client-secret',
 						KV: mockKV
@@ -351,6 +373,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						GITHUB_CLIENT_ID: 'client-id',
 						GITHUB_CLIENT_SECRET: 'client-secret',
 						KV: mockKV
@@ -391,6 +414,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						GITHUB_CLIENT_ID: 'client-id',
 						GITHUB_CLIENT_SECRET: 'client-secret',
 						KV: mockKV
@@ -430,6 +454,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue('invalid-base64!!!'), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						GITHUB_CLIENT_ID: 'client-id',
 						GITHUB_CLIENT_SECRET: 'client-secret'
 					}
@@ -469,6 +494,17 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 
 			const mockDB = {
 				prepare: vi.fn().mockImplementation((sql: string) => {
+					// Linking mode identifies the current user by resolving their
+					// server-side session, not by decoding the cookie.
+					if (sql.includes('SELECT data FROM sessions')) {
+						return {
+							bind: vi.fn().mockReturnValue({
+								first: vi.fn().mockResolvedValue({
+									data: JSON.stringify({ id: 'existing-user-123', login: 'existinguser' })
+								})
+							})
+						};
+					}
 					if (sql.includes('oauth_accounts WHERE provider = ?')) {
 						return {
 							bind: vi.fn().mockReturnValue({
@@ -765,6 +801,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						GITHUB_CLIENT_ID: 'client-id',
 						GITHUB_CLIENT_SECRET: 'client-secret',
 						KV: mockKV
@@ -803,6 +840,7 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						GITHUB_CLIENT_ID: 'client-id',
 						GITHUB_CLIENT_SECRET: 'client-secret'
 					}
@@ -818,7 +856,10 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 	});
 
 	describe('Database error handling', () => {
-		it('should continue auth even if DB fails', async () => {
+		it('does not issue a session when the database is unavailable', async () => {
+			// The session payload lives server-side now, so a login that cannot
+			// reach the database must NOT hand out a cookie — that path is exactly
+			// what used to let a self-contained cookie be forged.
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve({ access_token: 'test-token' })
@@ -855,9 +896,15 @@ describe('GitHub Callback Server - Extended Coverage', () => {
 
 			const { GET } = await import('../../src/routes/api/auth/github/callback/+server');
 
-			// Should not throw, should continue with auth
-			const response = await GET(mockEvent as any);
-			expect(response.status).toBe(302);
+			// The login fails to an error redirect instead of issuing a session —
+			// a thrown redirect carries no Set-Cookie, so no session is granted.
+			try {
+				await GET(mockEvent as any);
+				expect.fail('Should have redirected to an error');
+			} catch (err: any) {
+				expect(err.status).toBe(302);
+				expect(err.location).toBe('/auth/login?error=oauth_failed');
+			}
 		});
 	});
 });

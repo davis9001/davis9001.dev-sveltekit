@@ -8,6 +8,11 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// The session payload now lives server-side (createAuthSession stores it in
+// sessions.data) instead of in the cookie, so tests read it from here — makeDB
+// captures it from the sessions INSERT the login performs.
+let __lastSessionPayload: any = null;
+
 const ROUTE = '../../src/routes/api/auth/github/callback/+server';
 
 const mergeAccounts = vi.fn().mockResolvedValue(undefined);
@@ -44,7 +49,7 @@ function makeDB(opts: {
 }) {
 	return {
 		prepare: vi.fn((sql: string) => ({
-			bind: vi.fn(() => ({
+			bind: vi.fn((...args: any[]) => ({
 				first: vi.fn(async () => {
 					if (sql.includes('FROM oauth_accounts')) {
 						return opts.existingOAuthUserId ? { user_id: opts.existingOAuthUserId } : null;
@@ -60,6 +65,15 @@ function makeDB(opts: {
 				}),
 				all: vi.fn(async () => ({ results: [] })),
 				run: vi.fn(async () => {
+					// The session payload lives server-side now; capture it from the
+					// sessions INSERT so a test can read what was stored.
+					if (sql.includes('INSERT INTO sessions') && args[3]) {
+						try {
+							__lastSessionPayload = JSON.parse(args[3]);
+						} catch {
+							/* leave as-is */
+						}
+					}
 					opts.onRun?.(sql);
 					return { success: true };
 				})
@@ -116,14 +130,10 @@ describe('GitHub callback — linked account branches', () => {
 
 		const { GET } = await import(ROUTE);
 		const res = await GET(makeEvent(db, 'http:'));
+		expect(res.status).toBe(302);
 
-		const cookie = res.headers.get('Set-Cookie') ?? '';
-		const encoded = cookie.split('session=')[1]?.split(';')[0] ?? '';
-		const session = JSON.parse(
-			atob(
-				encoded.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (encoded.length % 4)) % 4)
-			)
-		);
+		// Payload is stored server-side now, captured from the sessions INSERT.
+		const session = __lastSessionPayload;
 
 		expect(session.login).toBe(GITHUB_USER.login);
 		expect(session.name).toBe(GITHUB_USER.name);

@@ -1,4 +1,5 @@
 import { error, json } from '@sveltejs/kit';
+import { deleteSession } from '$lib/utils/db';
 import type { RequestHandler } from './$types';
 
 // POST - Reset setup configuration
@@ -31,7 +32,16 @@ export const POST: RequestHandler = async ({ platform, cookies }) => {
 			}
 		}
 
-		// Clear the session cookie to force re-login
+		// Clear the session cookie to force re-login, and drop its server-side
+		// row so the old cookie cannot be replayed.
+		const sessionId = cookies.get('session');
+		if (sessionId && platform?.env?.DB) {
+			try {
+				await deleteSession(platform.env.DB, sessionId);
+			} catch {
+				// Best effort — the cookie is cleared regardless.
+			}
+		}
 		cookies.delete('session', { path: '/' });
 
 		console.log('✓ Setup configuration reset complete');

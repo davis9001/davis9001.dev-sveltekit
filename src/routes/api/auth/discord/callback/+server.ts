@@ -1,5 +1,6 @@
 import { mergeAccounts } from '$lib/services/account-merge';
 import { recordLoginActivity } from '$lib/services/user-activity';
+import { createAuthSession, getAuthSession } from '$lib/utils/db';
 import {
 	getOwnerIdentity,
 	isReservedSuperAdminUsername,
@@ -95,9 +96,8 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 		// Generate unique user ID with discord prefix
 		const userId = `discord_${discordUser.id}`;
 
-		const { ownerId: appOwnerId, ownerUsername: appOwnerUsername } = await getOwnerIdentity(
-			platform
-		);
+		const { ownerId: appOwnerId, ownerUsername: appOwnerUsername } =
+			await getOwnerIdentity(platform);
 		const isDiscordOwner =
 			matchesOwnerUsername(discordUser.username, appOwnerUsername) ||
 			isReservedSuperAdminUsername(discordUser.username);
@@ -107,20 +107,11 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 		let existingUser = null;
 		let isLinkingMode = false;
 
-		if (existingSessionCookie) {
-			try {
-				let base64 = existingSessionCookie;
-				if (base64.includes('-') || base64.includes('_')) {
-					base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
-				}
-				while (base64.length % 4) {
-					base64 += '=';
-				}
-				existingUser = JSON.parse(atob(base64));
-				isLinkingMode = true;
-			} catch {
-				// Invalid session, treat as new login
-			}
+		if (existingSessionCookie && platform?.env?.DB) {
+			// The current user is identified by their server-side session, not by
+			// decoding the cookie — the cookie is an opaque id now.
+			existingUser = await getAuthSession(platform.env.DB, existingSessionCookie);
+			isLinkingMode = existingUser !== null;
 		}
 
 		// Store or update user in database
@@ -173,7 +164,12 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 						 SET name = ?, discord_username = ?, discord_avatar_url = ?, updated_at = CURRENT_TIMESTAMP
 						 WHERE id = ?`
 					)
-						.bind(discordUser.global_name || discordUser.username, discordUser.username, avatarUrl, existingUser.id)
+						.bind(
+							discordUser.global_name || discordUser.username,
+							discordUser.username,
+							avatarUrl,
+							existingUser.id
+						)
 						.run();
 
 					await grantOwnerAdmin(existingUser.id);
@@ -234,7 +230,8 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 						}
 
 						if (!isOwner) {
-							isOwner = isDiscordOwner || matchesOwnerUsername(linkedUser.github_login, appOwnerUsername);
+							isOwner =
+								isDiscordOwner || matchesOwnerUsername(linkedUser.github_login, appOwnerUsername);
 						}
 
 						if (isOwner && linkedUser.is_admin !== 1) {
@@ -257,10 +254,16 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 							isAdmin: linkedUser.is_admin === 1 || isOwner
 						};
 
-						const sessionCookie = btoa(JSON.stringify(sessionData))
-							.replace(/\+/g, '-')
-							.replace(/\//g, '_')
-							.replace(/=+$/, '');
+						// Without a database there is no server-side session store, and a
+						// cookie we cannot back with one would be forgeable — so require it.
+						const db = platform?.env?.DB;
+						if (!db) {
+							return new Response(null, {
+								status: 302,
+								headers: { Location: new URL('/auth/login?error=server', url.origin).toString() }
+							});
+						}
+						const sessionCookie = await createAuthSession(db, sessionData);
 
 						const isSecure = url.protocol === 'https:';
 						const cookieParts = [
@@ -299,7 +302,12 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 						SET name = ?, discord_username = ?, discord_avatar_url = ?, updated_at = CURRENT_TIMESTAMP 
 						WHERE id = ?`
 					)
-						.bind(discordUser.global_name || discordUser.username, discordUser.username, avatarUrl, userId)
+						.bind(
+							discordUser.global_name || discordUser.username,
+							discordUser.username,
+							avatarUrl,
+							userId
+						)
 						.run();
 
 					// Ensure Discord oauth_account record exists for existing users
@@ -374,10 +382,16 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 		};
 
 		// Store session in cookie using URL-safe base64 encoding
-		const sessionCookie = btoa(JSON.stringify(sessionData))
-			.replace(/\+/g, '-')
-			.replace(/\//g, '_')
-			.replace(/=+$/, '');
+		// Without a database there is no server-side session store, and a
+		// cookie we cannot back with one would be forgeable — so require it.
+		const db = platform?.env?.DB;
+		if (!db) {
+			return new Response(null, {
+				status: 302,
+				headers: { Location: new URL('/auth/login?error=server', url.origin).toString() }
+			});
+		}
+		const sessionCookie = await createAuthSession(db, sessionData);
 
 		// Redirect to home
 		const redirectUrl = sessionData.isAdmin ? '/admin' : '/';

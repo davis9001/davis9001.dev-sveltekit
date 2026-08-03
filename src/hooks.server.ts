@@ -4,6 +4,7 @@ import {
 	assertDatabaseIdentity,
 	shouldEnforceDatabaseIdentity
 } from '$lib/server/database-identity';
+import { getAuthSession } from '$lib/utils/db';
 
 const databaseIdentityHandler: Handle = async ({ event, resolve }) => {
 	if (shouldEnforceDatabaseIdentity(event.url.hostname)) {
@@ -17,50 +18,29 @@ const databaseIdentityHandler: Handle = async ({ event, resolve }) => {
 
 // Auth handling hook
 const authHandler: Handle = async ({ event, resolve }) => {
-	// Get session cookie
+	// The cookie is an opaque session id, not the user object. The trusted
+	// payload lives server-side in the sessions table (see createAuthSession),
+	// so isOwner/isAdmin cannot be forged by editing the cookie. A cookie that
+	// resolves to no session leaves the request unauthenticated — fail closed.
 	const sessionId = event.cookies.get('session');
 
 	if (sessionId) {
-		// In production, fetch session from D1 or KV
-		// For now, decode the session from the cookie
-		try {
-			// Handle both standard base64 and URL-safe base64
-			// URL-safe uses - instead of +, _ instead of /, and no padding
-			let base64 = sessionId;
-
-			// Only apply URL-safe decoding if the string contains URL-safe characters
-			if (base64.includes('-') || base64.includes('_')) {
-				base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+		const db = event.platform?.env?.DB;
+		let user = null;
+		if (db) {
+			try {
+				user = await getAuthSession(db, sessionId);
+			} catch {
+				// Treat a database error as "cannot authenticate this request"
+				// rather than trusting the cookie — the whole point of the change.
+				user = null;
 			}
+		}
 
-			// Add padding if needed (for both standard and URL-safe base64)
-			while (base64.length % 4) {
-				base64 += '=';
-			}
-
-			const decoded = atob(base64);
-			const sessionData = JSON.parse(decoded);
-
-			// Check if user is admin from database (optional - don't fail auth if DB unavailable)
-			if (event.platform?.env?.DB) {
-				try {
-					const userRecord = await event.platform.env.DB.prepare(
-						'SELECT is_admin FROM users WHERE id = ?'
-					)
-						.bind(sessionData.id)
-						.first<{ is_admin: number; }>();
-
-					if (userRecord) {
-						sessionData.isAdmin = userRecord.is_admin === 1;
-					}
-				} catch {
-					// Database error - continue with session data from cookie
-				}
-			}
-
-			event.locals.user = sessionData;
-		} catch {
-			// Invalid session, clear cookie
+		if (user) {
+			event.locals.user = user;
+		} else {
+			// Unknown, expired, or unverifiable session — clear the stale cookie.
 			event.cookies.delete('session', { path: '/' });
 		}
 	}

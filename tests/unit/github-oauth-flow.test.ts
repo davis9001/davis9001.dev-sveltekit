@@ -1,5 +1,42 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// The session payload lives server-side now (createAuthSession stores it in
+// sessions.data); tests read it here, captured from the sessions INSERT, rather
+// than decoding the cookie, which is just an opaque id.
+let __lastSessionPayload: any = null;
+
+function captureSession(sql: string, args: any[]) {
+	if (typeof sql === 'string' && sql.includes('INSERT INTO sessions') && args[3]) {
+		try {
+			__lastSessionPayload = JSON.parse(args[3]);
+		} catch {
+			/* leave as-is */
+		}
+	}
+}
+
+// A permissive D1 mock: selects miss, writes succeed, session payload captured.
+function makePermissiveDB() {
+	return {
+		prepare: (sql: string) => {
+			let boundArgs: any[] = [];
+			const stmt = {
+				bind: (...args: any[]) => {
+					boundArgs = args;
+					return stmt;
+				},
+				first: async () => null,
+				run: async () => {
+					captureSession(sql, boundArgs);
+					return { success: true };
+				},
+				all: async () => ({ results: [] })
+			};
+			return stmt;
+		}
+	};
+}
+
 /**
  * Tests for GitHub OAuth Endpoints
  * TDD: Tests for GitHub authentication flow
@@ -15,6 +52,7 @@ describe('GitHub Auth API', () => {
 		it('should redirect to setup when client ID not configured', async () => {
 			const mockPlatform = {
 				env: {
+					DB: makePermissiveDB(),
 					KV: {
 						get: vi.fn().mockResolvedValue(null)
 					}
@@ -40,6 +78,7 @@ describe('GitHub Auth API', () => {
 
 			const mockPlatform = {
 				env: {
+					DB: makePermissiveDB(),
 					GITHUB_CLIENT_ID: 'env-client-id'
 				}
 			};
@@ -64,6 +103,7 @@ describe('GitHub Auth API', () => {
 
 			const mockPlatform = {
 				env: {
+					DB: makePermissiveDB(),
 					KV: {
 						get: vi.fn().mockResolvedValue(JSON.stringify({ clientId: 'kv-client-id' }))
 					}
@@ -105,6 +145,7 @@ describe('GitHub Auth API', () => {
 		it('should redirect to login when OAuth not configured', async () => {
 			const mockPlatform = {
 				env: {
+					DB: makePermissiveDB(),
 					KV: {
 						get: vi.fn().mockResolvedValue(null)
 					}
@@ -129,6 +170,7 @@ describe('GitHub Auth API', () => {
 		it('should handle token exchange failure', async () => {
 			const mockPlatform = {
 				env: {
+					DB: makePermissiveDB(),
 					GITHUB_CLIENT_ID: 'test-client',
 					GITHUB_CLIENT_SECRET: 'test-secret'
 				}
@@ -158,6 +200,7 @@ describe('GitHub Auth API', () => {
 		it('should handle missing access token in response', async () => {
 			const mockPlatform = {
 				env: {
+					DB: makePermissiveDB(),
 					GITHUB_CLIENT_ID: 'test-client',
 					GITHUB_CLIENT_SECRET: 'test-secret'
 				}
@@ -186,6 +229,7 @@ describe('GitHub Auth API', () => {
 		it('should handle user fetch failure', async () => {
 			const mockPlatform = {
 				env: {
+					DB: makePermissiveDB(),
 					GITHUB_CLIENT_ID: 'test-client',
 					GITHUB_CLIENT_SECRET: 'test-secret'
 				}
@@ -227,6 +271,7 @@ describe('GitHub Auth API', () => {
 
 			const mockPlatform = {
 				env: {
+					DB: makePermissiveDB(),
 					GITHUB_CLIENT_ID: 'test-client',
 					GITHUB_CLIENT_SECRET: 'test-secret',
 					GITHUB_OWNER_ID: '12345'
@@ -275,6 +320,7 @@ describe('GitHub Auth API', () => {
 
 			const mockPlatform = {
 				env: {
+					DB: makePermissiveDB(),
 					GITHUB_CLIENT_ID: 'test-client',
 					GITHUB_CLIENT_SECRET: 'test-secret',
 					GITHUB_OWNER_ID: '99999' // Different from user ID
@@ -320,6 +366,7 @@ describe('GitHub Auth API', () => {
 
 			const mockPlatform = {
 				env: {
+					DB: makePermissiveDB(),
 					GITHUB_CLIENT_ID: 'test-client',
 					GITHUB_CLIENT_SECRET: 'test-secret'
 				}
@@ -356,11 +403,8 @@ describe('GitHub Auth API', () => {
 			const cookie = response.headers.get('Set-Cookie');
 			expect(cookie).toContain('session=');
 
-			const encodedSession = cookie?.match(/session=([^;]+)/)?.[1] ?? '';
-			const base64 = encodedSession.replace(/-/g, '+').replace(/_/g, '/');
-			const paddedBase64 = `${base64}${'='.repeat((4 - (base64.length % 4)) % 4)}`;
-			const session = JSON.parse(atob(paddedBase64));
-
+			// Payload is stored server-side now, captured from the sessions INSERT.
+			const session = __lastSessionPayload;
 			expect(session.login).toBe('davis9001');
 			expect(session.isOwner).toBe(true);
 			expect(session.isAdmin).toBe(true);
@@ -492,6 +536,7 @@ describe('GitHub Auth API', () => {
 
 			const mockPlatform = {
 				env: {
+					DB: makePermissiveDB(),
 					GITHUB_CLIENT_ID: 'test-client',
 					GITHUB_CLIENT_SECRET: 'test-secret',
 					GITHUB_OWNER_ID: '12345',
@@ -546,7 +591,11 @@ describe('GitHub Auth API', () => {
 					GITHUB_OWNER_USERNAME: 'davis9001',
 					DB: {
 						prepare: vi.fn().mockImplementation((sql: string) => {
-							if (sql.includes('SELECT user_id FROM oauth_accounts WHERE provider = ? AND provider_account_id = ?')) {
+							if (
+								sql.includes(
+									'SELECT user_id FROM oauth_accounts WHERE provider = ? AND provider_account_id = ?'
+								)
+							) {
 								return {
 									bind: vi.fn().mockReturnValue({
 										first: vi.fn().mockResolvedValue(null)
@@ -560,7 +609,9 @@ describe('GitHub Auth API', () => {
 									})
 								};
 							}
-							if (sql.includes('SELECT id FROM oauth_accounts WHERE user_id = ? AND provider = ?')) {
+							if (
+								sql.includes('SELECT id FROM oauth_accounts WHERE user_id = ? AND provider = ?')
+							) {
 								return {
 									bind: vi.fn().mockReturnValue({
 										first: vi.fn().mockResolvedValue({ id: 'oauth-123' })
@@ -575,10 +626,13 @@ describe('GitHub Auth API', () => {
 								};
 							}
 							return {
-								bind: vi.fn().mockReturnValue({
+								bind: vi.fn((...args: any[]) => ({
 									first: vi.fn().mockResolvedValue(null),
-									run: mockDbRun
-								})
+									run: vi.fn(async () => {
+										captureSession(sql, args);
+										return mockDbRun();
+									})
+								}))
 							};
 						})
 					}
@@ -610,13 +664,10 @@ describe('GitHub Auth API', () => {
 				platform: mockPlatform
 			} as any);
 
-			const cookie = response.headers.get('Set-Cookie') ?? '';
-			const encodedSession = cookie.split('session=')[1]?.split(';')[0] ?? '';
-			const padded = encodedSession.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(encodedSession.length / 4) * 4, '=');
-			const session = JSON.parse(atob(padded));
-
 			expect(response.status).toBe(302);
 			expect(response.headers.get('Location')).toBe('http://localhost:4220/admin');
+			// Payload is stored server-side now, captured from the sessions INSERT.
+			const session = __lastSessionPayload;
 			expect(session.isOwner).toBe(true);
 			expect(session.isAdmin).toBe(true);
 			expect(mockDbRun).toHaveBeenCalled();
@@ -626,7 +677,8 @@ describe('GitHub Auth API', () => {
 	describe('GET/POST /api/auth/logout', () => {
 		it('should clear session cookie on GET logout', async () => {
 			const mockCookies = {
-				delete: vi.fn()
+				delete: vi.fn(),
+				get: vi.fn().mockReturnValue(undefined)
 			};
 
 			const { GET } = await import('../../src/routes/api/auth/logout/+server');
@@ -645,7 +697,8 @@ describe('GitHub Auth API', () => {
 
 		it('should clear session cookie on POST logout', async () => {
 			const mockCookies = {
-				delete: vi.fn()
+				delete: vi.fn(),
+				get: vi.fn().mockReturnValue(undefined)
 			};
 
 			const { POST } = await import('../../src/routes/api/auth/logout/+server');
@@ -663,4 +716,3 @@ describe('GitHub Auth API', () => {
 		});
 	});
 });
-

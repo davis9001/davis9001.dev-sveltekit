@@ -1,5 +1,6 @@
 import { mergeAccounts } from '$lib/services/account-merge';
 import { recordLoginActivity } from '$lib/services/user-activity';
+import { createAuthSession, getAuthSession } from '$lib/utils/db';
 import {
 	getOwnerIdentity,
 	isReservedSuperAdminUsername,
@@ -94,25 +95,15 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 		let existingUser = null;
 		let isLinkingMode = false;
 
-		if (existingSessionCookie) {
-			try {
-				let base64 = existingSessionCookie;
-				if (base64.includes('-') || base64.includes('_')) {
-					base64 = base64.replace(/-/g, '+').replace(/_/g, '/');
-				}
-				while (base64.length % 4) {
-					base64 += '=';
-				}
-				existingUser = JSON.parse(atob(base64));
-				isLinkingMode = true;
-			} catch {
-				// Invalid session, treat as new login
-			}
+		if (existingSessionCookie && platform?.env?.DB) {
+			// The current user is identified by their server-side session, not by
+			// decoding the cookie — the cookie is an opaque id now.
+			existingUser = await getAuthSession(platform.env.DB, existingSessionCookie);
+			isLinkingMode = existingUser !== null;
 		}
 
-		const { ownerId: appOwnerId, ownerUsername: appOwnerUsername } = await getOwnerIdentity(
-			platform
-		);
+		const { ownerId: appOwnerId, ownerUsername: appOwnerUsername } =
+			await getOwnerIdentity(platform);
 
 		// Check if user is owner by ID or username
 		let isOwner = false;
@@ -162,7 +153,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 						'SELECT user_id FROM oauth_accounts WHERE provider = ? AND provider_account_id = ?'
 					)
 						.bind('github', githubUser.id.toString())
-						.first<{ user_id: string; }>();
+						.first<{ user_id: string }>();
 
 					if (existingOAuth && existingOAuth.user_id !== existingUser.id) {
 						// GitHub account is linked to a different user - merge the accounts
@@ -212,7 +203,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 					'SELECT user_id FROM oauth_accounts WHERE provider = ? AND provider_account_id = ?'
 				)
 					.bind('github', githubUser.id.toString())
-					.first<{ user_id: string; }>();
+					.first<{ user_id: string }>();
 
 				if (linkedAccount) {
 					// Log in as the linked user
@@ -246,10 +237,16 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 							await grantOwnerAdmin(linkedUser.id);
 						}
 
-						const sessionCookie = btoa(JSON.stringify(sessionData))
-							.replace(/\+/g, '-')
-							.replace(/\//g, '_')
-							.replace(/=+$/, '');
+						// Without a database there is no server-side session store, and a
+						// cookie we cannot back with one would be forgeable — so require it.
+						const db = platform?.env?.DB;
+						if (!db) {
+							return new Response(null, {
+								status: 302,
+								headers: { Location: new URL('/auth/login?error=server', url.origin).toString() }
+							});
+						}
+						const sessionCookie = await createAuthSession(db, sessionData);
 
 						const isSecure = url.protocol === 'https:';
 						const cookieParts = [
@@ -280,7 +277,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 					'SELECT id, is_admin FROM users WHERE id = ?'
 				)
 					.bind(githubUser.id.toString())
-					.first<{ id: string; is_admin: number; }>();
+					.first<{ id: string; is_admin: number }>();
 
 				if (existingUserRecord) {
 					// Update existing user
@@ -304,7 +301,7 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 						'SELECT id FROM oauth_accounts WHERE user_id = ? AND provider = ?'
 					)
 						.bind(githubUser.id.toString(), 'github')
-						.first<{ id: string; }>();
+						.first<{ id: string }>();
 
 					if (!existingOAuthRecord) {
 						await platform.env.DB.prepare(
@@ -384,10 +381,16 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 
 		// Store session in cookie using URL-safe base64 encoding
 		// Replace +, /, = with URL-safe characters to avoid cookie parsing issues
-		const sessionCookie = btoa(JSON.stringify(sessionData))
-			.replace(/\+/g, '-')
-			.replace(/\//g, '_')
-			.replace(/=+$/, '');
+		// Without a database there is no server-side session store, and a
+		// cookie we cannot back with one would be forgeable — so require it.
+		const db = platform?.env?.DB;
+		if (!db) {
+			return new Response(null, {
+				status: 302,
+				headers: { Location: new URL('/auth/login?error=server', url.origin).toString() }
+			});
+		}
+		const sessionCookie = await createAuthSession(db, sessionData);
 
 		// Track first admin login to lock setup page
 		if (isOwner && platform?.env?.KV) {

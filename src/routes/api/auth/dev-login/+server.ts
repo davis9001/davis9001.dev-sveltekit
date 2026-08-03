@@ -1,5 +1,6 @@
 import { dev } from '$app/environment';
 import { recordLoginActivity } from '$lib/services/user-activity';
+import { createAuthSession } from '$lib/utils/db';
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -80,10 +81,11 @@ export const GET: RequestHandler = async ({ url, platform }) => {
 	};
 
 	// Same URL-safe base64 cookie format as the real GitHub callback
-	const sessionCookie = btoa(JSON.stringify(sessionData))
-		.replace(/\+/g, '-')
-		.replace(/\//g, '_')
-		.replace(/=+$/, '');
+	if (!db) {
+		throw error(500, 'Dev login requires a database connection');
+	}
+
+	const sessionCookie = await createAuthSession(db, sessionData);
 
 	const isSecure = url.protocol === 'https:';
 	const cookieParts = [

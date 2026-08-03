@@ -1,5 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// The session payload now lives server-side (createAuthSession stores it in
+// sessions.data) instead of in the cookie, so a test that used to decode the
+// cookie reads it from here — captured from the sessions INSERT the login makes.
+let __lastSessionPayload: any = null;
+
+// A permissive D1 mock: selects miss, writes succeed. Enough for the auth
+// callbacks to run their user upsert and create a server-side session, which
+// login now requires (the cookie is an opaque id, not a self-contained token).
+function makePermissiveDB() {
+	return {
+		prepare: (sql: string) => {
+			let boundArgs: any[] = [];
+			const stmt = {
+				bind: (...args: any[]) => {
+					boundArgs = args;
+					return stmt;
+				},
+				first: async () => null,
+				run: async () => {
+					if (typeof sql === 'string' && sql.includes('INSERT INTO sessions') && boundArgs[3]) {
+						try {
+							__lastSessionPayload = JSON.parse(boundArgs[3]);
+						} catch {
+							/* leave as-is */
+						}
+					}
+					return { success: true };
+				},
+				all: async () => ({ results: [] })
+			};
+			return stmt;
+		}
+	};
+}
+
 // Mock console to avoid noise
 vi.spyOn(console, 'log').mockImplementation(() => {});
 vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -75,6 +110,7 @@ describe('Discord Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						KV: mockKV
 					}
 				}
@@ -97,6 +133,7 @@ describe('Discord Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						KV: mockKV
 					}
 				}
@@ -119,7 +156,9 @@ describe('Discord Callback Server - Extended Coverage', () => {
 				url: new URL('http://localhost/api/auth/discord/callback?code=test-code'),
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
-					env: {}
+					env: {
+						DB: makePermissiveDB()
+					}
 				}
 			};
 
@@ -148,6 +187,7 @@ describe('Discord Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						DISCORD_CLIENT_ID: 'client-id',
 						DISCORD_CLIENT_SECRET: 'client-secret'
 					}
@@ -176,6 +216,7 @@ describe('Discord Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						DISCORD_CLIENT_ID: 'client-id',
 						DISCORD_CLIENT_SECRET: 'client-secret'
 					}
@@ -211,6 +252,7 @@ describe('Discord Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						DISCORD_CLIENT_ID: 'client-id',
 						DISCORD_CLIENT_SECRET: 'client-secret'
 					}
@@ -253,6 +295,7 @@ describe('Discord Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						DISCORD_CLIENT_ID: 'client-id',
 						DISCORD_CLIENT_SECRET: 'client-secret'
 					}
@@ -298,6 +341,7 @@ describe('Discord Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						DISCORD_CLIENT_ID: 'client-id',
 						DISCORD_CLIENT_SECRET: 'client-secret',
 						KV: mockKV
@@ -343,6 +387,7 @@ describe('Discord Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						DISCORD_CLIENT_ID: 'client-id',
 						DISCORD_CLIENT_SECRET: 'client-secret',
 						KV: mockKV
@@ -381,6 +426,7 @@ describe('Discord Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue('invalid-base64!!!'), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						DISCORD_CLIENT_ID: 'client-id',
 						DISCORD_CLIENT_SECRET: 'client-secret'
 					}
@@ -420,6 +466,17 @@ describe('Discord Callback Server - Extended Coverage', () => {
 
 			const mockDB = {
 				prepare: vi.fn().mockImplementation((sql: string) => {
+					// Linking mode identifies the current user by resolving their
+					// server-side session, not by decoding the cookie.
+					if (sql.includes('SELECT data FROM sessions')) {
+						return {
+							bind: vi.fn().mockReturnValue({
+								first: vi.fn().mockResolvedValue({
+									data: JSON.stringify({ id: 'existing-user-123', login: 'existinguser' })
+								})
+							})
+						};
+					}
 					if (sql.includes('oauth_accounts WHERE provider = ?')) {
 						return {
 							bind: vi.fn().mockReturnValue({
@@ -481,6 +538,7 @@ describe('Discord Callback Server - Extended Coverage', () => {
 				cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn() },
 				platform: {
 					env: {
+						DB: makePermissiveDB(),
 						DISCORD_CLIENT_ID: 'client-id',
 						DISCORD_CLIENT_SECRET: 'client-secret'
 					}
@@ -820,6 +878,20 @@ describe('Discord Callback Server - Extended Coverage', () => {
 							})
 						};
 					}
+					if (sql.includes('INSERT INTO sessions')) {
+						return {
+							bind: (...args: any[]) => ({
+								run: async () => {
+									try {
+										__lastSessionPayload = JSON.parse(args[3]);
+									} catch {
+										/* leave as-is */
+									}
+									return { success: true };
+								}
+							})
+						};
+					}
 					if (sql.includes('INSERT INTO users') || sql.includes('INSERT INTO oauth_accounts')) {
 						return {
 							bind: vi.fn().mockReturnValue({
@@ -856,20 +928,20 @@ describe('Discord Callback Server - Extended Coverage', () => {
 			const { GET } = await import('../../src/routes/api/auth/discord/callback/+server');
 
 			const response = await GET(mockEvent as any);
-			const cookie = response.headers.get('Set-Cookie') ?? '';
-			const encodedSession = cookie.split('session=')[1]?.split(';')[0] ?? '';
-			const padded = encodedSession.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(encodedSession.length / 4) * 4, '=');
-			const session = JSON.parse(atob(padded));
 
 			expect(response.status).toBe(302);
 			expect(response.headers.get('Location')).toBe('http://localhost/admin');
+			// Payload is stored server-side now, captured from the sessions INSERT.
+			const session = __lastSessionPayload;
 			expect(session.isOwner).toBe(true);
 			expect(session.isAdmin).toBe(true);
 		});
 	});
 
 	describe('Database error handling', () => {
-		it('should continue auth even if DB fails', async () => {
+		it('does not issue a session when the database is unavailable', async () => {
+			// A login that cannot reach the session store must not hand out a
+			// cookie — the server-side payload is the whole point of the fix.
 			mockFetch.mockResolvedValueOnce({
 				ok: true,
 				json: () => Promise.resolve({ access_token: 'test-token' })
@@ -906,9 +978,15 @@ describe('Discord Callback Server - Extended Coverage', () => {
 
 			const { GET } = await import('../../src/routes/api/auth/discord/callback/+server');
 
-			// Should not throw, should continue with auth
-			const response = await GET(mockEvent as any);
-			expect(response.status).toBe(302);
+			// The login fails to an error redirect instead of issuing a session —
+			// a thrown redirect carries no Set-Cookie, so no session is granted.
+			try {
+				await GET(mockEvent as any);
+				expect.fail('Should have redirected to an error');
+			} catch (err: any) {
+				expect(err.status).toBe(302);
+				expect(err.location).toBe('/auth/login?error=oauth_failed');
+			}
 		});
 	});
 

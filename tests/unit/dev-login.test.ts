@@ -21,17 +21,33 @@ import { GET } from '../../src/routes/api/auth/dev-login/+server';
 
 type MockDb = {
 	prepare: ReturnType<typeof vi.fn>;
-	first: ReturnType<typeof vi.fn>;
-	run: ReturnType<typeof vi.fn>;
-	bind: ReturnType<typeof vi.fn>;
 };
 
-function createMockDb(existingUser: unknown = null): MockDb {
-	const first = vi.fn().mockResolvedValue(existingUser);
-	const run = vi.fn().mockResolvedValue({ success: true });
-	const bind = vi.fn().mockReturnValue({ first, run });
-	const prepare = vi.fn().mockReturnValue({ bind });
-	return { prepare, first, run, bind };
+// The session payload is stored server-side now (createAuthSession writes it to
+// sessions.data), so the mock captures it from that INSERT and tests read it
+// here instead of decoding the cookie, which is just an opaque id.
+let capturedSession: any = null;
+
+function createMockDb(existingUser: unknown = null, opts: { firstRejects?: boolean } = {}): MockDb {
+	const prepare = vi.fn((sql: string) => ({
+		bind: vi.fn((...args: any[]) => ({
+			first: vi.fn(async () => {
+				if (opts.firstRejects) throw new Error('D1 exploded');
+				return existingUser;
+			}),
+			run: vi.fn(async () => {
+				if (typeof sql === 'string' && sql.includes('INSERT INTO sessions') && args[3]) {
+					try {
+						capturedSession = JSON.parse(args[3]);
+					} catch {
+						/* leave as-is */
+					}
+				}
+				return { success: true };
+			})
+		}))
+	}));
+	return { prepare } as unknown as MockDb;
 }
 
 function createEvent(options: { origin?: string; db?: MockDb | null } = {}) {
@@ -42,17 +58,15 @@ function createEvent(options: { origin?: string; db?: MockDb | null } = {}) {
 	} as unknown as Parameters<typeof GET>[0];
 }
 
-function decodeSessionCookie(setCookie: string) {
-	const match = setCookie.match(/session=([^;]+)/);
-	if (!match) throw new Error('no session cookie');
-	let base64 = match[1].replace(/-/g, '+').replace(/_/g, '/');
-	while (base64.length % 4) base64 += '=';
-	return JSON.parse(atob(base64));
+/** The payload the login stored server-side for this session. */
+function sessionPayload() {
+	return capturedSession;
 }
 
 describe('Dev Login Endpoint', () => {
 	beforeEach(() => {
 		envState.dev = true;
+		capturedSession = null;
 	});
 
 	afterEach(() => {
@@ -65,8 +79,15 @@ describe('Dev Login Endpoint', () => {
 		await expect(GET(createEvent())).rejects.toMatchObject({ status: 404 });
 	});
 
-	it('should redirect to /admin with a session cookie when DB is unavailable', async () => {
-		const response = await GET(createEvent({ db: null }));
+	it('requires a database, since the session lives server-side now', async () => {
+		// The cookie is an opaque id backed by a sessions row; with no database
+		// there is nothing to back it, so the login errors rather than handing
+		// out a cookie the hooks would reject anyway.
+		await expect(GET(createEvent({ db: null }))).rejects.toMatchObject({ status: 500 });
+	});
+
+	it('should redirect to /admin with a session cookie', async () => {
+		const response = await GET(createEvent({ db: createMockDb() }));
 
 		expect(response.status).toBe(302);
 		expect(response.headers.get('Location')).toBe('http://localhost:4243/admin');
@@ -79,9 +100,9 @@ describe('Dev Login Endpoint', () => {
 	});
 
 	it('should issue an owner/superadmin session for davis9001', async () => {
-		const response = await GET(createEvent({ db: null }));
+		await GET(createEvent({ db: createMockDb() }));
 
-		const session = decodeSessionCookie(response.headers.get('Set-Cookie') ?? '');
+		const session = sessionPayload();
 		expect(session.login).toBe('davis9001');
 		expect(session.isOwner).toBe(true);
 		expect(session.isAdmin).toBe(true);
@@ -89,7 +110,9 @@ describe('Dev Login Endpoint', () => {
 	});
 
 	it('should set the Secure flag on https origins', async () => {
-		const response = await GET(createEvent({ origin: 'https://dev.davis9001.dev', db: null }));
+		const response = await GET(
+			createEvent({ origin: 'https://dev.davis9001.dev', db: createMockDb() })
+		);
 
 		expect(response.headers.get('Set-Cookie')).toContain('Secure');
 		expect(response.headers.get('Location')).toBe('https://dev.davis9001.dev/admin');
@@ -103,9 +126,9 @@ describe('Dev Login Endpoint', () => {
 			github_avatar_url: 'https://avatars.example/x.png'
 		});
 
-		const response = await GET(createEvent({ db }));
+		await GET(createEvent({ db }));
 
-		const session = decodeSessionCookie(response.headers.get('Set-Cookie') ?? '');
+		const session = sessionPayload();
 		expect(session.id).toBe('12345');
 		expect(session.name).toBe('David M');
 		expect(session.email).toBe('real@example.com');
@@ -122,9 +145,9 @@ describe('Dev Login Endpoint', () => {
 	it('should fall back to defaults when existing user row has null fields', async () => {
 		const db = createMockDb({ id: '12345', name: null, email: null, github_avatar_url: null });
 
-		const response = await GET(createEvent({ db }));
+		await GET(createEvent({ db }));
 
-		const session = decodeSessionCookie(response.headers.get('Set-Cookie') ?? '');
+		const session = sessionPayload();
 		expect(session.id).toBe('12345');
 		expect(session.name).toBe('David Monaghan');
 		expect(session.email).toBe('davis9001@github.local');
@@ -134,9 +157,9 @@ describe('Dev Login Endpoint', () => {
 	it('should create the user row when davis9001 does not exist yet', async () => {
 		const db = createMockDb(null);
 
-		const response = await GET(createEvent({ db }));
+		await GET(createEvent({ db }));
 
-		const session = decodeSessionCookie(response.headers.get('Set-Cookie') ?? '');
+		const session = sessionPayload();
 		expect(session.id).toBe('dev-davis9001');
 
 		const statements = db.prepare.mock.calls.map((call) => call[0] as string);
@@ -145,17 +168,15 @@ describe('Dev Login Endpoint', () => {
 		expect(mockRecordLoginActivity).toHaveBeenCalledWith(db, 'dev-davis9001', 'github');
 	});
 
-	it('should still log in when the database throws', async () => {
-		const db = createMockDb();
-		db.bind.mockReturnValue({
-			first: vi.fn().mockRejectedValue(new Error('D1 exploded')),
-			run: vi.fn()
-		});
+	it('still logs in when a user query throws, as long as the session store works', async () => {
+		// The user-upsert is best-effort; a failure there is caught and the login
+		// proceeds to create the session, which is what actually gates access.
+		const db = createMockDb(null, { firstRejects: true });
 
 		const response = await GET(createEvent({ db }));
 
 		expect(response.status).toBe(302);
-		const session = decodeSessionCookie(response.headers.get('Set-Cookie') ?? '');
+		const session = sessionPayload();
 		expect(session.isAdmin).toBe(true);
 	});
 });

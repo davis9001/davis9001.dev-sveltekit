@@ -1,5 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// The session payload now lives server-side (createAuthSession stores it in
+// sessions.data) instead of in the cookie, so a test that used to decode the
+// cookie reads it from here — captured from the sessions INSERT the login makes.
+let __lastSessionPayload: any = null;
+
+// A permissive D1 mock: selects miss, writes succeed. Enough for the auth
+// callbacks to run their user upsert and create a server-side session, which
+// login now requires (the cookie is an opaque id, not a self-contained token).
+function makePermissiveDB() {
+	return {
+		prepare: (sql: string) => {
+			let boundArgs: any[] = [];
+			const stmt = {
+				bind: (...args: any[]) => {
+					boundArgs = args;
+					return stmt;
+				},
+				first: async () => null,
+				run: async () => {
+					if (typeof sql === 'string' && sql.includes('INSERT INTO sessions') && boundArgs[3]) {
+						try {
+							__lastSessionPayload = JSON.parse(boundArgs[3]);
+						} catch {
+							/* leave as-is */
+						}
+					}
+					return { success: true };
+				},
+				all: async () => ({ results: [] })
+			};
+			return stmt;
+		}
+	};
+}
+
 /**
  * Tests for Discord OAuth Authentication
  * TDD: Testing the Discord OAuth flow
@@ -7,7 +42,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock redirect
 const mockRedirect = vi.fn((status: number, location: string) => {
-	const err = new Error('Redirect') as Error & { status: number; location: string; };
+	const err = new Error('Redirect') as Error & { status: number; location: string };
 	err.status = status;
 	err.location = location;
 	throw err;
@@ -32,6 +67,7 @@ describe('Discord OAuth - Initial Redirect', () => {
 		const mockUrl = new URL('http://localhost/api/auth/discord');
 		const mockPlatform = {
 			env: {
+				DB: makePermissiveDB(),
 				DISCORD_CLIENT_ID: undefined,
 				KV: {
 					get: vi.fn().mockResolvedValue(null)
@@ -53,6 +89,7 @@ describe('Discord OAuth - Initial Redirect', () => {
 		const mockUrl = new URL('http://localhost/api/auth/discord');
 		const mockPlatform = {
 			env: {
+				DB: makePermissiveDB(),
 				DISCORD_CLIENT_ID: 'test-discord-client-id',
 				KV: null
 			}
@@ -79,6 +116,7 @@ describe('Discord OAuth - Initial Redirect', () => {
 		const mockUrl = new URL('http://localhost/api/auth/discord');
 		const mockPlatform = {
 			env: {
+				DB: makePermissiveDB(),
 				DISCORD_CLIENT_ID: undefined,
 				KV: {
 					get: vi.fn().mockResolvedValue(JSON.stringify({ clientId: 'kv-discord-client-id' }))
@@ -106,6 +144,7 @@ describe('Discord OAuth - Initial Redirect', () => {
 		const mockUrl = new URL('http://localhost/api/auth/discord');
 		const mockPlatform = {
 			env: {
+				DB: makePermissiveDB(),
 				DISCORD_CLIENT_ID: 'test-discord-client-id'
 			}
 		};
@@ -157,6 +196,7 @@ describe('Discord OAuth - Callback', () => {
 		};
 		const mockPlatform = {
 			env: {
+				DB: makePermissiveDB(),
 				DISCORD_CLIENT_ID: undefined,
 				DISCORD_CLIENT_SECRET: undefined,
 				KV: {
@@ -258,6 +298,7 @@ describe('Discord OAuth - Callback', () => {
 		};
 		const mockPlatform = {
 			env: {
+				DB: makePermissiveDB(),
 				DISCORD_CLIENT_ID: 'test-client-id',
 				DISCORD_CLIENT_SECRET: 'test-client-secret'
 			}
@@ -275,11 +316,8 @@ describe('Discord OAuth - Callback', () => {
 		const cookie = response.headers.get('Set-Cookie');
 		expect(cookie).toContain('session=');
 
-		const encodedSession = cookie?.match(/session=([^;]+)/)?.[1] ?? '';
-		const base64 = encodedSession.replace(/-/g, '+').replace(/_/g, '/');
-		const paddedBase64 = `${base64}${'='.repeat((4 - (base64.length % 4)) % 4)}`;
-		const session = JSON.parse(atob(paddedBase64));
-
+		// The payload is stored server-side now, not encoded in the cookie.
+		const session = __lastSessionPayload;
 		expect(session.login).toBe('davis9001');
 		expect(session.isOwner).toBe(true);
 		expect(session.isAdmin).toBe(true);
@@ -301,6 +339,7 @@ describe('Discord OAuth - Callback', () => {
 		};
 		const mockPlatform = {
 			env: {
+				DB: makePermissiveDB(),
 				DISCORD_CLIENT_ID: 'test-client-id',
 				DISCORD_CLIENT_SECRET: 'test-client-secret'
 			}
@@ -336,6 +375,7 @@ describe('Discord OAuth - Callback', () => {
 		};
 		const mockPlatform = {
 			env: {
+				DB: makePermissiveDB(),
 				DISCORD_CLIENT_ID: 'test-client-id',
 				DISCORD_CLIENT_SECRET: 'test-client-secret'
 			}
