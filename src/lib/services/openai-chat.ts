@@ -182,17 +182,16 @@ export async function createRealtimeSession(
 	}
 
 	const data = await response.json();
-	console.log('Realtime session API response keys:', Object.keys(data));
-	console.log('Full response data:', JSON.stringify(data, null, 2));
 
 	if (!data.client_secret?.value) {
-		console.error('Invalid response from realtime sessions API:', data);
+		// Shape only. The body of a failed response can still carry a partial
+		// session, and this log is the one place a secret would escape into
+		// whatever aggregates the worker's stdout.
+		console.error('Invalid response from realtime sessions API, keys:', Object.keys(data));
 		throw new Error('Invalid response: missing client_secret');
 	}
 
-	console.log('Successfully got client_secret, length:', data.client_secret.value.length);
-	console.log('Session ID:', data.id);
-	console.log('Expires at:', data.client_secret.expires_at);
+	console.log('Realtime session created:', data.id, 'expires at', data.client_secret.expires_at);
 
 	return {
 		token: data.client_secret.value

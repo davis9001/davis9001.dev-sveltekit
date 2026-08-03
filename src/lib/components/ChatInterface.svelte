@@ -63,7 +63,11 @@
 			return path;
 		}
 
-		if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null') {
+		if (
+			typeof window !== 'undefined' &&
+			window.location?.origin &&
+			window.location.origin !== 'null'
+		) {
 			return new URL(path, window.location.origin).toString();
 		}
 
@@ -299,7 +303,9 @@
 			// Connect to OpenAI Realtime API via WebSocket
 			const wsModel = model || 'gpt-4o-realtime-preview-2024-12-17';
 			console.log('Connecting to OpenAI Realtime API with model:', wsModel);
-			console.log('Token length:', token?.length, 'Token prefix:', token?.substring(0, 20) + '...');
+			// Length only — a prefix of an ephemeral token is still part of a
+			// credential, and browser consoles get screenshotted and pasted.
+			console.log('Token length:', token?.length);
 
 			realtimeWs = new WebSocket(`wss://api.openai.com/v1/realtime?model=${wsModel}`, [
 				'realtime',
