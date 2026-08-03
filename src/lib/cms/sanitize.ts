@@ -84,7 +84,10 @@ const ALLOWED_TAGS: Record<string, string[]> = {
 	g: [...SVG_PAINT],
 	path: ['d', ...SVG_PAINT],
 	rect: ['x', 'y', 'width', 'height', 'rx', 'ry', ...SVG_PAINT],
-	circle: ['cx', 'cy', 'r', ...SVG_PAINT],
+	// pathLength normalises a shape's length to a chosen number, which lets
+	// shared CSS speak in percentages about arcs of different sizes. Inert
+	// geometry — no URL, no script, nothing to execute.
+	circle: ['cx', 'cy', 'r', 'pathlength', ...SVG_PAINT],
 	ellipse: ['cx', 'cy', 'rx', 'ry', ...SVG_PAINT],
 	line: ['x1', 'y1', 'x2', 'y2', ...SVG_PAINT],
 	polyline: ['points', ...SVG_PAINT],

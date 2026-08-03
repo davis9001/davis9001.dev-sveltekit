@@ -1042,56 +1042,72 @@ transition-duration: 150ms;
    fold still plays instead of finishing unseen. With JS off, no class is ever
    added and the chart simply renders. */
 .cms-chart.chart-anim .cg {
+	opacity: 0;
 	transform: scaleX(0);
 	transform-box: fill-box;
 	transform-origin: left center;
 }
 .cms-chart.chart-anim .cf { opacity: 0; }
-.cms-chart.chart-anim .cd { opacity: 0; transform-box: view-box; }
-.cms-chart.chart-anim .cd-a { transform-origin: 126px 168px; }
-.cms-chart.chart-anim .cd-b { transform-origin: 394px 168px; }
+.cms-chart.chart-anim .cr { stroke-dashoffset: 100; }
 
 .cms-chart.chart-anim.in-view .cg {
-	animation: cms-chart-grow 0.72s cubic-bezier(0.22, 0.7, 0.28, 1) forwards;
+	animation: cms-chart-grow 1.05s cubic-bezier(0.22, 0.7, 0.28, 1) forwards;
 }
 .cms-chart.chart-anim.in-view .cf {
-	animation: cms-chart-fade 0.5s ease-out forwards;
+	animation: cms-chart-fade 0.7s ease-out forwards;
 }
-.cms-chart.chart-anim.in-view .cd {
-	animation: cms-chart-wheel 0.85s cubic-bezier(0.22, 0.7, 0.28, 1) forwards;
+.cms-chart.chart-anim.in-view .cr {
+	animation: cms-chart-draw 1.5s cubic-bezier(0.33, 0.72, 0.25, 1) forwards;
 }
 
+/* Every keyframe carries opacity as well as its transform. The transform is
+   the part an engine can decline — SVG transform-box/transform-origin is the
+   least even corner of CSS — while opacity is not. Worst case is a plain fade,
+   never a mark stranded at scale 0 with nothing on screen. */
 @keyframes cms-chart-grow {
-	from { transform: scaleX(0); }
-	to { transform: scaleX(1); }
+	from { opacity: 0; transform: scaleX(0); }
+	to { opacity: 1; transform: scaleX(1); }
 }
 @keyframes cms-chart-fade {
 	from { opacity: 0; transform: translateY(4px); }
 	to { opacity: 1; transform: none; }
 }
-@keyframes cms-chart-wheel {
-	from { opacity: 0; transform: rotate(-26deg) scale(0.9); }
-	to { opacity: 1; transform: none; }
+/* A donut should draw itself, so each ring sweeps round from twelve o'clock.
+   The arc's own length lives in its stroke-dasharray attribute; pathLength
+   normalises every circumference to 100, which is what lets one shared
+   keyframe drive arcs of completely different sizes. No transform-origin is
+   involved anywhere, so unlike a rotation this cannot quietly fail in WebKit.
+
+   The hidden state is CSS, not an attribute, on purpose: with JS absent
+   .chart-anim is never added, so the rings render complete instead of a blank
+   ring nobody can un-hide. */
+@keyframes cms-chart-draw {
+	from { stroke-dashoffset: 100; }
+	to { stroke-dashoffset: 0; }
 }
 
 /* Stagger. Delays stay small on purpose: the figure should read as one
-   gesture, not a queue. */
-.cms-chart .s0 { animation-delay: 0ms; }
-.cms-chart .s1 { animation-delay: 70ms; }
-.cms-chart .s2 { animation-delay: 140ms; }
-.cms-chart .s3 { animation-delay: 210ms; }
-.cms-chart .s4 { animation-delay: 280ms; }
-.cms-chart .s5 { animation-delay: 350ms; }
-.cms-chart .s6 { animation-delay: 420ms; }
-.cms-chart .cd-b { animation-delay: 120ms; }
+   gesture, not a queue.
+
+   These must match the specificity of the rules above AND come after them: the
+   `animation` shorthand resets animation-delay to 0, so a weaker selector here
+   is silently overruled and the whole figure animates in lockstep. */
+.cms-chart.chart-anim.in-view .s0 { animation-delay: 0ms; }
+.cms-chart.chart-anim.in-view .s1 { animation-delay: 110ms; }
+.cms-chart.chart-anim.in-view .s2 { animation-delay: 220ms; }
+.cms-chart.chart-anim.in-view .s3 { animation-delay: 330ms; }
+.cms-chart.chart-anim.in-view .s4 { animation-delay: 440ms; }
+.cms-chart.chart-anim.in-view .s5 { animation-delay: 550ms; }
+.cms-chart.chart-anim.in-view .s6 { animation-delay: 660ms; }
 
 /* Motion is decoration here — the numbers are already on the page. */
 @media (prefers-reduced-motion: reduce) {
 	.cms-chart.chart-anim .cg,
 	.cms-chart.chart-anim .cf,
-	.cms-chart.chart-anim .cd {
+	.cms-chart.chart-anim .cr {
 		opacity: 1;
 		transform: none;
 		animation: none;
+		stroke-dashoffset: 0;
 	}
 }
