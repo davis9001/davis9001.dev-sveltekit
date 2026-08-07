@@ -1,5 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// These endpoints are admin/owner-gated, so tests drive them as the owner.
+// The unauthenticated and under-privileged cases are asserted separately.
+const OWNER_LOCALS = {
+	user: {
+		id: '72961',
+		login: 'davis9001',
+		email: 'owner@example.com',
+		isOwner: true,
+		isAdmin: true
+	}
+};
+
+
 /**
  * Tests for Reset API
  * TDD: Testing the reset configuration endpoint
@@ -34,6 +47,7 @@ describe('Reset API', () => {
 
 			await expect(
 				POST({
+					locals: OWNER_LOCALS,
 					platform: { env: {} },
 					cookies: mockCookies
 				} as any)
@@ -50,6 +64,7 @@ describe('Reset API', () => {
 
 			await expect(
 				POST({
+					locals: OWNER_LOCALS,
 					platform: { env: { KV: { get: mockGet } } },
 					cookies: mockCookies
 				} as any)
@@ -66,6 +81,7 @@ describe('Reset API', () => {
 			const mockCookiesDelete = vi.fn();
 
 			const response = await POST({
+				locals: OWNER_LOCALS,
 				platform: {
 					env: {
 						KV: {
@@ -104,6 +120,7 @@ describe('Reset API', () => {
 			const mockCookiesDelete = vi.fn();
 
 			const response = await POST({
+				locals: OWNER_LOCALS,
 				platform: {
 					env: {
 						KV: {
@@ -130,6 +147,7 @@ describe('Reset API', () => {
 
 			await expect(
 				POST({
+					locals: OWNER_LOCALS,
 					platform: { env: { KV: { get: mockGet } } },
 					cookies: mockCookies
 				} as any)
@@ -148,6 +166,7 @@ describe('Reset API', () => {
 
 			await expect(
 				POST({
+					locals: OWNER_LOCALS,
 					platform: { env: { KV: { get: mockGet } } },
 					cookies: mockCookies
 				} as any)

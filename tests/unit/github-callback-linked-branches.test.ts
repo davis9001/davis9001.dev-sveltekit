@@ -8,6 +8,22 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// The OAuth callbacks now verify that the `state` they issued comes back in an
+// HttpOnly cookie, so these tests hand back a matching pair. `get` stays
+// key-aware: state lookups get the state, anything else gets the session value
+// the individual test set up.
+const TEST_OAUTH_STATE = 'test-oauth-state';
+function makeOAuthCookies(sessionValue: unknown = null) {
+	return {
+		get: vi.fn((name: string) =>
+			name.startsWith('oauth_state_') ? TEST_OAUTH_STATE : sessionValue
+		),
+		set: vi.fn(),
+		delete: vi.fn()
+	};
+}
+
+
 // The session payload now lives server-side (createAuthSession stores it in
 // sessions.data) instead of in the cookie, so tests read it from here — makeDB
 // captures it from the sessions INSERT the login performs.
@@ -84,8 +100,8 @@ function makeDB(opts: {
 
 function makeEvent(db: any, protocol: 'http:' | 'https:', env: Record<string, unknown> = {}) {
 	return {
-		url: new URL(`${protocol}//localhost/api/auth/github/callback?code=abc`),
-		cookies: { get: vi.fn().mockReturnValue(null), set: vi.fn(), delete: vi.fn() },
+		url: new URL(`${protocol}//localhost/api/auth/github/callback?code=abc&state=test-oauth-state`),
+		cookies: makeOAuthCookies(null),
 		platform: {
 			env: {
 				GITHUB_CLIENT_ID: 'cid',

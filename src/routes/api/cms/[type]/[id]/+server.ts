@@ -15,13 +15,12 @@ import {
 	getContentTypeBySlug,
 	updateContentItem
 } from '$lib/services/cms';
+import { requireAdmin } from '$lib/server/auth-guard';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ platform, locals, params }) => {
-	if (!locals.user) {
-		throw error(401, 'Unauthorized');
-	}
+	requireAdmin(locals);
 
 	const db = platform?.env?.DB;
 	if (!db) {

@@ -1,5 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// The OAuth routes now round-trip a `state` value through an HttpOnly cookie:
+// the init route sets it, the callback requires it back. Tests therefore need
+// a cookie jar whose state lookups answer, and callback URLs carrying a
+// matching `state` param.
+const TEST_OAUTH_STATE = 'test-oauth-state';
+function makeOAuthCookies(sessionValue: unknown = null) {
+	return {
+		get: vi.fn((name: string) =>
+			name.startsWith('oauth_state_') ? TEST_OAUTH_STATE : sessionValue
+		),
+		set: vi.fn(),
+		delete: vi.fn()
+	};
+}
+
+
 // The session payload lives server-side now (createAuthSession stores it in
 // sessions.data); tests read it here, captured from the sessions INSERT, rather
 // than decoding the cookie, which is just an opaque id.
@@ -64,7 +80,8 @@ describe('GitHub Auth API', () => {
 			try {
 				await GET({
 					platform: mockPlatform,
-					url: new URL('http://localhost:4220/api/auth/github')
+					url: new URL('http://localhost:4220/api/auth/github'),
+					cookies: makeOAuthCookies()
 				} as any);
 				expect.fail('Should have thrown redirect');
 			} catch (err: any) {
@@ -88,7 +105,8 @@ describe('GitHub Auth API', () => {
 			try {
 				await GET({
 					platform: mockPlatform,
-					url: new URL('http://localhost:4220/api/auth/github')
+					url: new URL('http://localhost:4220/api/auth/github'),
+					cookies: makeOAuthCookies()
 				} as any);
 				expect.fail('Should have thrown redirect');
 			} catch (err: any) {
@@ -115,7 +133,8 @@ describe('GitHub Auth API', () => {
 			try {
 				await GET({
 					platform: mockPlatform,
-					url: new URL('http://localhost:4220/api/auth/github')
+					url: new URL('http://localhost:4220/api/auth/github'),
+					cookies: makeOAuthCookies()
 				} as any);
 				expect.fail('Should have thrown redirect');
 			} catch (err: any) {
@@ -132,7 +151,7 @@ describe('GitHub Auth API', () => {
 			try {
 				await GET({
 					url: new URL('http://localhost:4220/api/auth/github/callback'),
-					cookies: { set: vi.fn(), delete: vi.fn() },
+					cookies: makeOAuthCookies(),
 					platform: {}
 				} as any);
 				expect.fail('Should have thrown redirect');
@@ -156,8 +175,8 @@ describe('GitHub Auth API', () => {
 
 			try {
 				await GET({
-					url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
-					cookies: { set: vi.fn(), delete: vi.fn() },
+					url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code&state=test-oauth-state'),
+					cookies: makeOAuthCookies(),
 					platform: mockPlatform
 				} as any);
 				expect.fail('Should have thrown redirect');
@@ -186,8 +205,8 @@ describe('GitHub Auth API', () => {
 
 			try {
 				await GET({
-					url: new URL('http://localhost:4220/api/auth/github/callback?code=invalid-code'),
-					cookies: { set: vi.fn(), delete: vi.fn() },
+					url: new URL('http://localhost:4220/api/auth/github/callback?code=invalid-code&state=test-oauth-state'),
+					cookies: makeOAuthCookies(),
 					platform: mockPlatform
 				} as any);
 				expect.fail('Should have thrown redirect');
@@ -215,8 +234,8 @@ describe('GitHub Auth API', () => {
 
 			try {
 				await GET({
-					url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
-					cookies: { set: vi.fn(), delete: vi.fn() },
+					url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code&state=test-oauth-state'),
+					cookies: makeOAuthCookies(),
 					platform: mockPlatform
 				} as any);
 				expect.fail('Should have thrown redirect');
@@ -251,8 +270,8 @@ describe('GitHub Auth API', () => {
 
 			try {
 				await GET({
-					url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
-					cookies: { set: vi.fn(), delete: vi.fn() },
+					url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code&state=test-oauth-state'),
+					cookies: makeOAuthCookies(),
 					platform: mockPlatform
 				} as any);
 				expect.fail('Should have thrown redirect');
@@ -263,11 +282,7 @@ describe('GitHub Auth API', () => {
 		});
 
 		it('should complete OAuth flow and set session cookie', async () => {
-			const mockCookies = {
-				set: vi.fn(),
-				delete: vi.fn(),
-				get: vi.fn().mockReturnValue(null)
-			};
+			const mockCookies = makeOAuthCookies(null);
 
 			const mockPlatform = {
 				env: {
@@ -298,7 +313,7 @@ describe('GitHub Auth API', () => {
 			const { GET } = await import('../../src/routes/api/auth/github/callback/+server');
 
 			const response = await GET({
-				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
+				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code&state=test-oauth-state'),
 				cookies: mockCookies,
 				platform: mockPlatform
 			} as any);
@@ -312,11 +327,7 @@ describe('GitHub Auth API', () => {
 		});
 
 		it('should redirect non-owner to home', async () => {
-			const mockCookies = {
-				set: vi.fn(),
-				delete: vi.fn(),
-				get: vi.fn().mockReturnValue(null)
-			};
+			const mockCookies = makeOAuthCookies(null);
 
 			const mockPlatform = {
 				env: {
@@ -347,7 +358,7 @@ describe('GitHub Auth API', () => {
 			const { GET } = await import('../../src/routes/api/auth/github/callback/+server');
 
 			const response = await GET({
-				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
+				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code&state=test-oauth-state'),
 				cookies: mockCookies,
 				platform: mockPlatform
 			} as any);
@@ -358,11 +369,7 @@ describe('GitHub Auth API', () => {
 		});
 
 		it('should grant admin access to davis9001 without owner env config', async () => {
-			const mockCookies = {
-				set: vi.fn(),
-				delete: vi.fn(),
-				get: vi.fn().mockReturnValue(null)
-			};
+			const mockCookies = makeOAuthCookies(null);
 
 			const mockPlatform = {
 				env: {
@@ -392,7 +399,7 @@ describe('GitHub Auth API', () => {
 			const { GET } = await import('../../src/routes/api/auth/github/callback/+server');
 
 			const response = await GET({
-				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
+				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code&state=test-oauth-state'),
 				cookies: mockCookies,
 				platform: mockPlatform
 			} as any);
@@ -412,11 +419,7 @@ describe('GitHub Auth API', () => {
 
 		it('should store user in database when available', async () => {
 			const mockDbRun = vi.fn().mockResolvedValue({});
-			const mockCookies = {
-				set: vi.fn(),
-				delete: vi.fn(),
-				get: vi.fn().mockReturnValue(null)
-			};
+			const mockCookies = makeOAuthCookies(null);
 
 			const mockPlatform = {
 				env: {
@@ -453,7 +456,7 @@ describe('GitHub Auth API', () => {
 			const { GET } = await import('../../src/routes/api/auth/github/callback/+server');
 
 			const response = await GET({
-				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
+				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code&state=test-oauth-state'),
 				cookies: mockCookies,
 				platform: mockPlatform
 			} as any);
@@ -464,11 +467,7 @@ describe('GitHub Auth API', () => {
 
 		it('should update existing user in database', async () => {
 			const mockDbRun = vi.fn().mockResolvedValue({});
-			const mockCookies = {
-				set: vi.fn(),
-				delete: vi.fn(),
-				get: vi.fn().mockReturnValue(null)
-			};
+			const mockCookies = makeOAuthCookies(null);
 
 			// Track call order to return different results for different queries
 			let callCount = 0;
@@ -516,7 +515,7 @@ describe('GitHub Auth API', () => {
 			const { GET } = await import('../../src/routes/api/auth/github/callback/+server');
 
 			const response = await GET({
-				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
+				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code&state=test-oauth-state'),
 				cookies: mockCookies,
 				platform: mockPlatform
 			} as any);
@@ -528,11 +527,7 @@ describe('GitHub Auth API', () => {
 
 		it('should mark first admin login as completed', async () => {
 			const mockKVPut = vi.fn().mockResolvedValue(undefined);
-			const mockCookies = {
-				set: vi.fn(),
-				delete: vi.fn(),
-				get: vi.fn().mockReturnValue(null)
-			};
+			const mockCookies = makeOAuthCookies(null);
 
 			const mockPlatform = {
 				env: {
@@ -567,7 +562,7 @@ describe('GitHub Auth API', () => {
 			const { GET } = await import('../../src/routes/api/auth/github/callback/+server');
 
 			const response = await GET({
-				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
+				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code&state=test-oauth-state'),
 				cookies: mockCookies,
 				platform: mockPlatform
 			} as any);
@@ -578,11 +573,7 @@ describe('GitHub Auth API', () => {
 
 		it('should promote an existing owner-matching GitHub user to admin', async () => {
 			const mockDbRun = vi.fn().mockResolvedValue({});
-			const mockCookies = {
-				set: vi.fn(),
-				delete: vi.fn(),
-				get: vi.fn().mockReturnValue(null)
-			};
+			const mockCookies = makeOAuthCookies(null);
 
 			const mockPlatform = {
 				env: {
@@ -659,7 +650,7 @@ describe('GitHub Auth API', () => {
 			const { GET } = await import('../../src/routes/api/auth/github/callback/+server');
 
 			const response = await GET({
-				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code'),
+				url: new URL('http://localhost:4220/api/auth/github/callback?code=test-code&state=test-oauth-state'),
 				cookies: mockCookies,
 				platform: mockPlatform
 			} as any);

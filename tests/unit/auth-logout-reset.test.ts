@@ -21,6 +21,19 @@ function makeDb(runImpl?: () => Promise<unknown>) {
 	return { db, deletes };
 }
 
+// /api/reset is owner-gated now — it wipes the owner identity and the setup
+// lock, so an anonymous caller could otherwise hand the site to themselves via
+// /api/setup.
+const OWNER_LOCALS = {
+	user: {
+		id: '72961',
+		login: 'davis9001',
+		email: 'owner@example.com',
+		isOwner: true,
+		isAdmin: true
+	}
+};
+
 describe('logout revokes the server-side session', () => {
 	it('deletes the session row and clears the cookie (GET)', async () => {
 		const { db, deletes } = makeDb();
@@ -88,6 +101,7 @@ describe('reset revokes the session too', () => {
 
 		const res = await POST({
 			platform: { env: { KV: makeKv(), DB: db } },
+			locals: OWNER_LOCALS,
 			cookies
 		} as any);
 
@@ -103,6 +117,7 @@ describe('reset revokes the session too', () => {
 
 		const res = await POST({
 			platform: { env: { KV: makeKv(), DB: db } },
+			locals: OWNER_LOCALS,
 			cookies
 		} as any);
 

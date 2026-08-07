@@ -1,5 +1,6 @@
 import { mergeAccounts } from '$lib/services/account-merge';
 import { recordLoginActivity } from '$lib/services/user-activity';
+import { consumeOAuthState } from '$lib/server/oauth-state';
 import { createAuthSession, getAuthSession } from '$lib/utils/db';
 import {
 	getOwnerIdentity,
@@ -16,6 +17,11 @@ export const GET: RequestHandler = async ({ url, cookies, platform }) => {
 
 	if (!code) {
 		throw redirect(302, '/auth/login?error=no_code');
+	}
+
+	// Reject callbacks we did not initiate — see the GitHub callback for why.
+	if (!consumeOAuthState(cookies, 'discord', state)) {
+		throw redirect(302, '/auth/login?error=invalid_state');
 	}
 
 	try {

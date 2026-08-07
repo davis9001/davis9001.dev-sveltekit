@@ -1,5 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// The OAuth routes now round-trip a `state` value through an HttpOnly cookie:
+// the init route sets it, the callback requires it back. Tests therefore need
+// a cookie jar whose state lookups answer, and callback URLs carrying a
+// matching `state` param.
+const TEST_OAUTH_STATE = 'test-oauth-state';
+function makeOAuthCookies(sessionValue: unknown = null) {
+	return {
+		get: vi.fn((name: string) =>
+			name.startsWith('oauth_state_') ? TEST_OAUTH_STATE : sessionValue
+		),
+		set: vi.fn(),
+		delete: vi.fn()
+	};
+}
+
+
 // The session payload now lives server-side (createAuthSession stores it in
 // sessions.data) instead of in the cookie, so a test that used to decode the
 // cookie reads it from here — captured from the sessions INSERT the login makes.
@@ -78,6 +94,7 @@ describe('Discord OAuth - Initial Redirect', () => {
 		await expect(
 			GET({
 				url: mockUrl,
+				cookies: makeOAuthCookies(),
 				platform: mockPlatform
 			} as any)
 		).rejects.toMatchObject({ status: 302, location: '/setup?error=oauth_not_configured' });
@@ -98,6 +115,7 @@ describe('Discord OAuth - Initial Redirect', () => {
 		await expect(
 			GET({
 				url: mockUrl,
+				cookies: makeOAuthCookies(),
 				platform: mockPlatform
 			} as any)
 		).rejects.toMatchObject({
@@ -127,6 +145,7 @@ describe('Discord OAuth - Initial Redirect', () => {
 		await expect(
 			GET({
 				url: mockUrl,
+				cookies: makeOAuthCookies(),
 				platform: mockPlatform
 			} as any)
 		).rejects.toMatchObject({
@@ -152,6 +171,7 @@ describe('Discord OAuth - Initial Redirect', () => {
 		await expect(
 			GET({
 				url: mockUrl,
+				cookies: makeOAuthCookies(),
 				platform: mockPlatform
 			} as any)
 		).rejects.toMatchObject({ status: 302 });
@@ -172,10 +192,7 @@ describe('Discord OAuth - Callback', () => {
 		const { GET } = await import('../../src/routes/api/auth/discord/callback/+server');
 
 		const mockUrl = new URL('http://localhost/api/auth/discord/callback');
-		const mockCookies = {
-			set: vi.fn(),
-			get: vi.fn()
-		};
+		const mockCookies = makeOAuthCookies();
 
 		await expect(
 			GET({
@@ -189,11 +206,8 @@ describe('Discord OAuth - Callback', () => {
 	it('should redirect to login with error when Discord OAuth not configured', async () => {
 		const { GET } = await import('../../src/routes/api/auth/discord/callback/+server');
 
-		const mockUrl = new URL('http://localhost/api/auth/discord/callback?code=test-code');
-		const mockCookies = {
-			set: vi.fn(),
-			get: vi.fn()
-		};
+		const mockUrl = new URL('http://localhost/api/auth/discord/callback?code=test-code&state=test-oauth-state');
+		const mockCookies = makeOAuthCookies();
 		const mockPlatform = {
 			env: {
 				DB: makePermissiveDB(),
@@ -235,11 +249,8 @@ describe('Discord OAuth - Callback', () => {
 				json: () => Promise.resolve(mockDiscordUser)
 			} as any);
 
-		const mockUrl = new URL('http://localhost/api/auth/discord/callback?code=test-code');
-		const mockCookies = {
-			set: vi.fn(),
-			get: vi.fn()
-		};
+		const mockUrl = new URL('http://localhost/api/auth/discord/callback?code=test-code&state=test-oauth-state');
+		const mockCookies = makeOAuthCookies();
 		const mockPlatform = {
 			env: {
 				DISCORD_CLIENT_ID: 'test-client-id',
@@ -291,11 +302,8 @@ describe('Discord OAuth - Callback', () => {
 				json: () => Promise.resolve(mockDiscordUser)
 			} as any);
 
-		const mockUrl = new URL('http://localhost/api/auth/discord/callback?code=test-code');
-		const mockCookies = {
-			set: vi.fn(),
-			get: vi.fn()
-		};
+		const mockUrl = new URL('http://localhost/api/auth/discord/callback?code=test-code&state=test-oauth-state');
+		const mockCookies = makeOAuthCookies();
 		const mockPlatform = {
 			env: {
 				DB: makePermissiveDB(),
@@ -332,11 +340,8 @@ describe('Discord OAuth - Callback', () => {
 			text: () => Promise.resolve('Bad Request')
 		} as any);
 
-		const mockUrl = new URL('http://localhost/api/auth/discord/callback?code=invalid-code');
-		const mockCookies = {
-			set: vi.fn(),
-			get: vi.fn()
-		};
+		const mockUrl = new URL('http://localhost/api/auth/discord/callback?code=invalid-code&state=test-oauth-state');
+		const mockCookies = makeOAuthCookies();
 		const mockPlatform = {
 			env: {
 				DB: makePermissiveDB(),
@@ -368,11 +373,8 @@ describe('Discord OAuth - Callback', () => {
 				text: () => Promise.resolve('Unauthorized')
 			} as any);
 
-		const mockUrl = new URL('http://localhost/api/auth/discord/callback?code=test-code');
-		const mockCookies = {
-			set: vi.fn(),
-			get: vi.fn()
-		};
+		const mockUrl = new URL('http://localhost/api/auth/discord/callback?code=test-code&state=test-oauth-state');
+		const mockCookies = makeOAuthCookies();
 		const mockPlatform = {
 			env: {
 				DB: makePermissiveDB(),
