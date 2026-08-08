@@ -15,6 +15,14 @@ import type {
 	ContentTypeSettings
 } from './types';
 
+/** Types opt OUT of the palette; absent means visible. */
+function normalizeContentTypeSettings(settings: ContentTypeSettings = {}): ContentTypeSettings {
+	return {
+		...settings,
+		showInCommandPalette: settings.showInCommandPalette !== false
+	};
+}
+
 /** The public route prefix for a content type — matches the [contentType] route's own fallback. */
 export function getContentTypeRoutePrefix(contentType: {
 	settings: ContentTypeSettings;
@@ -46,7 +54,7 @@ export function parseContentType(row: ContentType): ContentTypeParsed {
 		name: row.name,
 		description: row.description,
 		fields: JSON.parse(row.fields) as ContentFieldDefinition[],
-		settings: JSON.parse(row.settings) as ContentTypeSettings,
+		settings: normalizeContentTypeSettings(JSON.parse(row.settings) as ContentTypeSettings),
 		icon: row.icon,
 		sortOrder: row.sort_order,
 		isSystem: row.is_system === 1,
@@ -70,6 +78,7 @@ export function parseContentItem(row: ContentItem): ContentItemParsed {
 		seoDescription: row.seo_description,
 		seoImage: row.seo_image,
 		authorId: row.author_id,
+		showInCommandPalette: row.show_in_command_palette !== 0,
 		publishedAt: row.published_at,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,

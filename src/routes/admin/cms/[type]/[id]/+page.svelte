@@ -77,6 +77,7 @@
 	let formSeoTitle: string = item.seoTitle || '';
 	let formSeoDescription: string = item.seoDescription || '';
 	let formSeoImage: string = item.seoImage || '';
+	let formShowInCommandPalette: boolean = item.showInCommandPalette !== false;
 	let formTagIds: string[] = item.tags?.map((t: any) => t.id) || [];
 	let showSeoFields: boolean = !!(item.seoTitle || item.seoDescription || item.seoImage);
 
@@ -173,6 +174,7 @@
 			if (contentType.settings?.hasTags) {
 				body.tagIds = formTagIds;
 			}
+			body.showInCommandPalette = formShowInCommandPalette;
 
 			const res = await fetch(`/api/cms/${contentType.slug}/${item.id}`, {
 				method: 'PUT',
@@ -533,6 +535,16 @@
 					{/if}
 				</div>
 			{/if}
+
+			<div class="form-group">
+				<label class="checkbox-label">
+					<input type="checkbox" bind:checked={formShowInCommandPalette} />
+					Show in command palette
+				</label>
+				<p class="field-help">
+					Published items appear in the site-wide command palette unless this is off.
+				</p>
+			</div>
 
 			<div class="save-actions">
 				<a href={listUrl} class="btn btn-secondary btn-full">Cancel</a>

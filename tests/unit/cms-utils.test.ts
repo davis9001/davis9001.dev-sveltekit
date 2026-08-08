@@ -71,7 +71,9 @@ describe('CMS Utils', () => {
 			expect(parsed.slug).toBe('blog');
 			expect(parsed.name).toBe('Blog Posts');
 			expect(parsed.fields).toEqual([{ name: 'body', label: 'Body', type: 'richtext' }]);
-			expect(parsed.settings).toEqual({ hasDrafts: true });
+			// Settings are normalised on parse: absent showInCommandPalette means
+			// visible, so types opt OUT rather than having to opt in.
+			expect(parsed.settings).toEqual({ hasDrafts: true, showInCommandPalette: true });
 			expect(parsed.sortOrder).toBe(0);
 		});
 	});

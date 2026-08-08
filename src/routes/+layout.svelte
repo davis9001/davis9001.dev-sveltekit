@@ -83,7 +83,7 @@
 	</div>
 {/if}
 
-<CommandPalette bind:show={$showCommandPalette} hasAIProviders={data.hasAIProviders} portfolioItems={data.portfolioItems} blogPosts={data.blogPosts} initialProjects={data.openProjects} />
+<CommandPalette bind:show={$showCommandPalette} hasAIProviders={data.hasAIProviders} portfolioItems={data.portfolioItems} cmsCommands={data.cmsPaletteItems} initialProjects={data.openProjects} />
 
 <style>
 	.app {

@@ -87,6 +87,8 @@ export interface ContentTypeSettings {
 	listTemplate?: string;
 	/** Template to use for rendering single items (default: 'default') */
 	itemTemplate?: string;
+	/** Whether items of this type can appear in the command palette (default: true) */
+	showInCommandPalette?: boolean;
 	/** Once the item has ever been published, title/slug can no longer be changed */
 	lockTitleAndSlugAfterPublish?: boolean;
 	/** Request an RFC 3161 timestamp proof + Wayback snapshot on first publish */
@@ -161,6 +163,7 @@ export interface ContentItem {
 	seo_description: string | null;
 	seo_image: string | null;
 	author_id: string | null;
+	show_in_command_palette?: number;
 	published_at: string | null;
 	created_at: string;
 	updated_at: string;
@@ -187,6 +190,7 @@ export interface ContentItemParsed {
 	seoDescription: string | null;
 	seoImage: string | null;
 	authorId: string | null;
+	showInCommandPalette: boolean;
 	publishedAt: string | null;
 	createdAt: string;
 	updatedAt: string;
@@ -238,6 +242,7 @@ export interface CreateContentItemInput {
 	seoDescription?: string;
 	seoImage?: string;
 	authorId?: string;
+	showInCommandPalette?: boolean;
 	tagIds?: string[];
 }
 
@@ -250,6 +255,7 @@ export interface UpdateContentItemInput {
 	seoTitle?: string;
 	seoDescription?: string;
 	seoImage?: string;
+	showInCommandPalette?: boolean;
 	tagIds?: string[];
 }
 

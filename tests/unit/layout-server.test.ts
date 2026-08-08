@@ -167,19 +167,24 @@ describe('Layout Server Load', () => {
 			});
 		});
 
-		it('should return blogPosts from the CMS (D1) with a TTL cache', async () => {
-			const { clearBlogPostCache } = await import('../../src/lib/cms/blog-queries');
+		it('should return cmsPaletteItems from the CMS (D1) with a TTL cache', async () => {
+			const { clearCommandPaletteCache } = await import('../../src/lib/cms/palette-cache');
 			const { clearPaletteProjectsCache } = await import('../../src/lib/projects/palette');
-			clearBlogPostCache();
+			clearCommandPaletteCache();
 			clearPaletteProjectsCache();
 
+			// The palette query spans content types, so rows carry the type as
+			// well as the item.
 			const all = vi.fn().mockResolvedValue({
 				results: [
 					{
-						slug: 'a-post',
-						title: 'A Post',
-						summary: 'Summary',
-						published_at: '2026-01-01 00:00:00'
+						content_type_slug: 'blog',
+						content_type_name: 'Blog',
+						route_prefix: null,
+						item_id: 'ci-1',
+						item_slug: 'a-post',
+						item_title: 'A Post',
+						item_description: 'Summary'
 					}
 				]
 			});
@@ -192,20 +197,21 @@ describe('Layout Server Load', () => {
 			} as any;
 
 			const result = (await load(event)) as {
-				blogPosts: Array<{ slug: string; title: string; summary: string }>;
+				cmsPaletteItems: Array<{ id: string; label: string; href: string }>;
 			};
 
-			expect(result.blogPosts).toEqual([
+			expect(result.cmsPaletteItems).toEqual([
 				{
-					slug: 'a-post',
-					title: 'A Post',
-					summary: 'Summary',
-					publishedAt: '2026-01-01 00:00:00'
+					id: 'cms-ci-1',
+					label: 'A Post',
+					description: 'Blog: Summary',
+					href: '/blog/a-post',
+					contentTypeName: 'Blog'
 				}
 			]);
 
 			// Second load within the TTL hits both caches — no extra queries
-			// (the shared mock serves one blog + one palette-projects query)
+			// (the shared mock serves one palette + one palette-projects query)
 			await load(event);
 			expect(all).toHaveBeenCalledTimes(2);
 		});
@@ -260,7 +266,7 @@ describe('Layout Server Load', () => {
 			]);
 		});
 
-		it('should return empty blogPosts without a database', async () => {
+		it('should return empty cmsPaletteItems without a database', async () => {
 			const { clearBlogPostCache } = await import('../../src/lib/cms/blog-queries');
 			clearBlogPostCache();
 
@@ -268,9 +274,9 @@ describe('Layout Server Load', () => {
 			const result = (await load({
 				locals: {},
 				platform: mockPlatform()
-			} as any)) as { blogPosts: unknown[] };
+			} as any)) as { cmsPaletteItems: unknown[] };
 
-			expect(result.blogPosts).toEqual([]);
+			expect(result.cmsPaletteItems).toEqual([]);
 		});
 	});
 });

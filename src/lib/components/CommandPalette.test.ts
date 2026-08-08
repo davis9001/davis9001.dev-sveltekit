@@ -480,15 +480,36 @@ describe('CommandPalette', () => {
 		});
 	});
 
-	describe('Blog Posts', () => {
-		const mockBlogPosts = [
-			{ slug: 'agapeverse-is-born', title: 'AgapeVerse: Using AI to Spread Love', summary: 'A tale of creativity and AI' },
-			{ slug: 'quantum-computing-ai', title: 'Quantum Computing Meets AI', summary: 'The next frontier of computational intelligence' }
+	describe('CMS items', () => {
+		// The palette is no longer blog-only: it takes published items from every
+		// content type that opts in, each carrying its own href and type name.
+		const mockCmsCommands = [
+			{
+				id: 'cms-1',
+				label: 'AgapeVerse: Using AI to Spread Love',
+				description: 'A tale of creativity and AI',
+				href: '/blog/agapeverse-is-born',
+				contentTypeName: 'Blog'
+			},
+			{
+				id: 'cms-2',
+				label: 'Quantum Computing Meets AI',
+				description: 'The next frontier of computational intelligence',
+				href: '/blog/quantum-computing-ai',
+				contentTypeName: 'Blog'
+			},
+			{
+				id: 'cms-3',
+				label: 'AGI before 2030',
+				description: 'A dated, timestamped claim',
+				href: '/predictions/agi-before-2030',
+				contentTypeName: 'Predictions'
+			}
 		];
 
-		it('should display blog posts in command list', () => {
+		it('should display CMS items in command list', () => {
 			const { container } = render(CommandPalette, {
-				props: { show: true, blogPosts: mockBlogPosts }
+				props: { show: true, cmsCommands: mockCmsCommands }
 			});
 			const labels = Array.from(container.querySelectorAll('.command-label')).map(
 				(el) => el.textContent
@@ -498,9 +519,9 @@ describe('CommandPalette', () => {
 			expect(labels.some((l) => l?.includes('Quantum Computing Meets AI'))).toBe(true);
 		});
 
-		it('should show Blog badge on blog items', () => {
+		it('should badge each item with its content type', () => {
 			const { container } = render(CommandPalette, {
-				props: { show: true, blogPosts: mockBlogPosts }
+				props: { show: true, cmsCommands: mockCmsCommands }
 			});
 			const commands = Array.from(container.querySelectorAll('.command'));
 			const blogCommand = commands.find((cmd) =>
@@ -510,9 +531,9 @@ describe('CommandPalette', () => {
 			expect(blogCommand?.querySelector('.command-badge')?.textContent).toContain('Blog');
 		});
 
-		it('should filter blog posts by search query', async () => {
+		it('should filter CMS items by search query', async () => {
 			const { container } = render(CommandPalette, {
-				props: { show: true, blogPosts: mockBlogPosts }
+				props: { show: true, cmsCommands: mockCmsCommands }
 			});
 			const input = container.querySelector('.search-input') as HTMLInputElement;
 
@@ -526,9 +547,9 @@ describe('CommandPalette', () => {
 			expect(labels.some((l) => l?.includes('AgapeVerse'))).toBe(false);
 		});
 
-		it('should filter blog posts by summary/description', async () => {
+		it('should filter CMS items by description', async () => {
 			const { container } = render(CommandPalette, {
-				props: { show: true, blogPosts: mockBlogPosts }
+				props: { show: true, cmsCommands: mockCmsCommands }
 			});
 			const input = container.querySelector('.search-input') as HTMLInputElement;
 
@@ -541,10 +562,10 @@ describe('CommandPalette', () => {
 			expect(labels.some((l) => l?.includes('Quantum Computing Meets AI'))).toBe(true);
 		});
 
-		it('should navigate to blog post on click', async () => {
+		it('should navigate to the item href on click', async () => {
 			const { goto } = await import('$app/navigation');
 			const { container } = render(CommandPalette, {
-				props: { show: true, blogPosts: mockBlogPosts }
+				props: { show: true, cmsCommands: mockCmsCommands }
 			});
 
 			const commands = Array.from(container.querySelectorAll('.command'));
@@ -557,9 +578,9 @@ describe('CommandPalette', () => {
 			expect(goto).toHaveBeenCalledWith('/blog/quantum-computing-ai');
 		});
 
-		it('should render with empty blog posts', () => {
+		it('should render with no CMS items', () => {
 			const { container } = render(CommandPalette, {
-				props: { show: true, blogPosts: [] }
+				props: { show: true, cmsCommands: [] }
 			});
 			// Should still render base commands
 			const commands = container.querySelectorAll('.command');
@@ -567,17 +588,23 @@ describe('CommandPalette', () => {
 		});
 	});
 
-	describe('Combined Portfolio and Blog', () => {
+	describe('Combined Portfolio and CMS', () => {
 		const mockPortfolioItems = [
 			{ slug: 'starspace', title: 'starspace.group', summary: 'Landing page for digital co-working space' }
 		];
-		const mockBlogPosts = [
-			{ slug: 'vibe-coding', title: 'Vibe Coding Needs Discipline', summary: 'Engineering discipline matters' }
+		const mockCmsCommands = [
+			{
+				id: 'cms-9',
+				label: 'Vibe Coding Needs Discipline',
+				description: 'Engineering discipline matters',
+				href: '/blog/vibe-coding',
+				contentTypeName: 'Blog'
+			}
 		];
 
-		it('should display both portfolio and blog items together', () => {
+		it('should display both portfolio and CMS items together', () => {
 			const { container } = render(CommandPalette, {
-				props: { show: true, portfolioItems: mockPortfolioItems, blogPosts: mockBlogPosts }
+				props: { show: true, portfolioItems: mockPortfolioItems, cmsCommands: mockCmsCommands }
 			});
 			const labels = Array.from(container.querySelectorAll('.command-label')).map(
 				(el) => el.textContent
@@ -589,7 +616,7 @@ describe('CommandPalette', () => {
 
 		it('should filter across all item types', async () => {
 			const { container } = render(CommandPalette, {
-				props: { show: true, portfolioItems: mockPortfolioItems, blogPosts: mockBlogPosts }
+				props: { show: true, portfolioItems: mockPortfolioItems, cmsCommands: mockCmsCommands }
 			});
 			const input = container.querySelector('.search-input') as HTMLInputElement;
 
@@ -606,7 +633,7 @@ describe('CommandPalette', () => {
 
 		it('should filter all blog posts when typing "blog"', async () => {
 			const { container } = render(CommandPalette, {
-				props: { show: true, portfolioItems: mockPortfolioItems, blogPosts: mockBlogPosts }
+				props: { show: true, portfolioItems: mockPortfolioItems, cmsCommands: mockCmsCommands }
 			});
 			const input = container.querySelector('.search-input') as HTMLInputElement;
 
@@ -622,7 +649,7 @@ describe('CommandPalette', () => {
 
 		it('should filter all portfolio items when typing "portfolio"', async () => {
 			const { container } = render(CommandPalette, {
-				props: { show: true, portfolioItems: mockPortfolioItems, blogPosts: mockBlogPosts }
+				props: { show: true, portfolioItems: mockPortfolioItems, cmsCommands: mockCmsCommands }
 			});
 			const input = container.querySelector('.search-input') as HTMLInputElement;
 

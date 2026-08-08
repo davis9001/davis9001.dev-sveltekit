@@ -15,7 +15,14 @@
 	export let show = false;
 	export let hasAIProviders = false;
 	export let portfolioItems: Array<{ slug: string; title: string; summary: string }> = [];
-	export let blogPosts: Array<{ slug: string; title: string; summary: string }> = [];
+	/** Published CMS items across every content type that opts into the palette. */
+	export let cmsCommands: Array<{
+		id: string;
+		label: string;
+		description: string;
+		href: string;
+		contentTypeName: string;
+	}> = [];
 	/** Server-loaded seed so project entries render instantly on first open */
 	export let initialProjects: PaletteProject[] = [];
 
@@ -197,13 +204,13 @@
 			icon: '🖥️',
 			badge: 'Portfolio'
 		})),
-		...blogPosts.map((post) => ({
-			id: `blog-${post.slug}`,
-			label: post.title,
-			description: post.summary || 'Blog post',
-			action: () => goto(`/blog/${post.slug}`),
+		...cmsCommands.map((item) => ({
+			id: item.id,
+			label: item.label,
+			description: item.description || item.contentTypeName,
+			action: () => goto(item.href),
 			icon: '📄',
-			badge: 'Blog'
+			badge: item.contentTypeName
 		})),
 		...openProjects.map((project) => ({
 			id: `project-${project.group}-${project.name}`,

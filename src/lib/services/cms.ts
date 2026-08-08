@@ -33,6 +33,26 @@ import {
 } from '$lib/cms/utils';
 import type { D1Database } from '@cloudflare/workers-types';
 
+interface CommandPaletteContentRow {
+	content_type_slug: string;
+	content_type_name: string;
+	route_prefix: string | null;
+	item_id: string;
+	item_slug: string;
+	item_title: string;
+	item_description: string | null;
+}
+
+export interface CommandPaletteContentItem {
+	id: string;
+	label: string;
+	description: string;
+	href: string;
+	/** Content type display name, so callers can badge or group without
+	 *  re-parsing it out of `description`. */
+	contentTypeName: string;
+}
+
 /**
  * Sync content type definitions from the code registry to D1.
  * Inserts new types and updates changed ones. Safe to call on every request.
@@ -148,6 +168,7 @@ export async function createContentItem(
 	const status = input.status || 'draft';
 	const fieldsJson = JSON.stringify(input.fields);
 	const publishedAt = status === 'published' ? new Date().toISOString() : null;
+	const showInCommandPalette = input.showInCommandPalette !== false ? 1 : 0;
 
 	// Check slug uniqueness within this content type
 	const existingSlug = await db
@@ -160,8 +181,8 @@ export async function createContentItem(
 		const uniqueSlug = `${slug}-${crypto.randomUUID().slice(0, 8)}`;
 		const row = await db
 			.prepare(
-				`INSERT INTO content_items (id, content_type_id, slug, title, status, fields, seo_title, seo_description, seo_image, author_id, published_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+				`INSERT INTO content_items (id, content_type_id, slug, title, status, fields, seo_title, seo_description, seo_image, author_id, show_in_command_palette, published_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				 RETURNING *`
 			)
 			.bind(
@@ -175,6 +196,7 @@ export async function createContentItem(
 				input.seoDescription || null,
 				input.seoImage || null,
 				input.authorId || null,
+				showInCommandPalette,
 				publishedAt
 			)
 			.first<ContentItem>();
@@ -184,8 +206,8 @@ export async function createContentItem(
 
 	const row = await db
 		.prepare(
-			`INSERT INTO content_items (id, content_type_id, slug, title, status, fields, seo_title, seo_description, seo_image, author_id, published_at)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			`INSERT INTO content_items (id, content_type_id, slug, title, status, fields, seo_title, seo_description, seo_image, author_id, show_in_command_palette, published_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			 RETURNING *`
 		)
 		.bind(
@@ -199,6 +221,7 @@ export async function createContentItem(
 			input.seoDescription || null,
 			input.seoImage || null,
 			input.authorId || null,
+			showInCommandPalette,
 			publishedAt
 		)
 		.first<ContentItem>();
@@ -387,6 +410,12 @@ export async function updateContentItem(
 	const seoDescription =
 		input.seoDescription !== undefined ? input.seoDescription : existing.seo_description;
 	const seoImage = input.seoImage !== undefined ? input.seoImage : existing.seo_image;
+	const showInCommandPalette =
+		input.showInCommandPalette !== undefined
+			? input.showInCommandPalette
+				? 1
+				: 0
+			: (existing.show_in_command_palette ?? 1);
 
 	// Set published_at only the first time this item is ever published — keyed
 	// on published_at being null so far, not current status (same reasoning
@@ -416,7 +445,7 @@ export async function updateContentItem(
 		.prepare(
 			`UPDATE content_items
 			 SET title = ?, slug = ?, status = ?, fields = ?,
-			     seo_title = ?, seo_description = ?, seo_image = ?,
+			     seo_title = ?, seo_description = ?, seo_image = ?, show_in_command_palette = ?,
 			     published_at = ?, resolution_resolved_at = ?, resolution_resolved_by = ?,
 			     updated_at = CURRENT_TIMESTAMP
 			 WHERE id = ?
@@ -430,6 +459,7 @@ export async function updateContentItem(
 			seoTitle,
 			seoDescription,
 			seoImage,
+			showInCommandPalette,
 			publishedAt,
 			resolutionResolvedAt,
 			resolutionResolvedBy,
@@ -516,6 +546,53 @@ export async function deleteContentItem(db: D1Database, id: string): Promise<boo
 	const result = await db.prepare('DELETE FROM content_items WHERE id = ?').bind(id).run();
 
 	return (result.meta?.changes || 0) > 0;
+}
+
+/**
+ * Published items for the global command palette, across every content type
+ * that opts in — `settings.showInCommandPalette` on the type and
+ * `show_in_command_palette` on the item, both defaulting to visible.
+ *
+ * Replaces the blog-only query this site used to run, which made every other
+ * content type invisible to discovery.
+ */
+export async function getCommandPaletteContentItems(
+	db: D1Database,
+	limit = 20
+): Promise<CommandPaletteContentItem[]> {
+	const result = await db
+		.prepare(
+			`SELECT
+				ct.slug AS content_type_slug,
+				ct.name AS content_type_name,
+				json_extract(ct.settings, '$.routePrefix') AS route_prefix,
+				ci.id AS item_id,
+				ci.slug AS item_slug,
+				ci.title AS item_title,
+				COALESCE(NULLIF(ci.seo_description, ''), NULLIF(ct.description, '')) AS item_description
+			 FROM content_items ci
+			 INNER JOIN content_types ct ON ct.id = ci.content_type_id
+			 WHERE ci.status = 'published'
+			   AND COALESCE(ci.show_in_command_palette, 1) = 1
+			   AND COALESCE(json_extract(ct.settings, '$.showInCommandPalette'), 1) = 1
+			 ORDER BY COALESCE(ci.published_at, ci.created_at) DESC, ci.updated_at DESC
+			 LIMIT ?`
+		)
+		.bind(limit)
+		.all<CommandPaletteContentRow>();
+
+	return (result.results || []).map((row) => {
+		const routePrefix = row.route_prefix || `/${row.content_type_slug}`;
+		const descriptionSuffix = row.item_description ? `: ${row.item_description}` : '';
+
+		return {
+			id: `cms-${row.item_id}`,
+			label: row.item_title,
+			description: `${row.content_type_name}${descriptionSuffix}`,
+			href: `${routePrefix}/${row.item_slug}`,
+			contentTypeName: row.content_type_name
+		};
+	});
 }
 
 /**

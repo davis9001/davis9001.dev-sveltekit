@@ -1,4 +1,4 @@
-import { getCachedBlogPosts } from '$lib/cms/blog-queries';
+import { getCachedCommandPaletteItems } from '$lib/cms/palette-cache';
 import { getCachedPaletteProjects } from '$lib/projects/palette';
 import { hasAnyAuthProvider } from '$lib/utils/auth';
 import { buildProject } from '$lib/utils/portfolio';
@@ -43,8 +43,11 @@ export const load: LayoutServerLoad = async ({ locals, platform }) => {
 	// Check if any auth provider is configured (env vars or /setup KV)
 	const hasAuthConfig = await hasAnyAuthProvider(platform);
 
-	const [blogPosts, openProjects] = await Promise.all([
-		getCachedBlogPosts(platform?.env?.DB),
+	// Every content type that opts in, not just blog — see
+	// getCommandPaletteContentItems. Cached per isolate: this runs on every
+	// SSR page view.
+	const [cmsPaletteItems, openProjects] = await Promise.all([
+		getCachedCommandPaletteItems(platform?.env?.DB),
 		getCachedPaletteProjects(platform?.env?.DB)
 	]);
 
@@ -53,7 +56,7 @@ export const load: LayoutServerLoad = async ({ locals, platform }) => {
 		hasAIProviders,
 		hasAuthConfig,
 		portfolioItems,
-		blogPosts,
+		cmsPaletteItems,
 		openProjects
 	};
 };
