@@ -9,6 +9,7 @@
 	import PredictionProof from '$lib/components/PredictionProof.svelte';
 	import SEO from '$lib/components/SEO.svelte';
 	import { formatDateWindow } from '$lib/predictions/format';
+	import { DEFAULT_OG_IMAGE } from '$lib/utils/seo';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -36,7 +37,7 @@
 	description={item.seoDescription || `${item.title} on davis9001.dev.`}
 	path="{getRoutePrefix()}/{item.slug}"
 	type="article"
-	imageUrl={item.seoImage || 'https://davis9001.dev/cover.png'}
+	imageUrl={item.seoImage || DEFAULT_OG_IMAGE}
 	publishedAt={item.publishedAt || ''}
 />
 

@@ -1,21 +1,20 @@
 <script lang="ts">
+	import { DEFAULT_OG_IMAGE, SITE_NAME, SITE_URL } from '$lib/utils/seo';
+
 	/** Page title — will be formatted as "title - davis9001.dev" unless `rawTitle` is true */
 	export let title: string = '';
 	/** Meta description */
 	export let description: string = 'The personal website of David Monaghan aka davis9001.';
 	/** Canonical URL path (e.g. "/portfolio") — full URL built automatically */
 	export let path: string = '';
-	/** OG image URL — defaults to cover.png */
-	export let imageUrl: string = 'https://davis9001.dev/cover.png';
+	/** OG image URL — defaults to the generated cover card */
+	export let imageUrl: string = DEFAULT_OG_IMAGE;
 	/** OG type — defaults to "website" */
 	export let type: string = 'website';
 	/** If true, use title as-is without appending site name */
 	export let rawTitle: boolean = false;
 	/** Optional article published date (ISO string) */
 	export let publishedAt: string = '';
-
-	const SITE_NAME = 'davis9001.dev';
-	const SITE_URL = 'https://davis9001.dev';
 
 	$: fullTitle = rawTitle ? title : title ? `${title} - ${SITE_NAME}` : SITE_NAME;
 	$: fullUrl = path ? `${SITE_URL}${path}` : SITE_URL;

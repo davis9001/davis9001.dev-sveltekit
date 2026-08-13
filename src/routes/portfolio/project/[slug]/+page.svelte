@@ -4,6 +4,7 @@
 	import { page } from '$app/stores';
 	import { marked } from 'marked';
 	import { safeFilename } from '$lib/utils/portfolio';
+	import { DEFAULT_OG_IMAGE } from '$lib/utils/seo';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import ShareButtons from '$lib/components/ShareButtons.svelte';
 	import SocialLinks from '$lib/components/SocialLinks.svelte';
@@ -26,7 +27,9 @@
 	title={project.meta.title}
 	description={project.meta.summary || `${project.meta.title} — a project by David Monaghan.`}
 	path="/portfolio/project/{project.slug}"
-	imageUrl={project.meta.url ? `https://davis9001.dev/portfolio-screenshot/${safeFilename(project.meta.url)}` : 'https://davis9001.dev/cover.png'}
+	imageUrl={project.meta.url
+		? `https://davis9001.dev/portfolio-screenshot/${safeFilename(project.meta.url)}`
+		: DEFAULT_OG_IMAGE}
 />
 
 <div class="px-6 sm:px-8 py-2 bg-background text-foreground min-h-screen overflow-x-hidden">
@@ -55,10 +58,7 @@
 			{#if project.meta.url}
 				<div>
 					<a href={project.meta.url} target="_blank" rel="noopener noreferrer">
-						<img
-							src={safeFilename(project.meta.url)}
-							alt="Screenshot of {project.meta.title}"
-						/>
+						<img src={safeFilename(project.meta.url)} alt="Screenshot of {project.meta.title}" />
 					</a>
 				</div>
 			{/if}
