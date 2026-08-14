@@ -78,17 +78,28 @@ prose and writes the flattened result back, so the save looks like it worked.
 That is what destroyed both figures in this post on 2026-08-08; they were wrong
 on the live site for five days before anyone noticed.
 
-`src/lib/cms/richtext-svg-extension.ts` is what stops it. It captures an inline
-`<svg>` — or a `<figure>` that wraps one — as an atom node holding the markup
-verbatim, and renders it straight back out. `tests/unit/richtext-svg-extension.
-test.ts` pins the round-trip, including a test that still reproduces the old
-destruction with the extension removed.
+`src/lib/cms/richtext-preserved-block-extension.ts` is what stops it. It
+captures `<figure>`, `<table>` and `<svg>` as atom nodes holding the markup
+verbatim, and renders them straight back out.
+`tests/unit/richtext-preserved-block-extension.test.ts` pins the round-trip,
+including tests that still reproduce the old destruction with the extension
+removed.
+
+Underneath that sits a general net: `src/lib/cms/content-loss.ts` refuses any
+save that reduces the count of an element the editor can destroy invisibly —
+`<svg>`, `<figure>`, `<figcaption>`, `<table>`, or a Svelte embed. The write
+path answers **409** naming what would go, and the admin editor offers "Save
+anyway". It exists because the SVG fix only covers the case we know about; the
+failure mode is silence, and this converts silence into a refusal.
+
+`<table>` and `<figcaption>` fail exactly the same way and are preserved by the
+same node — a table flattens to a single paragraph without it.
 
 Two things follow for anyone editing these posts:
 
-- **A chart is one atom in the editor.** It shows as the real figure with a
-  dashed outline, and the WYSIWYG will not edit inside it. Use the **HTML**
-  toolbar button to change a chart's markup, or regenerate and re-paste it.
+- **A chart, figure or table is one atom in the editor.** It shows as the real
+  markup with a dashed outline, and the WYSIWYG will not edit inside it. Use the
+  **HTML** toolbar button to change it, or regenerate and re-paste.
 - **Saving lowercases `viewBox` and `pathLength`.** js-xss lowercases attribute
   names, so storage ends up with `viewbox` / `pathlength`. This is safe because
   bodies render as HTML and the HTML parser case-corrects SVG attributes —

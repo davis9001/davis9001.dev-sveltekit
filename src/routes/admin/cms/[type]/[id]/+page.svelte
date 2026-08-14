@@ -151,8 +151,18 @@
 		}
 	}
 
-	async function handleSave() {
+	/**
+	 * Set once the write path has refused a save for destroying authored markup
+	 * and the user has chosen to go ahead. Cleared on every fresh save attempt,
+	 * so confirming one destructive save never waves through the next.
+	 */
+	let contentLossWarning = '';
+
+	async function handleSave(allowContentLoss = false) {
 		errors = {};
+		if (!allowContentLoss) {
+			contentLossWarning = '';
+		}
 		if (!formTitle.trim()) {
 			errors.title = 'Title is required';
 			return;
@@ -175,6 +185,9 @@
 				body.tagIds = formTagIds;
 			}
 			body.showInCommandPalette = formShowInCommandPalette;
+			if (allowContentLoss) {
+				body.allowContentLoss = true;
+			}
 
 			const res = await fetch(`/api/cms/${contentType.slug}/${item.id}`, {
 				method: 'PUT',
@@ -184,6 +197,12 @@
 
 			if (!res.ok) {
 				const errData = await res.json();
+				// 409 is the content-loss guard: the save was refused, nothing was
+				// written. Offer the override rather than reporting a dead end.
+				if (res.status === 409) {
+					contentLossWarning = errData.message || 'This save would remove authored content.';
+					return;
+				}
 				errors.general = errData.message || 'Failed to save item';
 				return;
 			}
@@ -224,7 +243,7 @@
 		</div>
 		<div class="page-header-actions">
 			<a href={listUrl} class="btn btn-secondary">Cancel</a>
-			<button class="btn btn-primary" on:click={handleSave} disabled={isLoading}>
+			<button class="btn btn-primary" on:click={() => handleSave()} disabled={isLoading}>
 				{isLoading ? 'Saving...' : 'Save Changes'}
 			</button>
 		</div>
@@ -232,6 +251,25 @@
 
 	{#if errors.general}
 		<div class="error-banner">{errors.general}</div>
+	{/if}
+
+	{#if contentLossWarning}
+		<div class="loss-banner" role="alert">
+			<p class="loss-message">{contentLossWarning}</p>
+			<div class="loss-actions">
+				<button
+					type="button"
+					class="loss-confirm"
+					disabled={isLoading}
+					on:click={() => handleSave(true)}
+				>
+					Save anyway
+				</button>
+				<button type="button" class="loss-cancel" on:click={() => (contentLossWarning = '')}>
+					Cancel
+				</button>
+			</div>
+		</div>
 	{/if}
 
 	<div class="edit-layout">
@@ -548,7 +586,7 @@
 
 			<div class="save-actions">
 				<a href={listUrl} class="btn btn-secondary btn-full">Cancel</a>
-				<button class="btn btn-primary btn-full" on:click={handleSave} disabled={isLoading}>
+				<button class="btn btn-primary btn-full" on:click={() => handleSave()} disabled={isLoading}>
 					{isLoading ? 'Saving...' : 'Save Changes'}
 				</button>
 			</div>
@@ -651,6 +689,55 @@
 		border-radius: var(--radius-md);
 		font-size: 0.875rem;
 		margin-bottom: var(--spacing-lg);
+	}
+
+	/* Content-loss guard. Warning rather than danger colours: nothing has gone
+	   wrong yet and nothing was written — this is a decision, not a failure. */
+	.loss-banner {
+		background: color-mix(in srgb, var(--color-warning, #ffc107) 12%, var(--color-surface));
+		border: 1px solid var(--color-warning, #ffc107);
+		color: var(--color-text);
+		padding: var(--spacing-sm) var(--spacing-md);
+		border-radius: var(--radius-md);
+		font-size: 0.875rem;
+		margin-bottom: var(--spacing-lg);
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--spacing-sm);
+	}
+
+	.loss-message {
+		margin: 0;
+		flex: 1 1 22rem;
+	}
+
+	.loss-actions {
+		display: flex;
+		gap: var(--spacing-sm);
+		flex: none;
+	}
+
+	.loss-confirm,
+	.loss-cancel {
+		padding: 0.35rem 0.75rem;
+		border-radius: var(--radius-sm);
+		font-size: 0.8125rem;
+		cursor: pointer;
+		border: 1px solid var(--color-border);
+		background: var(--color-background);
+		color: var(--color-text);
+	}
+
+	.loss-confirm {
+		border-color: var(--color-danger, #dc3545);
+		color: var(--color-danger, #dc3545);
+	}
+
+	.loss-confirm:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 
 	/* Forms */

@@ -6,6 +6,7 @@
  * DELETE /api/cms/[type]/[id] - Delete an item
  */
 import { LockedContentError } from '$lib/cms/types';
+import { describeContentLoss, detectContentLoss } from '$lib/cms/content-loss';
 import { sanitizeRichtextFields } from '$lib/cms/sanitize';
 import { getContentTypeRoutePrefix, validateFields } from '$lib/cms/utils';
 import { runTimestampProofJob } from '$lib/predictions/proof-job';
@@ -76,6 +77,17 @@ export const PUT: RequestHandler = async ({ platform, locals, params, request, u
 			}
 
 			fields = sanitizeRichtextFields(fields || {}, contentType.fields);
+
+			// Refuse a save that would destroy authored markup the editor cannot
+			// model, unless the caller has seen the warning and confirmed. Runs on
+			// the sanitized form so it compares like with like — this is what is
+			// about to be written, not what was posted.
+			if (body.allowContentLoss !== true) {
+				const losses = detectContentLoss(existing.fields, fields, contentType.fields);
+				if (losses.length > 0) {
+					throw error(409, describeContentLoss(losses));
+				}
+			}
 		}
 
 		const item = await updateContentItem(

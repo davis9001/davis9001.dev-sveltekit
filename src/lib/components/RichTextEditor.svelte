@@ -8,7 +8,7 @@
 <script lang="ts">
 	import { embedManifest } from '$lib/cms/embeds/manifest';
 	import { SvelteEmbed } from '$lib/cms/richtext-embed-extension';
-	import { InlineSvg } from '$lib/cms/richtext-svg-extension';
+	import { PreservedBlock } from '$lib/cms/richtext-preserved-block-extension';
 	import { extractImageFiles, uploadImage } from '$lib/cms/richtext-utils';
 	import { Editor } from '@tiptap/core';
 	import Image from '@tiptap/extension-image';
@@ -134,9 +134,9 @@
 					HTMLAttributes: { rel: 'noopener noreferrer' }
 				}),
 				Image,
-				// Required, not optional: without it TipTap flattens the inline SVG
-				// charts in post bodies into prose on save.
-				InlineSvg,
+				// Required, not optional: without it TipTap flattens inline SVG,
+				// figures and tables in post bodies into prose on save.
+				PreservedBlock,
 				Placeholder.configure({ placeholder }),
 				SvelteEmbed.configure({ onEditProps: openPropsEditor })
 			],
@@ -738,10 +738,10 @@
 		outline: none;
 	}
 
-	/* Preserved inline SVG / chart figures (nodeview DOM is unscoped). Shown as
-	   the real figure so it is recognisable, outlined so it reads as one atom
-	   the WYSIWYG will not edit — use the HTML button to change its markup. */
-	.rte-editor :global(.rte-svg-figure) {
+	/* Preserved figures, tables and inline SVG (nodeview DOM is unscoped). Shown
+	   as the real markup so it is recognisable, outlined so it reads as one atom
+	   the WYSIWYG will not edit — use the HTML button to change it. */
+	.rte-editor :global(.rte-preserved-block) {
 		border: 1px dashed var(--color-border);
 		border-radius: var(--radius-md);
 		padding: 0.5rem;
@@ -749,17 +749,29 @@
 		background: var(--color-surface);
 	}
 
-	.rte-editor :global(.rte-svg-figure svg) {
+	.rte-editor :global(.rte-preserved-block svg) {
 		max-width: 100%;
 		height: auto;
 		display: block;
 	}
 
-	.rte-editor :global(.rte-svg-figure figure) {
+	.rte-editor :global(.rte-preserved-block figure) {
 		margin: 0;
 	}
 
-	.rte-editor :global(.rte-svg-figure.ProseMirror-selectednode) {
+	.rte-editor :global(.rte-preserved-block table) {
+		border-collapse: collapse;
+		width: 100%;
+	}
+
+	.rte-editor :global(.rte-preserved-block th),
+	.rte-editor :global(.rte-preserved-block td) {
+		border: 1px solid var(--color-border);
+		padding: 0.3rem 0.5rem;
+		text-align: left;
+	}
+
+	.rte-editor :global(.rte-preserved-block.ProseMirror-selectednode) {
 		border-color: var(--color-primary);
 	}
 
