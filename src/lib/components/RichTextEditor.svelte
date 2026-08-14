@@ -8,6 +8,7 @@
 <script lang="ts">
 	import { embedManifest } from '$lib/cms/embeds/manifest';
 	import { SvelteEmbed } from '$lib/cms/richtext-embed-extension';
+	import { InlineSvg } from '$lib/cms/richtext-svg-extension';
 	import { extractImageFiles, uploadImage } from '$lib/cms/richtext-utils';
 	import { Editor } from '@tiptap/core';
 	import Image from '@tiptap/extension-image';
@@ -133,6 +134,9 @@
 					HTMLAttributes: { rel: 'noopener noreferrer' }
 				}),
 				Image,
+				// Required, not optional: without it TipTap flattens the inline SVG
+				// charts in post bodies into prose on save.
+				InlineSvg,
 				Placeholder.configure({ placeholder }),
 				SvelteEmbed.configure({ onEditProps: openPropsEditor })
 			],
@@ -732,6 +736,31 @@
 		padding: 0.75rem 1rem;
 		resize: vertical;
 		outline: none;
+	}
+
+	/* Preserved inline SVG / chart figures (nodeview DOM is unscoped). Shown as
+	   the real figure so it is recognisable, outlined so it reads as one atom
+	   the WYSIWYG will not edit — use the HTML button to change its markup. */
+	.rte-editor :global(.rte-svg-figure) {
+		border: 1px dashed var(--color-border);
+		border-radius: var(--radius-md);
+		padding: 0.5rem;
+		margin: 0.75em 0;
+		background: var(--color-surface);
+	}
+
+	.rte-editor :global(.rte-svg-figure svg) {
+		max-width: 100%;
+		height: auto;
+		display: block;
+	}
+
+	.rte-editor :global(.rte-svg-figure figure) {
+		margin: 0;
+	}
+
+	.rte-editor :global(.rte-svg-figure.ProseMirror-selectednode) {
+		border-color: var(--color-primary);
 	}
 
 	/* Embed placeholder cards (nodeview DOM is unscoped) */

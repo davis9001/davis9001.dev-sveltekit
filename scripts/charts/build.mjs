@@ -6,8 +6,7 @@
  * Writes chart-data.json, bars.svg and donuts.svg. Paste an SVG into the post
  * body inside a <figure>; the CMS stores it as-is. See README.md in this
  * directory for the constraints those SVGs have to satisfy — they are not
- * optional, and a chart that ignores them will render but not animate, or will
- * be silently stripped the next time the post is saved through the admin UI.
+ * optional, and a chart that ignores them will render but not animate.
  */
 import { spawnSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';

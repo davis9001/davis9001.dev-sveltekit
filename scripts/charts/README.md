@@ -70,6 +70,31 @@ Rules that keep it working:
    whole figure moves in lockstep. This shipped broken once; `tests/unit/
 chart-animation-css.test.ts` now pins it.
 
+## Surviving the admin editor
+
+The CMS body editor is TipTap, whose schema has no node for `<svg>`. Left to
+itself it does not merely drop a chart — it parses the `<text>` children as
+prose and writes the flattened result back, so the save looks like it worked.
+That is what destroyed both figures in this post on 2026-08-08; they were wrong
+on the live site for five days before anyone noticed.
+
+`src/lib/cms/richtext-svg-extension.ts` is what stops it. It captures an inline
+`<svg>` — or a `<figure>` that wraps one — as an atom node holding the markup
+verbatim, and renders it straight back out. `tests/unit/richtext-svg-extension.
+test.ts` pins the round-trip, including a test that still reproduces the old
+destruction with the extension removed.
+
+Two things follow for anyone editing these posts:
+
+- **A chart is one atom in the editor.** It shows as the real figure with a
+  dashed outline, and the WYSIWYG will not edit inside it. Use the **HTML**
+  toolbar button to change a chart's markup, or regenerate and re-paste it.
+- **Saving lowercases `viewBox` and `pathLength`.** js-xss lowercases attribute
+  names, so storage ends up with `viewbox` / `pathlength`. This is safe because
+  bodies render as HTML and the HTML parser case-corrects SVG attributes —
+  confirmed in Chromium, where `pathlength="100"` yields `pathLength.baseVal
+=== 100`. It would **not** be safe if a body were ever parsed as XML/XHTML.
+
 ## Colour
 
 Both accents (`#ea580c`, `#0891b2`) were checked with the dataviz palette
