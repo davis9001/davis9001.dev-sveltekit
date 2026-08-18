@@ -116,7 +116,7 @@
 			if (res.ok) {
 				const d = await res.json();
 				items = d.items || [];
-				totalItems = d.totalItems || 0;
+				totalItems = d.total || 0;
 				totalPages = d.totalPages || 1;
 				currentPage = d.page || 1;
 			}
