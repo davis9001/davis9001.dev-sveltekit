@@ -7,7 +7,7 @@
 import { render, screen } from '@testing-library/svelte/svelte5';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('$app/navigation', () => ({ goto: vi.fn() }));
+vi.mock('$app/navigation', () => ({ goto: vi.fn(), replaceState: vi.fn() }));
 
 import Page from '../../src/routes/admin/cms/[type]/+page.svelte';
 
@@ -95,5 +95,60 @@ describe('Admin CMS list page - predictions delete block', () => {
 
 		const deleteButton = screen.getByTitle('Delete') as HTMLButtonElement;
 		expect(deleteButton.disabled).toBe(false);
+	});
+});
+
+/**
+ * An empty table means two different things — nothing created yet, or a filter
+ * that excluded everything — and telling a user "no items yet" when they have
+ * twenty-two posts reads as data loss.
+ */
+describe('Admin CMS list page - empty states', () => {
+	const blogContentType = {
+		id: 'ct-2',
+		slug: 'blog',
+		name: 'Blog Posts',
+		description: '',
+		fields: [],
+		settings: { routePrefix: '/blog' }
+	};
+
+	function emptyData(filters: { status?: string; search?: string }) {
+		return {
+			contentType: blogContentType,
+			items: [],
+			tags: [],
+			total: 0,
+			totalItems: 0,
+			totalPages: 1,
+			currentPage: 1,
+			filters: { status: filters.status ?? '', search: filters.search ?? '' }
+		} as any;
+	}
+
+	it('offers to create the first item when nothing exists and no filter is set', () => {
+		render(Page, { props: { data: emptyData({}) } });
+
+		expect(screen.getByText('No items yet')).toBeTruthy();
+		expect(screen.queryByText('No matches')).toBeNull();
+		expect(screen.queryByRole('button', { name: /clear filters/i })).toBeNull();
+	});
+
+	it('says the search excluded everything, not that nothing exists', () => {
+		render(Page, { props: { data: emptyData({ search: 'quantum' }) } });
+
+		expect(screen.getByText('No matches')).toBeTruthy();
+		expect(screen.queryByText('No items yet')).toBeNull();
+		expect(screen.getByText(/quantum/)).toBeTruthy();
+		expect(screen.getByText(/nothing has been\s+deleted/i)).toBeTruthy();
+		expect(screen.getByRole('button', { name: /clear filters/i })).toBeTruthy();
+	});
+
+	it('names the status filter when that is what excluded everything', () => {
+		render(Page, { props: { data: emptyData({ status: 'draft' }) } });
+
+		expect(screen.getByText('No matches')).toBeTruthy();
+		expect(screen.getByText('draft')).toBeTruthy();
+		expect(screen.getByRole('button', { name: /clear filters/i })).toBeTruthy();
 	});
 });

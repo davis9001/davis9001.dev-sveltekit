@@ -5,6 +5,8 @@
   create/edit modals, and delete confirmation.
 -->
 <script lang="ts">
+	import { browser } from '$app/environment';
+	import { replaceState } from '$app/navigation';
 	import SEO from '$lib/components/SEO.svelte';
 	import ImageField from '$lib/components/ImageField.svelte';
 	import RichTextEditor from '$lib/components/RichTextEditor.svelte';
@@ -23,6 +25,11 @@
 	// Filters
 	let statusFilter = data.filters?.status || '';
 	let searchQuery = data.filters?.search || '';
+
+	// An empty table means two very different things: nothing has been created
+	// yet, or a filter excluded everything. Saying "no items yet" for the second
+	// case tells the user their content is gone, which it isn't.
+	$: isFiltered = Boolean(searchQuery.trim() || statusFilter);
 
 	// UI state
 	let showCreateModal = false;
@@ -112,6 +119,12 @@
 			if (statusFilter) qp.set('status', statusFilter);
 			if (searchQuery) qp.set('search', searchQuery);
 			const qs = qp.toString() ? `?${qp.toString()}` : '';
+			// Keep the address bar in step with what's on screen, so a filtered
+			// view is linkable and survives a reload. replaceState rather than
+			// push: typing in the search box shouldn't bury the back button.
+			if (browser) {
+				replaceState(`${window.location.pathname}${qs}`, {});
+			}
 			const res = await fetch(`/api/cms/${contentType.slug}${qs}`);
 			if (res.ok) {
 				const d = await res.json();
@@ -210,6 +223,12 @@
 	}
 
 	function handleFilterChange() {
+		refreshItems();
+	}
+
+	function clearFilters() {
+		searchQuery = '';
+		statusFilter = '';
 		refreshItems();
 	}
 
@@ -381,11 +400,22 @@
 				<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
 				<polyline points="14 2 14 8 20 8" />
 			</svg>
-			<h3>No items yet</h3>
-			<p>Create your first {contentType.name.replace(/s$/, '').toLowerCase()} to get started.</p>
-			<button class="btn btn-primary" on:click={openCreateModal}>
-				Create {contentType.name.replace(/s$/, '')}
-			</button>
+			{#if isFiltered}
+				<h3>No matches</h3>
+				<p>
+					No {contentType.name.toLowerCase()}
+					{#if statusFilter}with status <strong>{statusFilter}</strong>{/if}
+					{#if searchQuery.trim()}matching <strong>&ldquo;{searchQuery.trim()}&rdquo;</strong>{/if}. Nothing has been
+					deleted — clear the filters to see everything again.
+				</p>
+				<button class="btn btn-secondary" on:click={clearFilters}>Clear filters</button>
+			{:else}
+				<h3>No items yet</h3>
+				<p>Create your first {contentType.name.replace(/s$/, '').toLowerCase()} to get started.</p>
+				<button class="btn btn-primary" on:click={openCreateModal}>
+					Create {contentType.name.replace(/s$/, '')}
+				</button>
+			{/if}
 		</div>
 	{:else}
 		<div class="items-table-wrap">
