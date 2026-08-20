@@ -109,7 +109,13 @@ export const GET: RequestHandler = async ({ url }) => {
 	} catch {
 		return json({ mentions: [], error: 'invalid url' }, { status: 400 });
 	}
-	if (parsed.hostname !== url.hostname && !parsed.hostname.endsWith('davis9001.dev')) {
+	// A bare suffix check would also pass lookalikes such as evildavis9001.dev,
+	// so the apex is matched exactly and subdomains need the dot.
+	const isOwnHost =
+		parsed.hostname === url.hostname ||
+		parsed.hostname === 'davis9001.dev' ||
+		parsed.hostname.endsWith('.davis9001.dev');
+	if (!isOwnHost) {
 		return json({ mentions: [], error: 'unsupported host' }, { status: 400 });
 	}
 

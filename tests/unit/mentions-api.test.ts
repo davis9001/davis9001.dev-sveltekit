@@ -11,8 +11,8 @@ import { GET } from '../../src/routes/api/mentions/+server';
 
 const POST_URL = 'https://davis9001.dev/blog/things-every-app-needs';
 
-function call(target: string | null) {
-	const url = new URL('https://davis9001.dev/api/mentions');
+function call(target: string | null, requestHost = 'davis9001.dev') {
+	const url = new URL(`https://${requestHost}/api/mentions`);
 	if (target !== null) url.searchParams.set('url', target);
 	return GET({ url } as any);
 }
@@ -69,6 +69,33 @@ describe('GET /api/mentions', () => {
 		expect(res.status).toBe(400);
 		await expect(res.json()).resolves.toMatchObject({ mentions: [], error: 'unsupported host' });
 		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	it('rejects a lookalike host that merely ends with our name', async () => {
+		stubUpstreams({});
+		const res = await call('https://evildavis9001.dev/blog/things-every-app-needs');
+
+		expect(res.status).toBe(400);
+		await expect(res.json()).resolves.toMatchObject({ error: 'unsupported host' });
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	it('accepts a subdomain of ours', async () => {
+		stubUpstreams({
+			hn: { hits: [hnHit({ url: 'https://www.davis9001.dev/blog/things-every-app-needs' })] }
+		});
+		const res = await call('https://www.davis9001.dev/blog/things-every-app-needs');
+
+		expect(res.status).toBe(200);
+		expect((await res.json()).mentions).toHaveLength(1);
+	});
+
+	it('accepts the apex domain even when served from another host, e.g. a preview', async () => {
+		stubUpstreams({ hn: { hits: [hnHit()] } });
+		const res = await call(POST_URL, 'preview.davis9001-dev.pages.dev');
+
+		expect(res.status).toBe(200);
+		expect((await res.json()).mentions).toHaveLength(1);
 	});
 
 	it('rejects a malformed url', async () => {
@@ -236,7 +263,10 @@ describe('GET /api/mentions', () => {
 		const body = await (await call(POST_URL)).json();
 		expect(body.mentions).toHaveLength(1);
 		// Nothing to title it with, and nothing to sort it by.
-		expect(body.mentions[0]).toMatchObject({ title: 'Post', url: 'https://bsky.app/profile//post/' });
+		expect(body.mentions[0]).toMatchObject({
+			title: 'Post',
+			url: 'https://bsky.app/profile//post/'
+		});
 		expect(body.mentions[0].at).toBeUndefined();
 	});
 
