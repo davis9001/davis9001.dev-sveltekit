@@ -184,4 +184,83 @@ describe('RiverColumns', () => {
 		});
 		expect(container.querySelector('.river')?.classList.contains('river-active')).toBe(false);
 	});
+
+	it('renders the outro inline, with no river chrome, when inactive', async () => {
+		setViewportMatches(false);
+		const { container } = render(RiverHost);
+
+		expect(container.querySelector('.river-outro')).toBeNull();
+		const outro = container.querySelector('.probe-outro') as HTMLElement;
+		expect(outro).toBeTruthy();
+		// Nothing to arrive at in one column, so the ending is simply there.
+		expect(outro.dataset.atEnd).toBe('true');
+	});
+
+	it('travels far enough for the post to drain up through column 1', async () => {
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		await waitFor(() => {
+			expect(container.querySelector('.river')?.classList.contains('river-active')).toBe(true);
+		});
+
+		const flow = container.querySelector('.river-flow') as HTMLElement;
+		Object.defineProperty(flow, 'scrollHeight', { value: 20000, configurable: true });
+		window.dispatchEvent(new Event('resize'));
+
+		const cols = [...container.querySelectorAll('.river-col')] as HTMLElement[];
+		const columnHeight = cols[1].scrollTop - cols[0].scrollTop;
+		expect(columnHeight).toBeGreaterThan(0);
+
+		const host = container.querySelector('.river') as HTMLElement;
+		host.dispatchEvent(new WheelEvent('wheel', { deltaY: 999999, bubbles: true, cancelable: true }));
+
+		// The old ceiling stopped once column 3 ran out of text. The last
+		// screenful now belongs to column 1.
+		await waitFor(
+			() => {
+				expect(cols[0].scrollTop).toBeGreaterThan(20000 - 3 * columnHeight);
+			},
+			{ timeout: 4000 }
+		);
+		await waitFor(
+			() => {
+				expect(Math.round(cols[0].scrollTop)).toBe(Math.round(20000 - columnHeight));
+			},
+			{ timeout: 4000 }
+		);
+	});
+
+	it('reveals the outro as the columns drain, and tells the slot it arrived', async () => {
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		await waitFor(() => {
+			expect(container.querySelector('.river-outro')).toBeTruthy();
+		});
+
+		const outroWrap = container.querySelector('.river-outro') as HTMLElement;
+		const probe = container.querySelector('.probe-outro') as HTMLElement;
+		// At the start it is out of the way and out of the a11y tree.
+		expect(outroWrap.style.getPropertyValue('--drain').trim()).toBe('0');
+		expect(outroWrap.getAttribute('aria-hidden')).toBe('true');
+		expect(probe.dataset.atEnd).toBe('false');
+
+		const flow = container.querySelector('.river-flow') as HTMLElement;
+		Object.defineProperty(flow, 'scrollHeight', { value: 20000, configurable: true });
+		window.dispatchEvent(new Event('resize'));
+
+		const host = container.querySelector('.river') as HTMLElement;
+		host.dispatchEvent(new WheelEvent('wheel', { deltaY: 999999, bubbles: true, cancelable: true }));
+
+		await waitFor(
+			() => {
+				expect(outroWrap.classList.contains('river-outro-revealed')).toBe(true);
+			},
+			{ timeout: 4000 }
+		);
+		expect(probe.dataset.atEnd).toBe('true');
+		expect(outroWrap.getAttribute('aria-hidden')).toBe('false');
+		expect(Number(outroWrap.style.getPropertyValue('--drain'))).toBeGreaterThan(0.5);
+	});
 });

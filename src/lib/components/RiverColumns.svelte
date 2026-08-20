@@ -43,6 +43,8 @@
 	let active = false;
 	let columnHeight = 0;
 	let maxOffset = 0;
+	/** Offset at which the last column stops holding text. */
+	let drainStart = 0;
 
 	/** Where the reader is steering, and where the carpet actually is. */
 	let targetOffset = 0;
@@ -53,6 +55,13 @@
 	let resizeObserver: ResizeObserver | null = null;
 
 	$: progress = maxOffset > 0 ? Math.min(1, Math.max(0, currentOffset / maxOffset)) : 0;
+
+	/** 0 while there is still text to the right, 1 once the post has drained. */
+	$: drain =
+		maxOffset > drainStart
+			? Math.min(1, Math.max(0, (currentOffset - drainStart) / (maxOffset - drainStart)))
+			: 0;
+	$: atEnd = drain > 0.55;
 
 	const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
@@ -100,7 +109,11 @@
 		}
 
 		const articleHeight = flowEls[0].scrollHeight;
-		maxOffset = Math.max(0, articleHeight - columns * columnHeight);
+		// The last word arrives in column 1, not column 3: travel far enough for
+		// the tail to drain out of the right-hand columns and rise through the
+		// left one. The final stretch is what the outro reveal is keyed to.
+		drainStart = Math.max(0, articleHeight - columns * columnHeight);
+		maxOffset = Math.max(0, articleHeight - columnHeight);
 
 		targetOffset = clamp(targetOffset, 0, maxOffset);
 		currentOffset = clamp(currentOffset, 0, maxOffset);
@@ -320,6 +333,19 @@
 		{/each}
 	</div>
 
+	{#if active}
+		<div
+			class="river-outro"
+			class:river-outro-revealed={atEnd}
+			style="--drain: {drain}"
+			aria-hidden={drain < 0.05}
+		>
+			<div class="river-outro-inner">
+				<slot name="outro" atEnd={atEnd} />
+			</div>
+		</div>
+	{/if}
+
 	{#if active && maxOffset > 0}
 		<!-- The document scrollbar is gone, so the reader needs some other way
 		     to tell how far through they are. -->
@@ -335,6 +361,10 @@
 		</div>
 	{/if}
 </div>
+
+{#if !active}
+	<slot name="outro" atEnd={true} />
+{/if}
 
 <style>
 	/* Inactive: the slot is an ordinary block, so no-JS and narrow screens get
@@ -366,6 +396,101 @@
 
 	.river-active .river-col::-webkit-scrollbar {
 		display: none;
+	}
+
+	/* The outro occupies the same space the columns are vacating, so the post
+	   drains out of the right and the ending fades up in its place. `--drain`
+	   runs 0 → 1 across that final stretch. */
+	.river-outro {
+		position: absolute;
+		inset: 0 0 2px 0;
+		display: grid;
+		place-items: center;
+		pointer-events: none;
+		opacity: calc(var(--drain, 0) * 1.6 - 0.15);
+		transform: translateY(calc((1 - var(--drain, 0)) * 26px));
+	}
+
+	.river-outro-revealed {
+		pointer-events: auto;
+	}
+
+	.river-outro-inner {
+		position: relative;
+		width: min(760px, 100%);
+		padding: 0 var(--spacing-lg, 1.5rem);
+	}
+
+	/* The magic: once the post has drained, the ending assembles rather than
+	   simply appearing — a sweep of light crosses it and each part settles in
+	   turn, so reaching the end feels like an arrival. */
+	.river-outro-revealed .river-outro-inner::before {
+		content: '';
+		position: absolute;
+		inset: -12% -6%;
+		pointer-events: none;
+		background: radial-gradient(
+			60% 50% at 50% 50%,
+			color-mix(in srgb, var(--color-accent) 22%, transparent),
+			transparent 70%
+		);
+		animation: river-bloom 1400ms ease-out both;
+	}
+
+	.river-outro-revealed .river-outro-inner :global(> *) {
+		animation: river-arrive 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	}
+
+	.river-outro-revealed .river-outro-inner :global(> * :nth-child(1)) {
+		animation-delay: 60ms;
+	}
+
+	.river-outro-revealed .river-outro-inner :global(> * :nth-child(2)) {
+		animation-delay: 150ms;
+	}
+
+	.river-outro-revealed .river-outro-inner :global(> * :nth-child(3)) {
+		animation-delay: 250ms;
+	}
+
+	@keyframes river-arrive {
+		from {
+			opacity: 0;
+			transform: translateY(14px) scale(0.985);
+			filter: blur(6px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+			filter: blur(0);
+		}
+	}
+
+	@keyframes river-bloom {
+		0% {
+			opacity: 0;
+			transform: scale(0.9);
+		}
+		45% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+			transform: scale(1.08);
+		}
+	}
+
+	/* Motion is the whole point here, so when it is unwelcome the ending simply
+	   is there, fully legible, with nothing withheld. */
+	@media (prefers-reduced-motion: reduce) {
+		.river-outro {
+			transform: none;
+		}
+
+		.river-outro-revealed .river-outro-inner::before,
+		.river-outro-revealed .river-outro-inner :global(> *) {
+			animation: none;
+		}
 	}
 
 	.river-progress {

@@ -5,9 +5,11 @@
   Uses the content type's itemTemplate setting for layout selection.
 -->
 <script lang="ts">
+	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import CmsContent from '$lib/components/CmsContent.svelte';
 	import PredictionProof from '$lib/components/PredictionProof.svelte';
+	import PostOutro from '$lib/components/PostOutro.svelte';
 	import RiverColumns from '$lib/components/RiverColumns.svelte';
 	import SEO from '$lib/components/SEO.svelte';
 	import { formatDateWindow } from '$lib/predictions/format';
@@ -162,6 +164,10 @@
 			<div class="cms-blog-article-body cms-content">
 				<CmsContent html={String(item.fields.body || '')} />
 			</div>
+
+			<svelte:fragment slot="outro" let:atEnd>
+				<PostOutro title={item.title} url={$page.url.href} visible={atEnd} />
+			</svelte:fragment>
 			</RiverColumns>
 		</article>
 	{:else}
