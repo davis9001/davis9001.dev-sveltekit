@@ -61,7 +61,12 @@
 		maxOffset > drainStart
 			? Math.min(1, Math.max(0, (currentOffset - drainStart) / (maxOffset - drainStart)))
 			: 0;
-	$: atEnd = drain > 0.55;
+	let atEnd = false;
+	// Column 3 is empty by 0.5 and column 2 by 1, so the ending commits late
+	// and leaves late: arriving twice because the wheel wobbled is worse than
+	// arriving slightly early.
+	$: if (drain > 0.82) atEnd = true;
+	else if (drain < 0.35) atEnd = false;
 
 	const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
@@ -108,7 +113,21 @@
 			hostEl.style.height = `${columnHeight}px`;
 		}
 
+		// Measure the article on its own: the tail padding below is ours, not
+		// the post's, and counting it would inflate the travel every pass.
+		for (const flow of flowEls) {
+			if (flow) flow.style.paddingBottom = '';
+		}
 		const articleHeight = flowEls[0].scrollHeight;
+
+		// scrollTop clamps at the end of the content, so without somewhere to
+		// go the right-hand columns stay pinned on the last screenful instead
+		// of emptying. Give every column a column-height of blank per step so
+		// the post can leave the frame entirely.
+		const tail = (columns - 1) * columnHeight;
+		for (const flow of flowEls) {
+			if (flow) flow.style.paddingBottom = `${tail}px`;
+		}
 		// The last word arrives in column 1, not column 3: travel far enough for
 		// the tail to drain out of the right-hand columns and rise through the
 		// left one. The final stretch is what the outro reveal is keyed to.
@@ -262,8 +281,10 @@
 		for (let i = 0; i < colEls.length; i++) {
 			if (colEls[i]) colEls[i].scrollTop = 0;
 		}
-		for (let i = 1; i < flowEls.length; i++) {
-			if (flowEls[i]) flowEls[i].innerHTML = '';
+		for (let i = 0; i < flowEls.length; i++) {
+			if (!flowEls[i]) continue;
+			flowEls[i].style.paddingBottom = '';
+			if (i > 0) flowEls[i].innerHTML = '';
 		}
 	}
 
@@ -337,9 +358,18 @@
 		<div
 			class="river-outro"
 			class:river-outro-revealed={atEnd}
-			style="--drain: {drain}"
+			style="--drain: {drain}; --river-columns: {columns}"
 			aria-hidden={drain < 0.05}
 		>
+			<div class="river-outro-stage" aria-hidden="true">
+				<span class="river-sweep"></span>
+				{#each Array(7) as _, line}
+					<span
+						class="river-ghost"
+						style="--i: {line}; --l: {6 + (line % 3) * 4}%; --r: {10 + (line % 4) * 9}%"
+					></span>
+				{/each}
+			</div>
 			<div class="river-outro-inner">
 				<slot name="outro" atEnd={atEnd} />
 			</div>
@@ -405,7 +435,9 @@
 		position: absolute;
 		inset: 0 0 2px 0;
 		display: grid;
-		place-items: center;
+		grid-template-columns: repeat(var(--river-columns), 1fr);
+		gap: var(--spacing-xl, 2rem);
+		align-items: center;
 		pointer-events: none;
 		opacity: calc(var(--drain, 0) * 1.6 - 0.15);
 		transform: translateY(calc((1 - var(--drain, 0)) * 26px));
@@ -415,68 +447,113 @@
 		pointer-events: auto;
 	}
 
+	/* Columns 2..n are the ones that empty, so that is where the ending goes. */
 	.river-outro-inner {
 		position: relative;
+		grid-column: 2 / -1;
+		justify-self: center;
 		width: min(760px, 100%);
 		padding: 0 var(--spacing-lg, 1.5rem);
 	}
 
-	/* The magic: once the post has drained, the ending assembles rather than
-	   simply appearing — a sweep of light crosses it and each part settles in
-	   turn, so reaching the end feels like an arrival. */
-	.river-outro-revealed .river-outro-inner::before {
-		content: '';
+	/* The arrival. The post has just streamed up and out of these columns, so
+	   the ending is built out of the same motion rather than dropped on top of
+	   it: ghosts of the lines that left keep rising and fading, a sweep of
+	   light runs up the vacated space, and the ending resolves in its wake. */
+	.river-outro-stage {
 		position: absolute;
-		inset: -12% -6%;
+		inset: -8% 0;
+		overflow: hidden;
 		pointer-events: none;
-		background: radial-gradient(
-			60% 50% at 50% 50%,
-			color-mix(in srgb, var(--color-accent) 22%, transparent),
-			transparent 70%
+		opacity: 0;
+	}
+
+	.river-outro-revealed .river-outro-stage {
+		animation: river-stage 2200ms ease-out both;
+	}
+
+	/* Ghosts of the text that just left, still travelling upward. */
+	.river-ghost {
+		position: absolute;
+		left: var(--l, 8%);
+		right: var(--r, 14%);
+		top: 78%;
+		height: 8px;
+		border-radius: 4px;
+		background: linear-gradient(
+			90deg,
+			transparent,
+			color-mix(in srgb, var(--color-text) 26%, transparent),
+			transparent
 		);
-		animation: river-bloom 1400ms ease-out both;
+		opacity: 0;
 	}
 
-	.river-outro-revealed .river-outro-inner :global(> *) {
-		animation: river-arrive 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	.river-outro-revealed .river-ghost {
+		animation: river-ghost-rise 1500ms cubic-bezier(0.3, 0, 0.2, 1) both;
+		animation-delay: calc(var(--i) * 78ms);
 	}
 
-	.river-outro-revealed .river-outro-inner :global(> * :nth-child(1)) {
-		animation-delay: 60ms;
+	/* The sweep that resolves them into the ending. */
+	.river-sweep {
+		position: absolute;
+		left: -10%;
+		right: -10%;
+		height: 34%;
+		top: 70%;
+		background: linear-gradient(
+			180deg,
+			transparent,
+			color-mix(in srgb, var(--color-accent) 26%, transparent) 45%,
+			color-mix(in srgb, var(--color-accent) 60%, transparent) 52%,
+			color-mix(in srgb, var(--color-accent) 26%, transparent) 60%,
+			transparent
+		);
+		filter: blur(14px);
+		opacity: 0;
 	}
 
-	.river-outro-revealed .river-outro-inner :global(> * :nth-child(2)) {
-		animation-delay: 150ms;
+	.river-outro-revealed .river-sweep {
+		animation: river-sweep-up 1250ms cubic-bezier(0.22, 1, 0.3, 1) both;
+		animation-delay: 120ms;
 	}
 
-	.river-outro-revealed .river-outro-inner :global(> * :nth-child(3)) {
-		animation-delay: 250ms;
-	}
-
-	@keyframes river-arrive {
-		from {
+	@keyframes river-stage {
+		0%,
+		100% {
 			opacity: 0;
-			transform: translateY(14px) scale(0.985);
-			filter: blur(6px);
 		}
-		to {
+		18%,
+		62% {
 			opacity: 1;
-			transform: none;
-			filter: blur(0);
 		}
 	}
 
-	@keyframes river-bloom {
+	@keyframes river-ghost-rise {
 		0% {
 			opacity: 0;
-			transform: scale(0.9);
+			transform: translateY(40px) scaleX(0.94);
 		}
-		45% {
+		30% {
+			opacity: 0.85;
+		}
+		100% {
+			opacity: 0;
+			transform: translateY(-190px) scaleX(1.02);
+		}
+	}
+
+	@keyframes river-sweep-up {
+		0% {
+			opacity: 0;
+			transform: translateY(30%);
+		}
+		25% {
 			opacity: 1;
 		}
 		100% {
 			opacity: 0;
-			transform: scale(1.08);
+			transform: translateY(-150%);
 		}
 	}
 
@@ -487,9 +564,8 @@
 			transform: none;
 		}
 
-		.river-outro-revealed .river-outro-inner::before,
-		.river-outro-revealed .river-outro-inner :global(> *) {
-			animation: none;
+		.river-outro-stage {
+			display: none;
 		}
 	}
 

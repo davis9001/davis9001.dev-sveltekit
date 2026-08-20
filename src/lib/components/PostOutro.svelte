@@ -78,7 +78,7 @@
 	}
 </script>
 
-<section class="outro" aria-label="End of post">
+<section class="outro" class:outro-arrived={visible} aria-label="End of post">
 	<p class="outro-mark"><span>The end</span></p>
 
 	<div class="outro-share">
@@ -128,6 +128,86 @@
 		color: var(--color-text);
 	}
 
+	/* The ending assembles in the wake of the sweep: each part rises out of
+	   blur in turn, and the rules either side of the words draw outward from
+	   nothing, so it reads as being built rather than switched on. */
+	.outro-arrived > * {
+		animation: outro-settle 820ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	}
+
+	.outro-arrived .outro-mark {
+		animation-delay: 120ms;
+	}
+
+	.outro-arrived .outro-share {
+		animation-delay: 300ms;
+	}
+
+	.outro-arrived .outro-mentions {
+		animation-delay: 460ms;
+	}
+
+	.outro-arrived .outro-mark span::before,
+	.outro-arrived .outro-mark span::after {
+		animation: outro-rule 900ms cubic-bezier(0.16, 1, 0.3, 1) 220ms both;
+	}
+
+	.outro-arrived .outro-share li {
+		animation: outro-settle 640ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	}
+
+	.outro-arrived .outro-share li:nth-child(1) {
+		animation-delay: 380ms;
+	}
+	.outro-arrived .outro-share li:nth-child(2) {
+		animation-delay: 440ms;
+	}
+	.outro-arrived .outro-share li:nth-child(3) {
+		animation-delay: 500ms;
+	}
+	.outro-arrived .outro-share li:nth-child(4) {
+		animation-delay: 560ms;
+	}
+	.outro-arrived .outro-share li:nth-child(5) {
+		animation-delay: 620ms;
+	}
+	.outro-arrived .outro-share li:nth-child(6) {
+		animation-delay: 680ms;
+	}
+
+	@keyframes outro-settle {
+		from {
+			opacity: 0;
+			transform: translateY(18px) scale(0.97);
+			filter: blur(8px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+			filter: blur(0);
+		}
+	}
+
+	@keyframes outro-rule {
+		from {
+			transform: scaleX(0);
+			opacity: 0;
+		}
+		to {
+			transform: scaleX(1);
+			opacity: 1;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.outro-arrived > *,
+		.outro-arrived .outro-share li,
+		.outro-arrived .outro-mark span::before,
+		.outro-arrived .outro-mark span::after {
+			animation: none;
+		}
+	}
+
 	.outro-mark {
 		margin: 0 0 var(--spacing-lg);
 		font-size: 0.8rem;
@@ -148,6 +228,7 @@
 		content: '';
 		width: clamp(28px, 8vw, 88px);
 		height: 1px;
+		transform-origin: center;
 		background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
 	}
 
