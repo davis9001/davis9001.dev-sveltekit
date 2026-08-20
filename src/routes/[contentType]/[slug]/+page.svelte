@@ -78,9 +78,16 @@
 
 <div class="cms-item-page">
 	<!-- Back link -->
-	<a href={getRoutePrefix()} class="cms-back-link">
+	<div class="cms-topbar">
+		<a href={getRoutePrefix()} class="cms-back-link">
 		&larr; Back to {contentType.name}
 	</a>
+		{#if contentType.settings.itemTemplate === 'blog-item'}
+			<button type="button" class="cms-reading-mode-btn" on:click={toggleReadingMode}>
+				{readingMode === 'river' ? 'Read in one column' : 'Read in three columns'}
+			</button>
+		{/if}
+	</div>
 
 	{#if item.status === 'archived'}
 		<p class="cms-archived-notice">This item has been archived.</p>
@@ -125,12 +132,6 @@
 		<PredictionProof {item} />
 	{:else if contentType.settings.itemTemplate === 'blog-item'}
 		<article class="cms-blog-article">
-			<div class="cms-reading-mode">
-				<button type="button" class="cms-reading-mode-btn" on:click={toggleReadingMode}>
-					{readingMode === 'river' ? 'Read in one column' : 'Read in three columns'}
-				</button>
-			</div>
-
 			<RiverColumns enabled={readingMode === 'river'}>
 				<header class="cms-blog-article-header">
 					{#if item.fields.category}
@@ -237,26 +238,42 @@
 	   measure they were designed for; only the page's outer cap widens, and
 	   only where the river can actually run. */
 	@media (min-width: 1100px) {
+		.cms-item-page:has(:global(.river-active)) .cms-topbar {
+			margin-bottom: var(--spacing-sm);
+		}
+
 		/* The river takes the whole window. The centred reading measure is what
 		   the columns are for; the page itself stops being a column. */
 		.cms-item-page:has(:global(.river-active)) {
 			max-width: none;
 			padding-left: var(--spacing-lg);
 			padding-right: var(--spacing-lg);
+			/* The river is sized to whatever the window has left, so padding
+			   around it is not spacing — it is reading height taken out of the
+			   columns. The nav above and the footer below already separate it. */
+			padding-top: var(--spacing-md);
+			padding-bottom: 0;
 		}
 	}
 
 	/* The toggle only means anything where the river runs, so it only shows
 	   there. */
-	.cms-reading-mode {
+	.cms-topbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--spacing-md);
+		margin-bottom: var(--spacing-lg);
+	}
+
+	/* The toggle only means anything where the river can run. */
+	.cms-reading-mode-btn {
 		display: none;
 	}
 
 	@media (min-width: 1100px) {
-		.cms-reading-mode {
-			display: flex;
-			justify-content: flex-end;
-			margin-bottom: var(--spacing-md);
+		.cms-reading-mode-btn {
+			display: inline-block;
 		}
 	}
 
@@ -284,7 +301,6 @@
 		color: var(--color-text-secondary);
 		text-decoration: none;
 		font-size: 0.875rem;
-		margin-bottom: var(--spacing-lg);
 		transition: color 0.2s ease;
 	}
 

@@ -107,8 +107,11 @@
 			{/if}
 		{:else if contentType.settings.listTemplate === 'blog-list'}
 			<div class="cms-blog-grid">
-				{#each items as item}
-					<article class="cms-blog-card">
+				{#each items as item, index}
+					<!-- The newest post leads: on the first page it runs the width of
+					     the grid, with the picture beside the words rather than above
+					     them. Later pages have no "newest", so nothing is singled out. -->
+					<article class="cms-blog-card" class:cms-blog-card-lead={index === 0 && currentPage === 1}>
 						{#if item.fields.featured_image}
 							<!-- The picture is the biggest target on the card, so it goes where
 							     the title goes. Hidden from the accessibility tree because the
@@ -186,7 +189,7 @@
 
 <style>
 	.cms-list-page {
-		max-width: 1720px;
+		max-width: 2560px;
 		margin: 0 auto;
 		padding: var(--spacing-xl) var(--spacing-md);
 	}
@@ -412,6 +415,42 @@
 	@media (min-width: 1100px) {
 		.cms-blog-grid {
 			grid-template-columns: repeat(3, 1fr);
+		}
+	}
+
+	/* Below the point where the grid has more than one column there is nothing
+	   to lead, so the lead card is just a card. */
+	@media (min-width: 768px) {
+		.cms-blog-card-lead {
+			grid-column: 1 / -1;
+			display: grid;
+			grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+			align-items: stretch;
+		}
+
+		.cms-blog-card-lead :global(.cms-blog-card-image) {
+			height: 100%;
+		}
+
+		.cms-blog-card-lead :global(.cms-blog-card-image img) {
+			height: 100%;
+			object-fit: cover;
+		}
+
+		.cms-blog-card-lead :global(.cms-blog-card-content) {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			padding: var(--spacing-xl);
+		}
+
+		.cms-blog-card-lead :global(h2) {
+			font-size: 2rem;
+			line-height: 1.15;
+		}
+
+		.cms-blog-card-lead :global(.cms-blog-excerpt) {
+			font-size: 1.05rem;
 		}
 	}
 

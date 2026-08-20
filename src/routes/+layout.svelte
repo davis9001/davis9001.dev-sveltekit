@@ -99,4 +99,11 @@
 		flex-direction: column;
 		padding-bottom: var(--spacing-2xl);
 	}
+
+	/* In three-column reading the page is exactly the window, so padding under
+	   the article is not spacing — it is reading height, taken from the
+	   columns and shown as a dead band above the footer. */
+	main:has(:global(.river-active)) {
+		padding-bottom: 0;
+	}
 </style>

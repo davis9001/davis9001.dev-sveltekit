@@ -54,6 +54,8 @@
 	let pendingRestore: { offset: number; height: number } | null = null;
 	let restoreRead = false;
 	let readerHasSteered = false;
+	/** How far from the start the reader is, in whichever mode is running. */
+	let awayFromTop = 0;
 
 	/** Each chart's place in the flow, and the ones that have already played. */
 	let chartBands: Array<{ top: number; bottom: number }> = [];
@@ -68,6 +70,9 @@
 	let resizeObserver: ResizeObserver | null = null;
 
 	$: progress = maxOffset > 0 ? Math.min(1, Math.max(0, currentOffset / maxOffset)) : 0;
+
+	/** Offer the way back only once going back is actually a journey. */
+	$: showBackToTop = awayFromTop > (active ? columnHeight : 0) && awayFromTop > 400;
 
 	/** 0 while there is still text to the right, 1 once the post has drained. */
 	$: drain =
@@ -100,30 +105,48 @@
 	function measure() {
 		if (!active || !flowEls[0] || !hostEl) return;
 
-		// Whatever sits above the river — nav, title, byline — has already been
-		// laid out, so the space left in the window is what the columns get.
-		const top = hostEl.getBoundingClientRect().top + window.scrollY;
-		const available = Math.max(320, window.innerHeight - top - 32);
-
-		// Snapping to whole lines stops the boundary slicing a line in half
-		// horizontally, its top on one column and its bottom on the next.
+		// The layout is a min-height:100vh flex column with main:flex-1, so the
+		// page always fills the window and the footer always sits at the
+		// bottom. Every "measure what else there is" trick is therefore
+		// circular: document height, body height and scrollHeight all just
+		// report the viewport back.
+		//
+		// So solve for the height directly. What sits above the river, the gap
+		// between it and the footer, and the footer itself are all invariant —
+		// none of them move when the columns change height — which leaves one
+		// equation with one unknown.
 		const lh = lineGrid();
-		const snap = (h: number) => (lh ? Math.max(lh * 4, Math.floor(h / lh) * lh) : h);
+		const snapToLines = (h: number) =>
+			lh ? Math.max(lh * 4, Math.floor(h / lh) * lh) : Math.max(320, h);
 
-		columnHeight = snap(available);
-		viewportEl.style.height = `${columnHeight}px`;
-		hostEl.style.height = `${columnHeight}px`;
+		// Sizing the columns means knowing what else the window is holding, and
+		// the layout will not say: it is a min-height:100vh flex column, so any
+		// height the columns give up immediately reappears as slack below them.
+		// Measuring that gap and subtracting it feeds the slack back in and the
+		// columns walk themselves down to the floor.
+		//
+		// So take it in two steps. Fill the window with a provisional height,
+		// then read how far the document now overruns it — that overrun is
+		// everything the flex box was hiding, with no slack left to confuse it.
+		const footer = document.querySelector('footer');
+		const footerHeight = footer ? footer.getBoundingClientRect().height : 0;
+		const above = hostEl.getBoundingClientRect().top + window.scrollY;
 
-		// Anything after the river — footer, trailing margins — can still push
-		// the document past the viewport, and a page with somewhere to go will
-		// go there. Take that overflow out of the columns so there is nothing
-		// left to scroll.
-		const overflow = document.documentElement.scrollHeight - window.innerHeight;
-		if (overflow > 0) {
-			columnHeight = snap(Math.max(320, columnHeight - overflow));
-			viewportEl.style.height = `${columnHeight}px`;
-			hostEl.style.height = `${columnHeight}px`;
-		}
+		const setHeight = (h: number) => {
+			columnHeight = h;
+			viewportEl.style.height = `${h}px`;
+			hostEl.style.height = `${h}px`;
+		};
+
+		const provisional = Math.max(320, window.innerHeight - above - footerHeight);
+		setHeight(provisional);
+		const overrun = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+
+		// Snapped once, at the end. Whole lines stop a column boundary slicing a
+		// line in half horizontally; snapping twice — as this did while trimming
+		// separately for the footer — threw most of a line away each time, which
+		// is where the dead band under the columns came from.
+		setHeight(snapToLines(Math.max(320, provisional - overrun)));
 
 		// Measure the article on its own: the tail padding below is ours, not
 		// the post's, and counting it would inflate the travel every pass.
@@ -236,10 +259,37 @@
 		}
 	}
 
+	/**
+	 * Back to the start.
+	 *
+	 * In the river the document cannot scroll, so the browser's own way home —
+	 * Home, the scrollbar, a hash — has nothing to move and the reader is stuck
+	 * with the wheel. In one column it is the ordinary page scroll. Same button,
+	 * same promise, whichever mode is running.
+	 */
+	function backToTop() {
+		if (active) {
+			readerHasSteered = true;
+			pendingRestore = null;
+			steerTo(0);
+		} else {
+			window.scrollTo({
+				top: 0,
+				behavior: prefersReducedMotion() ? 'auto' : 'smooth'
+			});
+		}
+	}
+
+	/** In one column the page scrolls, so the button watches that instead. */
+	function trackWindowScroll() {
+		if (!active) awayFromTop = window.scrollY;
+	}
+
 	function applyOffsets() {
 		for (let i = 0; i < colEls.length; i++) {
 			if (colEls[i]) colEls[i].scrollTop = currentOffset + i * columnHeight;
 		}
+		awayFromTop = currentOffset;
 		syncChartPlayback();
 		savePosition();
 	}
@@ -505,6 +555,7 @@
 	function teardown() {
 		savePosition();
 		active = false;
+		awayFromTop = typeof window === 'undefined' ? 0 : window.scrollY;
 		restoreRead = false;
 		pendingRestore = null;
 		readerHasSteered = false;
@@ -563,6 +614,8 @@
 		hostEl.addEventListener('touchcancel', onTouchEnd, { passive: true });
 		window.addEventListener('focusin', onFocusIn);
 		window.addEventListener('hashchange', onHashChange);
+		window.addEventListener('scroll', trackWindowScroll, { passive: true });
+		trackWindowScroll();
 		hostEl.addEventListener('click', onAnchorClick);
 
 		// Images and embeds land after first paint and change the flow height.
@@ -589,6 +642,7 @@
 		hostEl?.removeEventListener('touchcancel', onTouchEnd);
 		window.removeEventListener('focusin', onFocusIn);
 		window.removeEventListener('hashchange', onHashChange);
+		window.removeEventListener('scroll', trackWindowScroll);
 		hostEl?.removeEventListener('click', onAnchorClick);
 		resizeObserver?.disconnect();
 	});
@@ -629,6 +683,15 @@
 				<slot name="outro" {atEnd} />
 			</div>
 		</div>
+	{/if}
+
+	{#if showBackToTop}
+		<button type="button" class="river-to-top" on:click={backToTop}>
+			<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+				<path d="M12 5.4 5.7 11.7a1 1 0 1 0 1.4 1.4L11 9.2V19a1 1 0 1 0 2 0V9.2l3.9 3.9a1 1 0 0 0 1.4-1.4L12 5.4Z" />
+			</svg>
+			<span>Top</span>
+		</button>
 	{/if}
 
 	{#if active && maxOffset > 0}
@@ -825,6 +888,38 @@
 		.river-outro-stage {
 			display: none;
 		}
+	}
+
+	.river-to-top {
+		position: fixed;
+		right: var(--spacing-lg, 1.5rem);
+		bottom: var(--spacing-lg, 1.5rem);
+		z-index: 40;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.5rem 0.85rem;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		background: var(--color-surface);
+		color: var(--color-text-secondary);
+		font: inherit;
+		font-size: 0.85rem;
+		cursor: pointer;
+		transition:
+			color 0.2s ease,
+			border-color 0.2s ease;
+	}
+
+	.river-to-top:hover {
+		color: var(--color-accent);
+		border-color: var(--color-accent);
+	}
+
+	.river-to-top svg {
+		width: 15px;
+		height: 15px;
+		fill: currentColor;
 	}
 
 	.river-progress {
