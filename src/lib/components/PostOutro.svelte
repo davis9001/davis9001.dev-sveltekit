@@ -10,6 +10,7 @@
   shown, so a reader who never finishes never pays for the request.
 -->
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 
 	export let title = '';
@@ -30,6 +31,7 @@
 	let copied = false;
 	let copyTimer: ReturnType<typeof setTimeout> | undefined;
 
+	onDestroy(() => clearTimeout(copyTimer));
 
 	/**
 	 * Brand marks and glyphs, inline: no icon font, no CDN, nothing for a strict
@@ -144,7 +146,8 @@
 						<a href={mention.url} target="_blank" rel="noopener noreferrer">{mention.title}</a>
 						<span class="outro-meta">
 							{mention.source}{#if mention.author}&nbsp;· {mention.author}{/if}{#if mention.count}&nbsp;·
-								{mention.count} replies{/if}
+								{mention.count}
+								{mention.count === 1 ? 'reply' : 'replies'}{/if}
 						</span>
 					</li>
 				{/each}

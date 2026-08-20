@@ -60,6 +60,11 @@
 	function getRoutePrefix(): string {
 		return contentType.settings.routePrefix || `/${contentType.slug}`;
 	}
+
+	// The canonical address of the post, for sharing and the mentions lookup.
+	// $page.url.href would drag along whatever query string the reader arrived
+	// with — ?tag= filters, tracking params — and none of that is the post.
+	$: canonicalUrl = `${$page.url.origin}${getRoutePrefix()}/${item.slug}`;
 </script>
 
 <SEO
@@ -127,47 +132,47 @@
 			</div>
 
 			<RiverColumns enabled={readingMode === 'river'}>
-			<header class="cms-blog-article-header">
-				{#if item.fields.category}
-					<span class="cms-blog-article-category">{item.fields.category}</span>
-				{/if}
-				<h1>{item.title}</h1>
-				<div class="cms-blog-article-meta">
-					{#if item.publishedAt}
-						<time datetime={item.publishedAt}>{formatDate(item.publishedAt)}</time>
+				<header class="cms-blog-article-header">
+					{#if item.fields.category}
+						<span class="cms-blog-article-category">{item.fields.category}</span>
 					{/if}
-					{#if item.fields.read_time}
-						<span class="cms-read-time">{item.fields.read_time} min read</span>
+					<h1>{item.title}</h1>
+					<div class="cms-blog-article-meta">
+						{#if item.publishedAt}
+							<time datetime={item.publishedAt}>{formatDate(item.publishedAt)}</time>
+						{/if}
+						{#if item.fields.read_time}
+							<span class="cms-read-time">{item.fields.read_time} min read</span>
+						{/if}
+					</div>
+					{#if tags.length > 0}
+						<div class="cms-blog-article-tags">
+							{#each tags as tag}
+								<a href="{getRoutePrefix()}?tag={tag.slug}" class="cms-tag">{tag.name}</a>
+							{/each}
+						</div>
 					{/if}
-				</div>
-				{#if tags.length > 0}
-					<div class="cms-blog-article-tags">
-						{#each tags as tag}
-							<a href="{getRoutePrefix()}?tag={tag.slug}" class="cms-tag">{tag.name}</a>
-						{/each}
+				</header>
+
+				{#if item.fields.featured_image}
+					<div class="cms-blog-article-hero">
+						<img src={String(item.fields.featured_image)} alt={item.title} />
 					</div>
 				{/if}
-			</header>
 
-			{#if item.fields.featured_image}
-				<div class="cms-blog-article-hero">
-					<img src={String(item.fields.featured_image)} alt={item.title} />
+				{#if item.fields.excerpt}
+					<div class="cms-blog-article-excerpt">
+						<p>{item.fields.excerpt}</p>
+					</div>
+				{/if}
+
+				<div class="cms-blog-article-body cms-content">
+					<CmsContent html={String(item.fields.body || '')} />
 				</div>
-			{/if}
 
-			{#if item.fields.excerpt}
-				<div class="cms-blog-article-excerpt">
-					<p>{item.fields.excerpt}</p>
-				</div>
-			{/if}
-
-			<div class="cms-blog-article-body cms-content">
-				<CmsContent html={String(item.fields.body || '')} />
-			</div>
-
-			<svelte:fragment slot="outro" let:atEnd>
-				<PostOutro title={item.title} url={$page.url.href} visible={atEnd} />
-			</svelte:fragment>
+				<svelte:fragment slot="outro" let:atEnd>
+					<PostOutro title={item.title} url={canonicalUrl} visible={atEnd} />
+				</svelte:fragment>
 			</RiverColumns>
 		</article>
 	{:else}
@@ -239,7 +244,6 @@
 			padding-left: var(--spacing-lg);
 			padding-right: var(--spacing-lg);
 		}
-
 	}
 
 	/* The toggle only means anything where the river runs, so it only shows
