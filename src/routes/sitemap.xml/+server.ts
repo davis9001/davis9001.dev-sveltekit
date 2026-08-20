@@ -11,7 +11,15 @@ import type { RequestHandler } from './$types';
 const SITE_URL = 'https://davis9001.dev';
 
 // Static public routes
-const staticRoutes = ['/', '/portfolio', '/blog', '/privacy', '/terms'];
+const staticRoutes = [
+	'/',
+	'/portfolio',
+	'/blog',
+	'/privacy',
+	'/terms',
+	'/dirac/privacy',
+	'/dirac/terms'
+];
 
 // Import all portfolio project markdown files to extract slugs
 const projectModules = import.meta.glob('/src/projects/*.md', {
