@@ -47,6 +47,14 @@
 	/** Offset at which the last column stops holding text. */
 	let drainStart = 0;
 
+	/** Where this reader had got to, kept per post so a refresh does not restart it. */
+	$: storageKey = `river-position:${typeof location === 'undefined' ? '' : location.pathname}`;
+	let restored = false;
+
+	/** Each chart's place in the flow, and the ones that have already played. */
+	let chartBands: Array<{ top: number; bottom: number }> = [];
+	const playedCharts = new Set<number>();
+
 	/** Where the reader is steering, and where the carpet actually is. */
 	let targetOffset = 0;
 	let currentOffset = 0;
@@ -134,6 +142,9 @@
 		drainStart = Math.max(0, articleHeight - columns * columnHeight);
 		maxOffset = Math.max(0, articleHeight - columnHeight);
 
+		measureCharts();
+		restorePosition();
+
 		targetOffset = clamp(targetOffset, 0, maxOffset);
 		currentOffset = clamp(currentOffset, 0, maxOffset);
 		applyOffsets();
@@ -153,6 +164,7 @@
 	 */
 	function syncClones() {
 		if (!active || !flowEls[0]) return;
+		playedCharts.clear();
 		const markup = flowEls[0].innerHTML;
 		for (let i = 1; i < flowEls.length; i++) {
 			if (!flowEls[i]) continue;
@@ -161,14 +173,61 @@
 				el.setAttribute('tabindex', '-1');
 			}
 
-			// Inline charts hide their own marks the moment CmsContent adds
-			// `chart-anim`, and only reveal them when its observer sees that
-			// element scroll into view. A clone is never observed, so it copies
-			// the hidden half of that bargain and stays blank forever. Dropping
-			// the class puts it on the same footing as a reader without JS: the
-			// finished chart, drawn complete, no animation.
+			// A chart hides its own marks under `chart-anim` and waits for
+			// CmsContent's observer to add `in-view` — an observer that will
+			// never watch a clone. Keep the armed class and clear the cue, so
+			// the copies start hidden and we play them ourselves.
+			// Ids belong to the real article only: three copies of one id makes
+			// every lookup a coin toss, anchors included.
+			for (const el of flowEls[i].querySelectorAll('[id]')) {
+				el.removeAttribute('id');
+			}
+
 			for (const chart of flowEls[i].querySelectorAll('svg.cms-chart')) {
-				chart.classList.remove('chart-anim', 'in-view');
+				chart.classList.add('chart-anim');
+				chart.classList.remove('in-view');
+			}
+		}
+	}
+
+	/** Chart positions within the flow, which do not move when a column scrolls. */
+	function measureCharts() {
+		const flow = flowEls[0];
+		if (!flow) {
+			chartBands = [];
+			return;
+		}
+		const flowTop = flow.getBoundingClientRect().top;
+		chartBands = [...flow.querySelectorAll('svg.cms-chart')].map((chart) => {
+			const rect = chart.getBoundingClientRect();
+			return { top: rect.top - flowTop, bottom: rect.top - flowTop + rect.height };
+		});
+	}
+
+	/**
+	 * Play every copy of a chart at the same moment.
+	 *
+	 * A chart sitting across a column boundary is drawn twice — its top in one
+	 * column, its bottom in the next — so if the copies animated independently
+	 * the two halves of one chart would disagree. Each chart runs once, when it
+	 * first shows up in any column, and every instance is cued in the same tick.
+	 */
+	function syncChartPlayback() {
+		for (let k = 0; k < chartBands.length; k++) {
+			if (playedCharts.has(k)) continue;
+			const band = chartBands[k];
+
+			const onScreen = colEls.some((col, i) => {
+				if (!col) return false;
+				const windowTop = currentOffset + i * columnHeight;
+				return band.top < windowTop + columnHeight && band.bottom > windowTop;
+			});
+			if (!onScreen) continue;
+
+			playedCharts.add(k);
+			for (const flow of flowEls) {
+				const chart = flow?.querySelectorAll('svg.cms-chart')[k];
+				chart?.classList.add('chart-anim', 'in-view');
 			}
 		}
 	}
@@ -177,6 +236,8 @@
 		for (let i = 0; i < colEls.length; i++) {
 			if (colEls[i]) colEls[i].scrollTop = currentOffset + i * columnHeight;
 		}
+		syncChartPlayback();
+		savePosition();
 	}
 
 	/**
@@ -210,6 +271,93 @@
 
 	function steerBy(delta: number) {
 		steerTo(targetOffset + delta);
+	}
+
+	/** Where a thing sits in the flow, which does not move when a column scrolls. */
+	function offsetOf(el: Element): number {
+		const flow = flowEls[0];
+		if (!flow) return 0;
+		return el.getBoundingClientRect().top - flow.getBoundingClientRect().top;
+	}
+
+	/**
+	 * The page cannot scroll, so the browser's own anchor handling has nothing
+	 * to move: a hash would land the reader at the top of an unmoving post.
+	 * Bring the flow to the target instead. Scoped to column 1 — the clones
+	 * have had their ids stripped, but this is the lookup that must not guess.
+	 */
+	function goToHash(hash: string, behaviour: 'jump' | 'glide' = 'glide'): boolean {
+		const id = hash.replace(/^#/, '');
+		if (!id || !flowEls[0]) return false;
+
+		let target: Element | null = null;
+		try {
+			target = flowEls[0].querySelector(`#${CSS.escape(id)}`);
+		} catch {
+			return false;
+		}
+		if (!target) return false;
+
+		const next = clamp(offsetOf(target) - columnHeight / 8, 0, maxOffset);
+		if (behaviour === 'jump') {
+			targetOffset = next;
+			currentOffset = next;
+			applyOffsets();
+		} else {
+			steerTo(next);
+		}
+		return true;
+	}
+
+	/** In-page links cannot rely on the browser either, so take them here. */
+	function onAnchorClick(event: MouseEvent) {
+		if (!active || event.defaultPrevented || event.button !== 0) return;
+		if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+		const anchor = (event.target as HTMLElement | null)?.closest?.('a[href]');
+		if (!anchor) return;
+
+		const href = anchor.getAttribute('href') ?? '';
+		if (!href.startsWith('#')) return;
+
+		if (goToHash(href)) {
+			event.preventDefault();
+			history.replaceState(history.state, '', href);
+		}
+	}
+
+	function onHashChange() {
+		if (active && location.hash) goToHash(location.hash);
+	}
+
+	/** Restore where this reader had got to, unless a hash says otherwise. */
+	function restorePosition() {
+		if (restored || maxOffset <= 0) return;
+		restored = true;
+
+		if (location.hash && goToHash(location.hash, 'jump')) return;
+
+		try {
+			const saved = Number(sessionStorage.getItem(storageKey));
+			if (Number.isFinite(saved) && saved > 0) {
+				// Stored as a fraction: the window may be a different size now,
+				// and "three quarters through" survives that where pixels do not.
+				targetOffset = clamp(saved * maxOffset, 0, maxOffset);
+				currentOffset = targetOffset;
+				applyOffsets();
+			}
+		} catch {
+			// Storage blocked — starting at the top is a fine outcome.
+		}
+	}
+
+	function savePosition() {
+		if (!active || maxOffset <= 0) return;
+		try {
+			sessionStorage.setItem(storageKey, String(currentOffset / maxOffset));
+		} catch {
+			// Not worth failing anything over.
+		}
 	}
 
 	function onWheel(event: WheelEvent) {
@@ -320,7 +468,9 @@
 	}
 
 	function teardown() {
+		savePosition();
 		active = false;
+		restored = false;
 		lockDocumentScroll(false);
 		if (glideFrame) cancelAnimationFrame(glideFrame);
 		glideFrame = 0;
@@ -375,6 +525,8 @@
 		hostEl.addEventListener('touchend', onTouchEnd, { passive: true });
 		hostEl.addEventListener('touchcancel', onTouchEnd, { passive: true });
 		window.addEventListener('focusin', onFocusIn);
+		window.addEventListener('hashchange', onHashChange);
+		hostEl.addEventListener('click', onAnchorClick);
 
 		// Images and embeds land after first paint and change the flow height.
 		resizeObserver = new ResizeObserver(() => {
@@ -399,6 +551,8 @@
 		hostEl?.removeEventListener('touchend', onTouchEnd);
 		hostEl?.removeEventListener('touchcancel', onTouchEnd);
 		window.removeEventListener('focusin', onFocusIn);
+		window.removeEventListener('hashchange', onHashChange);
+		hostEl?.removeEventListener('click', onAnchorClick);
 		resizeObserver?.disconnect();
 	});
 </script>

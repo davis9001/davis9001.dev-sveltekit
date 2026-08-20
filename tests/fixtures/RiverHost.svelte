@@ -13,6 +13,8 @@
 	<p class="probe-a">Alpha paragraph</p>
 	<p class="probe-b">Beta paragraph</p>
 	<p><a class="probe-link" href="/somewhere">A link in the flow</a></p>
+	<p><a class="probe-anchor" href="#probe-target">Jump down</a></p>
+	<h2 id="probe-target">A target further down</h2>
 	<svg class="cms-chart chart-anim in-view"><circle class="cr" /></svg>
 	<p><a href="#gamma" class="probe-link">a footnote</a></p>
 

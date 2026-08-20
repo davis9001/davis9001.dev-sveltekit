@@ -31,6 +31,9 @@ function setViewportMatches(matches: boolean) {
 }
 
 afterEach(() => {
+	// The river persists reading position per path; without this one test
+	// restores the position another test left behind.
+	sessionStorage.clear();
 	Object.defineProperty(window, 'matchMedia', {
 		writable: true,
 		configurable: true,
@@ -413,7 +416,7 @@ describe('RiverColumns', () => {
 		}
 	});
 
-	it('renders cloned charts complete, since nothing will ever arm them', async () => {
+	it('plays every copy of a chart in the same tick', async () => {
 		setViewportMatches(true);
 		const { container } = render(RiverHost);
 
@@ -422,14 +425,65 @@ describe('RiverColumns', () => {
 			expect(cols[1].querySelector('svg.cms-chart')).toBeTruthy();
 		});
 
-		// chart-anim hides the marks and waits for an observer that only ever
-		// watches column 1 — a clone keeping it is a chart that never appears.
-		for (const clone of cols.slice(1)) {
-			const chart = clone.querySelector('svg.cms-chart') as HTMLElement;
-			expect(chart.classList.contains('chart-anim')).toBe(false);
-			expect(chart.classList.contains('in-view')).toBe(false);
+		// happy-dom measures everything as zero, which makes a chart's band
+		// degenerate and unreachable. Give it a real height and re-measure.
+		const flow = container.querySelector('.river-flow') as HTMLElement;
+		const chart0 = cols[0].querySelector('svg.cms-chart') as HTMLElement;
+		const flowTop = flow.getBoundingClientRect().top;
+		chart0.getBoundingClientRect = () => ({ top: flowTop + 10, height: 200 }) as DOMRect;
+		window.dispatchEvent(new Event('resize'));
+
+		// A chart across a column boundary is drawn twice, so its halves have to
+		// agree. Every copy stays armed and is cued together.
+		const charts = cols.map((col) => col.querySelector('svg.cms-chart') as HTMLElement);
+		for (const chart of charts) {
+			expect(chart.classList.contains('chart-anim')).toBe(true);
+			expect(chart.classList.contains('in-view')).toBe(true);
 		}
-		expect(cols[0].querySelector('svg.cms-chart')?.classList.contains('chart-anim')).toBe(true);
+	});
+
+	it('strips ids from the clones so a lookup cannot land on a copy', async () => {
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		const cols = [...container.querySelectorAll('.river-col')] as HTMLElement[];
+		await waitFor(() => {
+			expect(cols[1].querySelector('h2')).toBeTruthy();
+		});
+
+		expect(cols[0].querySelector('#probe-target')).toBeTruthy();
+		for (const clone of cols.slice(1)) {
+			expect(clone.querySelector('[id]')).toBeNull();
+		}
+	});
+
+	it('steers to an in-page anchor instead of leaving a locked page still', async () => {
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		await waitFor(() => {
+			expect(container.querySelector('.river')?.classList.contains('river-active')).toBe(true);
+		});
+
+		const flow = container.querySelector('.river-flow') as HTMLElement;
+		Object.defineProperty(flow, 'scrollHeight', { value: 20000, configurable: true });
+		window.dispatchEvent(new Event('resize'));
+
+		const target = container.querySelector('#probe-target') as HTMLElement;
+		// happy-dom gives every rect zeroes, so place the target by hand.
+		const flowTop = flow.getBoundingClientRect().top;
+		target.getBoundingClientRect = () => ({ top: flowTop + 5000, height: 40 }) as DOMRect;
+
+		const anchor = container.querySelector('.probe-anchor') as HTMLElement;
+		anchor.click();
+
+		const cols = [...container.querySelectorAll('.river-col')] as HTMLElement[];
+		await waitFor(
+			() => {
+				expect(cols[0].scrollTop).toBeGreaterThan(1000);
+			},
+			{ timeout: 4000 }
+		);
 	});
 
 	it('lets the arrived ending take clicks without swallowing column 1', async () => {
