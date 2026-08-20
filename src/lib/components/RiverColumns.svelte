@@ -78,8 +78,7 @@
 	function lineGrid(): number {
 		// Prefer body copy: the flow now starts with the post's title and
 		// excerpt, whose line heights are not the reading grid.
-		const sample =
-			flowEls[0]?.querySelector('.cms-content p') ?? flowEls[0]?.querySelector('p');
+		const sample = flowEls[0]?.querySelector('.cms-content p') ?? flowEls[0]?.querySelector('p');
 		if (!sample) return 0;
 		const lh = parseFloat(getComputedStyle(sample).lineHeight);
 		return Number.isFinite(lh) && lh > 0 ? lh : 0;
@@ -242,19 +241,45 @@
 	}
 
 	/**
+	 * The document scroll is locked while the river runs, so on a wide touch
+	 * screen — an iPad in landscape clears the width threshold — a finger has
+	 * to drive the flow directly or the post is simply unreadable.
+	 */
+	let lastTouchY: number | null = null;
+
+	function onTouchStart(event: TouchEvent) {
+		if (!active || event.touches.length !== 1) return;
+		lastTouchY = event.touches[0].clientY;
+	}
+
+	function onTouchMove(event: TouchEvent) {
+		if (!active || lastTouchY === null || event.touches.length !== 1) return;
+		event.preventDefault();
+		const y = event.touches[0].clientY;
+		steerBy(lastTouchY - y);
+		lastTouchY = y;
+	}
+
+	function onTouchEnd() {
+		lastTouchY = null;
+	}
+
+	/**
 	 * Column 1 is clipped, so a focused link out of view would be invisible
 	 * with no way to reveal it. Bring the flow to it instead of moving a page
 	 * that no longer scrolls.
 	 */
 	function onFocusIn(event: FocusEvent) {
-		if (!active || !flowEls[0]) return;
+		if (!active || !flowEls[0] || !colEls[0]) return;
 		const target = event.target as HTMLElement | null;
 		if (!target || !flowEls[0].contains(target)) return;
 
-		const offsetInFlow =
-			target.getBoundingClientRect().top - flowEls[0].getBoundingClientRect().top;
-		if (offsetInFlow >= 0 && offsetInFlow <= columnHeight - 48) return;
-		steerTo(currentOffset + offsetInFlow - columnHeight / 3);
+		// Measure against the column, not the flow: the flow's rect already
+		// moves with scrollTop, so a flow-relative offset is the target's place
+		// in the whole article and double-counts the current offset.
+		const inWindow = target.getBoundingClientRect().top - colEls[0].getBoundingClientRect().top;
+		if (inWindow >= 0 && inWindow <= columnHeight - 48) return;
+		steerTo(currentOffset + inWindow - columnHeight / 3);
 	}
 
 	/** Two things answering to one wheel is a fight the reader always loses. */
@@ -317,6 +342,12 @@
 		// Must be non-passive: Svelte's on:wheel is registered passive, which
 		// makes preventDefault a no-op and lets the document scroll anyway.
 		hostEl.addEventListener('wheel', onWheel, { passive: false });
+		hostEl.addEventListener('touchstart', onTouchStart, { passive: true });
+		// Non-passive for the same reason as wheel: the drag must not also
+		// rubber-band the locked document.
+		hostEl.addEventListener('touchmove', onTouchMove, { passive: false });
+		hostEl.addEventListener('touchend', onTouchEnd, { passive: true });
+		hostEl.addEventListener('touchcancel', onTouchEnd, { passive: true });
 		window.addEventListener('focusin', onFocusIn);
 
 		// Images and embeds land after first paint and change the flow height.
@@ -337,6 +368,10 @@
 		window.removeEventListener('resize', measure);
 		window.removeEventListener('keydown', onKeydown);
 		hostEl?.removeEventListener('wheel', onWheel);
+		hostEl?.removeEventListener('touchstart', onTouchStart);
+		hostEl?.removeEventListener('touchmove', onTouchMove);
+		hostEl?.removeEventListener('touchend', onTouchEnd);
+		hostEl?.removeEventListener('touchcancel', onTouchEnd);
 		window.removeEventListener('focusin', onFocusIn);
 		resizeObserver?.disconnect();
 	});
@@ -355,11 +390,14 @@
 	</div>
 
 	{#if active}
+		<!-- Until it has arrived it is transparent and pointer-events: none, but
+		     its links would still be in the tab order — so it is inert too. -->
 		<div
 			class="river-outro"
 			class:river-outro-revealed={atEnd}
 			style="--drain: {drain}; --river-columns: {columns}"
-			aria-hidden={drain < 0.05}
+			aria-hidden={!atEnd}
+			inert={!atEnd}
 		>
 			<div class="river-outro-stage" aria-hidden="true">
 				<span class="river-sweep"></span>
@@ -371,7 +409,7 @@
 				{/each}
 			</div>
 			<div class="river-outro-inner">
-				<slot name="outro" atEnd={atEnd} />
+				<slot name="outro" {atEnd} />
 			</div>
 		</div>
 	{/if}

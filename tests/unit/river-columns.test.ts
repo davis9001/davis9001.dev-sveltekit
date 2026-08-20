@@ -213,7 +213,9 @@ describe('RiverColumns', () => {
 		expect(columnHeight).toBeGreaterThan(0);
 
 		const host = container.querySelector('.river') as HTMLElement;
-		host.dispatchEvent(new WheelEvent('wheel', { deltaY: 999999, bubbles: true, cancelable: true }));
+		host.dispatchEvent(
+			new WheelEvent('wheel', { deltaY: 999999, bubbles: true, cancelable: true })
+		);
 
 		// The old ceiling stopped once column 3 ran out of text. The last
 		// screenful now belongs to column 1.
@@ -231,6 +233,113 @@ describe('RiverColumns', () => {
 		);
 	});
 
+	it('drives the flow with a touch drag, so a wide touchscreen is not locked out', async () => {
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		await waitFor(() => {
+			expect(container.querySelector('.river')?.classList.contains('river-active')).toBe(true);
+		});
+
+		const flow = container.querySelector('.river-flow') as HTMLElement;
+		Object.defineProperty(flow, 'scrollHeight', { value: 20000, configurable: true });
+		window.dispatchEvent(new Event('resize'));
+
+		const cols = [...container.querySelectorAll('.river-col')] as HTMLElement[];
+		const before = cols.map((c) => c.scrollTop);
+
+		const host = container.querySelector('.river') as HTMLElement;
+		const touch = (type: string, clientY: number) => {
+			const event = new Event(type, { bubbles: true, cancelable: true });
+			Object.defineProperty(event, 'touches', {
+				value: type === 'touchend' ? [] : [{ clientY }]
+			});
+			host.dispatchEvent(event);
+		};
+
+		// A finger lands and drags 300px upward: the text advances 300px.
+		touch('touchstart', 500);
+		touch('touchmove', 350);
+		touch('touchmove', 200);
+		touch('touchend', 200);
+
+		await waitFor(() => {
+			expect(cols[0].scrollTop).toBe(before[0] + 300);
+		});
+		// All three columns still move as one flow.
+		expect(cols[1].scrollTop - cols[0].scrollTop).toBe(cols[2].scrollTop - cols[1].scrollTop);
+
+		// A stray move with no finger down does nothing.
+		touch('touchmove', 100);
+		expect(cols[0].scrollTop).toBe(before[0] + 300);
+	});
+
+	it('brings the flow to a focused link that is outside the visible window', async () => {
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		await waitFor(() => {
+			expect(container.querySelector('.river')?.classList.contains('river-active')).toBe(true);
+		});
+
+		const flow = container.querySelector('.river-flow') as HTMLElement;
+		Object.defineProperty(flow, 'scrollHeight', { value: 20000, configurable: true });
+		window.dispatchEvent(new Event('resize'));
+
+		const cols = [...container.querySelectorAll('.river-col')] as HTMLElement[];
+		const columnHeight = cols[1].scrollTop - cols[0].scrollTop;
+		expect(columnHeight).toBeGreaterThan(0);
+
+		// The link sits 5000px down the article; the column window starts at 0.
+		const link = container.querySelector('.probe-link') as HTMLElement;
+		const rect = (top: number) => () => ({ top }) as DOMRect;
+		cols[0].getBoundingClientRect = rect(0);
+		flow.getBoundingClientRect = rect(-cols[0].scrollTop);
+		link.getBoundingClientRect = rect(5000 - cols[0].scrollTop);
+
+		link.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+		// The flow comes to the link and settles it a third of the way down.
+		await waitFor(() => {
+			expect(cols[0].scrollTop).toBeCloseTo(5000 - columnHeight / 3, 3);
+		});
+	});
+
+	it('leaves the flow alone when the focused link is already in view', async () => {
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		await waitFor(() => {
+			expect(container.querySelector('.river')?.classList.contains('river-active')).toBe(true);
+		});
+
+		const flow = container.querySelector('.river-flow') as HTMLElement;
+		Object.defineProperty(flow, 'scrollHeight', { value: 20000, configurable: true });
+		window.dispatchEvent(new Event('resize'));
+
+		const cols = [...container.querySelectorAll('.river-col')] as HTMLElement[];
+		const host = container.querySelector('.river') as HTMLElement;
+		host.dispatchEvent(new WheelEvent('wheel', { deltaY: 3000, bubbles: true, cancelable: true }));
+		await waitFor(() => {
+			expect(cols[0].scrollTop).toBeGreaterThan(0);
+		});
+		const offset = cols[0].scrollTop;
+
+		// Mid-article, with the link 100px below the top of column 1's window.
+		// The flow's own rect moves with scrollTop; measured against it the link
+		// would look 100 + offset px away, which is the bug this guards against.
+		const link = container.querySelector('.probe-link') as HTMLElement;
+		const rect = (top: number) => () => ({ top }) as DOMRect;
+		cols[0].getBoundingClientRect = rect(0);
+		flow.getBoundingClientRect = rect(-offset);
+		link.getBoundingClientRect = rect(100);
+
+		link.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(cols[0].scrollTop).toBe(offset);
+	});
+
 	it('reveals the outro as the columns drain, and tells the slot it arrived', async () => {
 		setViewportMatches(true);
 		const { container } = render(RiverHost);
@@ -241,9 +350,13 @@ describe('RiverColumns', () => {
 
 		const outroWrap = container.querySelector('.river-outro') as HTMLElement;
 		const probe = container.querySelector('.probe-outro') as HTMLElement;
-		// At the start it is out of the way and out of the a11y tree.
+		// At the start it is out of the way, out of the a11y tree, and inert —
+		// its share links must not be tabbable while it is still transparent.
+		// (Svelte sets inert as the DOM property; happy-dom does not reflect it
+		// back to the attribute the way a browser does, so read the property.)
 		expect(outroWrap.style.getPropertyValue('--drain').trim()).toBe('0');
 		expect(outroWrap.getAttribute('aria-hidden')).toBe('true');
+		expect((outroWrap as unknown as { inert: boolean }).inert).toBe(true);
 		expect(probe.dataset.atEnd).toBe('false');
 
 		const flow = container.querySelector('.river-flow') as HTMLElement;
@@ -251,7 +364,9 @@ describe('RiverColumns', () => {
 		window.dispatchEvent(new Event('resize'));
 
 		const host = container.querySelector('.river') as HTMLElement;
-		host.dispatchEvent(new WheelEvent('wheel', { deltaY: 999999, bubbles: true, cancelable: true }));
+		host.dispatchEvent(
+			new WheelEvent('wheel', { deltaY: 999999, bubbles: true, cancelable: true })
+		);
 
 		await waitFor(
 			() => {
@@ -261,6 +376,7 @@ describe('RiverColumns', () => {
 		);
 		expect(probe.dataset.atEnd).toBe('true');
 		expect(outroWrap.getAttribute('aria-hidden')).toBe('false');
+		expect((outroWrap as unknown as { inert: boolean }).inert).toBe(false);
 		expect(Number(outroWrap.style.getPropertyValue('--drain'))).toBeGreaterThan(0.5);
 	});
 });
