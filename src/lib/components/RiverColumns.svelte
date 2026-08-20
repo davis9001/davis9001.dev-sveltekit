@@ -49,7 +49,11 @@
 
 	/** Where this reader had got to, kept per post so a refresh does not restart it. */
 	$: storageKey = `river-position:${typeof location === 'undefined' ? '' : location.pathname}`;
-	let restored = false;
+	let articleHeight = 0;
+	/** Held until the layout stops moving, then dropped. */
+	let pendingRestore: { offset: number; height: number } | null = null;
+	let restoreRead = false;
+	let readerHasSteered = false;
 
 	/** Each chart's place in the flow, and the ones that have already played. */
 	let chartBands: Array<{ top: number; bottom: number }> = [];
@@ -126,7 +130,7 @@
 		for (const flow of flowEls) {
 			if (flow) flow.style.paddingBottom = '';
 		}
-		const articleHeight = flowEls[0].scrollHeight;
+		articleHeight = flowEls[0].scrollHeight;
 
 		// scrollTop clamps at the end of the content, so without somewhere to
 		// go the right-hand columns stay pinned on the last screenful instead
@@ -270,6 +274,8 @@
 	}
 
 	function steerBy(delta: number) {
+		readerHasSteered = true;
+		pendingRestore = null;
 		steerTo(targetOffset + delta);
 	}
 
@@ -330,31 +336,60 @@
 		if (active && location.hash) goToHash(location.hash);
 	}
 
-	/** Restore where this reader had got to, unless a hash says otherwise. */
+	/** Have the pictures finished arriving and stopped changing the height? */
+	function layoutSettled(): boolean {
+		const images = flowEls[0]?.querySelectorAll('img');
+		if (!images) return true;
+		return [...images].every((image) => image.complete);
+	}
+
+	/**
+	 * Put the reader back where they were.
+	 *
+	 * The catch is that the first measurement happens before the images have
+	 * loaded, so the flow is shorter then than it will be a moment later — a
+	 * position applied against that height lands short. So the saved spot is
+	 * held and re-applied on every measurement until the layout stops moving,
+	 * and only then let go. It also stores an absolute offset with the height
+	 * it was taken against: reopening at the same size restores the exact
+	 * pixel, and a different size scales it rather than guessing.
+	 */
 	function restorePosition() {
-		if (restored || maxOffset <= 0) return;
-		restored = true;
+		if (maxOffset <= 0) return;
 
-		if (location.hash && goToHash(location.hash, 'jump')) return;
-
-		try {
-			const saved = Number(sessionStorage.getItem(storageKey));
-			if (Number.isFinite(saved) && saved > 0) {
-				// Stored as a fraction: the window may be a different size now,
-				// and "three quarters through" survives that where pixels do not.
-				targetOffset = clamp(saved * maxOffset, 0, maxOffset);
-				currentOffset = targetOffset;
-				applyOffsets();
+		if (!restoreRead) {
+			restoreRead = true;
+			if (location.hash && goToHash(location.hash, 'jump')) return;
+			try {
+				const raw = sessionStorage.getItem(storageKey);
+				const saved = raw ? JSON.parse(raw) : null;
+				if (saved && Number.isFinite(saved.offset) && saved.offset > 0) {
+					pendingRestore = { offset: Number(saved.offset), height: Number(saved.height) || 0 };
+				}
+			} catch {
+				// Storage blocked or corrupt — starting at the top is fine.
 			}
-		} catch {
-			// Storage blocked — starting at the top is a fine outcome.
 		}
+
+		if (!pendingRestore || readerHasSteered) return;
+
+		const scale =
+			pendingRestore.height > 0 && articleHeight > 0 ? articleHeight / pendingRestore.height : 1;
+		const next = clamp(pendingRestore.offset * scale, 0, maxOffset);
+		targetOffset = next;
+		currentOffset = next;
+		applyOffsets();
+
+		if (layoutSettled()) pendingRestore = null;
 	}
 
 	function savePosition() {
-		if (!active || maxOffset <= 0) return;
+		if (!active || maxOffset <= 0 || pendingRestore) return;
 		try {
-			sessionStorage.setItem(storageKey, String(currentOffset / maxOffset));
+			sessionStorage.setItem(
+				storageKey,
+				JSON.stringify({ offset: Math.round(currentOffset), height: Math.round(articleHeight) })
+			);
 		} catch {
 			// Not worth failing anything over.
 		}
@@ -470,7 +505,9 @@
 	function teardown() {
 		savePosition();
 		active = false;
-		restored = false;
+		restoreRead = false;
+		pendingRestore = null;
+		readerHasSteered = false;
 		lockDocumentScroll(false);
 		if (glideFrame) cancelAnimationFrame(glideFrame);
 		glideFrame = 0;

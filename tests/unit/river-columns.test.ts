@@ -500,4 +500,101 @@ describe('RiverColumns', () => {
 		expect(wrap.className).not.toContain('pointer');
 		expect(container.querySelector('.river-outro-inner')).toBeTruthy();
 	});
+
+	it('restores the exact offset when the post is the same height as before', async () => {
+		sessionStorage.setItem(
+			'river-position:/',
+			JSON.stringify({ offset: 4200, height: 20000 })
+		);
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		await waitFor(() => {
+			expect(container.querySelector('.river')?.classList.contains('river-active')).toBe(true);
+		});
+
+		const flow = container.querySelector('.river-flow') as HTMLElement;
+		Object.defineProperty(flow, 'scrollHeight', { value: 20000, configurable: true });
+		window.dispatchEvent(new Event('resize'));
+
+		const cols = [...container.querySelectorAll('.river-col')] as HTMLElement[];
+		await waitFor(() => {
+			expect(cols[0].scrollTop).toBe(4200);
+		});
+	});
+
+	it('re-applies the saved spot as late images change the height', async () => {
+		sessionStorage.setItem(
+			'river-position:/',
+			JSON.stringify({ offset: 5000, height: 10000 })
+		);
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		await waitFor(() => {
+			expect(container.querySelector('.river')?.classList.contains('river-active')).toBe(true);
+		});
+
+		const flow = container.querySelector('.river-flow') as HTMLElement;
+		// An image that has not arrived yet: the flow is half the height it
+		// will end up, and restoring against it would land the reader short.
+		const image = document.createElement('img');
+		Object.defineProperty(image, 'complete', { value: false, configurable: true });
+		flow.appendChild(image);
+
+		Object.defineProperty(flow, 'scrollHeight', { value: 10000, configurable: true });
+		window.dispatchEvent(new Event('resize'));
+
+		const cols = [...container.querySelectorAll('.river-col')] as HTMLElement[];
+		await waitFor(() => {
+			expect(cols[0].scrollTop).toBe(5000);
+		});
+
+		// The picture lands and the article grows; the spot moves with it
+		// rather than staying at a pixel that now means something else.
+		Object.defineProperty(image, 'complete', { value: true, configurable: true });
+		Object.defineProperty(flow, 'scrollHeight', { value: 20000, configurable: true });
+		window.dispatchEvent(new Event('resize'));
+
+		await waitFor(() => {
+			expect(cols[0].scrollTop).toBe(10000);
+		});
+	});
+
+	it('stops restoring the moment the reader steers', async () => {
+		sessionStorage.setItem(
+			'river-position:/',
+			JSON.stringify({ offset: 5000, height: 10000 })
+		);
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		await waitFor(() => {
+			expect(container.querySelector('.river')?.classList.contains('river-active')).toBe(true);
+		});
+
+		const flow = container.querySelector('.river-flow') as HTMLElement;
+		const image = document.createElement('img');
+		Object.defineProperty(image, 'complete', { value: false, configurable: true });
+		flow.appendChild(image);
+		Object.defineProperty(flow, 'scrollHeight', { value: 10000, configurable: true });
+		window.dispatchEvent(new Event('resize'));
+
+		const cols = [...container.querySelectorAll('.river-col')] as HTMLElement[];
+		await waitFor(() => {
+			expect(cols[0].scrollTop).toBe(5000);
+		});
+
+		const host = container.querySelector('.river') as HTMLElement;
+		host.dispatchEvent(new WheelEvent('wheel', { deltaY: -3000, bubbles: true, cancelable: true }));
+		await waitFor(() => {
+			expect(cols[0].scrollTop).toBeLessThan(5000);
+		});
+
+		// A late resize must not yank them back to where they used to be.
+		Object.defineProperty(flow, 'scrollHeight', { value: 20000, configurable: true });
+		window.dispatchEvent(new Event('resize'));
+		await new Promise((resolve) => setTimeout(resolve, 60));
+		expect(cols[0].scrollTop).toBeLessThan(5000);
+	});
 });
