@@ -1111,3 +1111,11 @@ transition-duration: 150ms;
 		stroke-dashoffset: 0;
 	}
 }
+
+/* Locked while the three-column reading mode is running: the columns scroll,
+   the document does not. Set from RiverColumns, whose own styles are scoped
+   and so cannot reach the root element. */
+html.river-scroll-lock,
+html.river-scroll-lock body {
+	overflow: hidden;
+}

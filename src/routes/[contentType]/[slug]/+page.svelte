@@ -5,8 +5,10 @@
   Uses the content type's itemTemplate setting for layout selection.
 -->
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import CmsContent from '$lib/components/CmsContent.svelte';
 	import PredictionProof from '$lib/components/PredictionProof.svelte';
+	import RiverColumns from '$lib/components/RiverColumns.svelte';
 	import SEO from '$lib/components/SEO.svelte';
 	import { formatDateWindow } from '$lib/predictions/format';
 	import { DEFAULT_OG_IMAGE } from '$lib/utils/seo';
@@ -17,6 +19,32 @@
 	$: contentType = data.contentType;
 	$: item = data.item;
 	$: tags = data.tags || [];
+
+	/**
+	 * Three-column reading is an experiment, so it stays a choice. The toggle
+	 * only appears on screens wide enough for the river to activate; the
+	 * preference is remembered per reader.
+	 */
+	const READING_MODE_KEY = 'reading-mode';
+	let readingMode: 'river' | 'single' = 'river';
+
+	onMount(() => {
+		try {
+			const stored = localStorage.getItem(READING_MODE_KEY);
+			if (stored === 'single' || stored === 'river') readingMode = stored;
+		} catch {
+			// Private mode or blocked storage — the default is fine.
+		}
+	});
+
+	function toggleReadingMode() {
+		readingMode = readingMode === 'river' ? 'single' : 'river';
+		try {
+			localStorage.setItem(READING_MODE_KEY, readingMode);
+		} catch {
+			// Not worth failing the click over.
+		}
+	}
 
 	function formatDate(dateStr: string | null): string {
 		if (!dateStr) return '';
@@ -90,6 +118,13 @@
 		<PredictionProof {item} />
 	{:else if contentType.settings.itemTemplate === 'blog-item'}
 		<article class="cms-blog-article">
+			<div class="cms-reading-mode">
+				<button type="button" class="cms-reading-mode-btn" on:click={toggleReadingMode}>
+					{readingMode === 'river' ? 'Read in one column' : 'Read in three columns'}
+				</button>
+			</div>
+
+			<RiverColumns enabled={readingMode === 'river'}>
 			<header class="cms-blog-article-header">
 				{#if item.fields.category}
 					<span class="cms-blog-article-category">{item.fields.category}</span>
@@ -127,6 +162,7 @@
 			<div class="cms-blog-article-body cms-content">
 				<CmsContent html={String(item.fields.body || '')} />
 			</div>
+			</RiverColumns>
 		</article>
 	{:else}
 		<!-- Default item template -->
@@ -184,6 +220,53 @@
 		max-width: 780px;
 		margin: 0 auto;
 		padding: var(--spacing-xl) var(--spacing-md);
+	}
+
+	/* Three columns need room. The header, excerpt and byline keep the reading
+	   measure they were designed for; only the page's outer cap widens, and
+	   only where the river can actually run. */
+	@media (min-width: 1100px) {
+		/* The river takes the whole window. The centred reading measure is what
+		   the columns are for; the page itself stops being a column. */
+		.cms-item-page:has(:global(.river-active)) {
+			max-width: none;
+			padding-left: var(--spacing-lg);
+			padding-right: var(--spacing-lg);
+		}
+
+	}
+
+	/* The toggle only means anything where the river runs, so it only shows
+	   there. */
+	.cms-reading-mode {
+		display: none;
+	}
+
+	@media (min-width: 1100px) {
+		.cms-reading-mode {
+			display: flex;
+			justify-content: flex-end;
+			margin-bottom: var(--spacing-md);
+		}
+	}
+
+	.cms-reading-mode-btn {
+		background: none;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		font: inherit;
+		font-size: 0.85rem;
+		padding: 0.35rem 0.75rem;
+		transition:
+			color 0.2s ease,
+			border-color 0.2s ease;
+	}
+
+	.cms-reading-mode-btn:hover {
+		color: var(--color-primary);
+		border-color: var(--color-primary);
 	}
 
 	.cms-back-link {
