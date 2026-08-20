@@ -13,10 +13,11 @@
   fight the reader always loses.
 
   Column 1 holds the real content. Screen readers and keyboard users get that
-  one, complete and in order; the rest are inert, aria-hidden clones showing
-  what is coming next, so nothing is announced or focusable twice. Interactive
-  embeds only work in column 1 for the same reason — they become live as the
-  text reaches it.
+  one, complete and in order; the rest are aria-hidden clones with everything
+  inside taken out of the tab order, so the article is announced once and
+  tabbed through once while every column stays clickable. Interactive embeds
+  only run in column 1 — a clone is markup, not a mounted component — so they
+  come alive as the text reaches it.
 
   Offsets are applied as native scrollTop rather than transforms: translating
   a subtree the height of a whole article leaves the browser unable to
@@ -138,12 +139,37 @@
 		applyOffsets();
 	}
 
-	/** Columns 2..n mirror the rendered markup of column 1. */
+	/** Anything a reader could tab to or click. */
+	const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex], iframe, audio, video';
+
+	/**
+	 * Columns 2..n mirror the rendered markup of column 1.
+	 *
+	 * They were `inert`, which also kills pointer events — and since reading
+	 * runs left to right, most links a reader can see live in these columns, so
+	 * most links were dead. They are aria-hidden with everything inside taken
+	 * out of the tab order instead: the same trick the blog cards use, and it
+	 * leaves the mouse working while the article is still announced once.
+	 */
 	function syncClones() {
 		if (!active || !flowEls[0]) return;
 		const markup = flowEls[0].innerHTML;
 		for (let i = 1; i < flowEls.length; i++) {
-			if (flowEls[i]) flowEls[i].innerHTML = markup;
+			if (!flowEls[i]) continue;
+			flowEls[i].innerHTML = markup;
+			for (const el of flowEls[i].querySelectorAll(FOCUSABLE)) {
+				el.setAttribute('tabindex', '-1');
+			}
+
+			// Inline charts hide their own marks the moment CmsContent adds
+			// `chart-anim`, and only reveal them when its observer sees that
+			// element scroll into view. A clone is never observed, so it copies
+			// the hidden half of that bargain and stays blank forever. Dropping
+			// the class puts it on the same footing as a reader without JS: the
+			// finished chart, drawn complete, no animation.
+			for (const chart of flowEls[i].querySelectorAll('svg.cms-chart')) {
+				chart.classList.remove('chart-anim', 'in-view');
+			}
 		}
 	}
 
@@ -383,7 +409,7 @@
 			<div class="river-flow" bind:this={flowEls[0]}><slot /></div>
 		</div>
 		{#each Array(Math.max(0, columns - 1)) as _, i}
-			<div class="river-col" aria-hidden="true" inert bind:this={colEls[i + 1]}>
+			<div class="river-col" aria-hidden="true" bind:this={colEls[i + 1]}>
 				<div class="river-flow" bind:this={flowEls[i + 1]}></div>
 			</div>
 		{/each}
@@ -481,7 +507,10 @@
 		transform: translateY(calc((1 - var(--drain, 0)) * 26px));
 	}
 
-	.river-outro-revealed {
+	/* Only the panel itself takes clicks. The wrapper spans every column, so
+	   making it clickable would swallow anything aimed at column 1, which is
+	   still holding the last of the post. */
+	.river-outro-revealed .river-outro-inner {
 		pointer-events: auto;
 	}
 

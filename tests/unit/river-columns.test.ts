@@ -66,10 +66,12 @@ describe('RiverColumns', () => {
 
 		const flows = [...container.querySelectorAll('.river-flow')] as HTMLElement[];
 		expect(flows).toHaveLength(3);
+		// The clones carry the same reading matter, not the same markup: links
+		// are taken out of the tab order and charts are un-armed on the way in.
 		await waitFor(() => {
-			expect(flows[1].innerHTML).toBe(flows[0].innerHTML);
+			expect(flows[1].textContent).toBe(flows[0].textContent);
 		});
-		expect(flows[2].innerHTML).toBe(flows[0].innerHTML);
+		expect(flows[2].textContent).toBe(flows[0].textContent);
 		expect(flows[1].innerHTML).toContain('Alpha paragraph');
 	});
 
@@ -89,7 +91,7 @@ describe('RiverColumns', () => {
 		expect(cols[2].scrollTop - cols[1].scrollTop).toBeCloseTo(stride, 5);
 	});
 
-	it('keeps the clone columns out of the accessibility tree and unfocusable', async () => {
+	it('keeps the clone columns out of the accessibility tree', async () => {
 		setViewportMatches(true);
 		const { container } = render(RiverHost);
 
@@ -97,7 +99,9 @@ describe('RiverColumns', () => {
 		expect(cols[0].hasAttribute('aria-hidden')).toBe(false);
 		for (const clone of cols.slice(1)) {
 			expect(clone.getAttribute('aria-hidden')).toBe('true');
-			expect(clone.hasAttribute('inert')).toBe(true);
+			// Not inert: that would take the mouse with it. See the clickable
+			// -clones test below for the half that has to keep working.
+			expect(clone.hasAttribute('inert')).toBe(false);
 		}
 	});
 
@@ -378,5 +382,68 @@ describe('RiverColumns', () => {
 		expect(outroWrap.getAttribute('aria-hidden')).toBe('false');
 		expect((outroWrap as unknown as { inert: boolean }).inert).toBe(false);
 		expect(Number(outroWrap.style.getPropertyValue('--drain'))).toBeGreaterThan(0.5);
+	});
+
+	it('leaves links in the clone columns clickable, but out of the tab order', async () => {
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		await waitFor(() => {
+			expect(container.querySelector('.river')?.classList.contains('river-active')).toBe(true);
+		});
+
+		const cols = [...container.querySelectorAll('.river-col')] as HTMLElement[];
+
+		// Reading runs left to right, so most links a reader can see are in the
+		// clones. `inert` would make every one of them dead to the mouse.
+		for (const clone of cols.slice(1)) {
+			expect(clone.hasAttribute('inert')).toBe(false);
+			expect(clone.getAttribute('aria-hidden')).toBe('true');
+		}
+
+		await waitFor(() => {
+			expect(cols[1].querySelector('.probe-link')).toBeTruthy();
+		});
+
+		// The real one stays tabbable; the copies do not, so the article is
+		// tabbed through exactly once.
+		expect(cols[0].querySelector('.probe-link')?.getAttribute('tabindex')).toBeNull();
+		for (const clone of cols.slice(1)) {
+			expect(clone.querySelector('.probe-link')?.getAttribute('tabindex')).toBe('-1');
+		}
+	});
+
+	it('renders cloned charts complete, since nothing will ever arm them', async () => {
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		const cols = [...container.querySelectorAll('.river-col')] as HTMLElement[];
+		await waitFor(() => {
+			expect(cols[1].querySelector('svg.cms-chart')).toBeTruthy();
+		});
+
+		// chart-anim hides the marks and waits for an observer that only ever
+		// watches column 1 — a clone keeping it is a chart that never appears.
+		for (const clone of cols.slice(1)) {
+			const chart = clone.querySelector('svg.cms-chart') as HTMLElement;
+			expect(chart.classList.contains('chart-anim')).toBe(false);
+			expect(chart.classList.contains('in-view')).toBe(false);
+		}
+		expect(cols[0].querySelector('svg.cms-chart')?.classList.contains('chart-anim')).toBe(true);
+	});
+
+	it('lets the arrived ending take clicks without swallowing column 1', async () => {
+		setViewportMatches(true);
+		const { container } = render(RiverHost);
+
+		await waitFor(() => {
+			expect(container.querySelector('.river-outro')).toBeTruthy();
+		});
+
+		// The wrapper spans every column, so it must never be the thing that
+		// receives clicks — only the panel inside it may.
+		const wrap = container.querySelector('.river-outro') as HTMLElement;
+		expect(wrap.className).not.toContain('pointer');
+		expect(container.querySelector('.river-outro-inner')).toBeTruthy();
 	});
 });
