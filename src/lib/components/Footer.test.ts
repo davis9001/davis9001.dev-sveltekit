@@ -25,18 +25,19 @@ describe('Footer', () => {
 		expect(screen.getByText(/all rights reserved/i)).toBeInTheDocument();
 	});
 
-	it('should have centered text styling', () => {
-		render(Footer);
-		const paragraph = document.querySelector('footer p');
-		expect(paragraph).toBeInTheDocument();
-		expect(paragraph).toHaveClass('text-center');
-	});
-
-	it('should have container with flex layout', () => {
+	it('renders the notice inside the shared container', () => {
 		render(Footer);
 		const container = document.querySelector('footer div');
-		expect(container).toBeInTheDocument();
+		const paragraph = document.querySelector('footer p');
+
+		// The old tests here asserted Tailwind class names — text-center, flex —
+		// that this project has no Tailwind to implement, so they passed while
+		// the footer sat unstyled and flush against the bottom of the window.
+		// Spacing now comes from the component's own scoped styles, which this
+		// environment does not resolve, so it is checked in a browser instead;
+		// what is worth pinning here is the shape and the container it uses.
 		expect(container).toHaveClass('container');
-		expect(container).toHaveClass('flex');
+		expect(paragraph?.parentElement).toBe(container);
+		expect(paragraph?.textContent).toMatch(/all rights reserved/i);
 	});
 });

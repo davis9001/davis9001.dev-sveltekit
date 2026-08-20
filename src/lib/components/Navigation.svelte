@@ -235,6 +235,14 @@
 		backdrop-filter: blur(10px);
 	}
 
+	/* The shared .container caps at 1280px, which parks the logo and the links
+	   in the middle third of a wide monitor while the bar itself spans the
+	   whole screen. The nav is chrome, not reading matter, so it gets the room
+	   — the 1280px measure still governs the pages that want it. */
+	.nav .container {
+		max-width: 2560px;
+	}
+
 	.nav-content {
 		display: grid;
 		grid-template-columns: 1fr auto;
