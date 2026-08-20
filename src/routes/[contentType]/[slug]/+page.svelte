@@ -453,9 +453,16 @@
 		margin: var(--spacing-lg) 0;
 	}
 
+	/* A screenshot of an interface, dropped straight onto the page background,
+	   reads as that interface: the focus-ring capture in "The List" looked like
+	   a real button stranded mid-article. Frame it so a picture of a control is
+	   visibly a picture. */
 	.cms-content :global(figure img) {
 		display: block;
 		margin: 0 auto;
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius-md);
+		background: var(--color-surface);
 	}
 
 	.cms-content :global(figcaption) {
