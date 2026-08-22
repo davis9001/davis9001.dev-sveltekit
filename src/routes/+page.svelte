@@ -35,8 +35,29 @@
 	export let data: PageData;
 
 	$: recentPosts = data.recentPosts || [];
-	$: githubActivityDataPromise = data.githubActivityData as Promise<any> | any;
-	$: spotifyDataPromise = data.spotifyData as Promise<any> | any;
+	/**
+	 * Both widgets are streamed from the server load, and both know how to
+	 * fetch for themselves when they arrive with nothing. The gap is that they
+	 * cannot do it while the await block is still pending: if the streamed
+	 * promise never settles — a stalled D1 read, a truncated response — the
+	 * placeholder sits there forever and the widget that could have rescued it
+	 * never mounts. So the wait is bounded. Giving up hands the widget a null,
+	 * which is exactly the case it already handles by fetching.
+	 */
+	const STREAM_PATIENCE_MS = 6000;
+
+	function settleWithin(value: unknown, ms: number): Promise<any> {
+		if (!browser || !(value instanceof Promise)) {
+			return Promise.resolve(value ?? null);
+		}
+		return Promise.race([
+			value,
+			new Promise((resolve) => setTimeout(() => resolve(null), ms))
+		]);
+	}
+
+	$: githubActivityDataPromise = settleWithin(data.githubActivityData, STREAM_PATIENCE_MS);
+	$: spotifyDataPromise = settleWithin(data.spotifyData, STREAM_PATIENCE_MS);
 
 	let asciiCharacters: string[] = [];
 	let asciiGridReady = false;
