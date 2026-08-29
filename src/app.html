@@ -50,15 +50,27 @@
 				document.documentElement.setAttribute('data-theme', theme);
 			})();
 		</script>
-		<!-- Google tag (gtag.js) -->
-		<script async src="https://www.googletagmanager.com/gtag/js?id=G-CGCVGMFE98"></script>
+		<!-- Google tag (gtag.js) - production hostnames only -->
 		<script>
-			window.dataLayer = window.dataLayer || [];
-			function gtag() {
-				dataLayer.push(arguments);
-			}
-			gtag('js', new Date());
-			gtag('config', 'G-CGCVGMFE98');
+			(function () {
+				// Exact match only. The dev tunnel is a subdomain of the production
+				// domain (dev-<hash>.davis9001.dev), so a suffix test would let it through.
+				var PRODUCTION_HOSTS = ['davis9001.dev', 'www.davis9001.dev'];
+				if (PRODUCTION_HOSTS.indexOf(location.hostname) === -1) return;
+
+				var MEASUREMENT_ID = 'G-CGCVGMFE98';
+				var loader = document.createElement('script');
+				loader.async = true;
+				loader.src = 'https://www.googletagmanager.com/gtag/js?id=' + MEASUREMENT_ID;
+				document.head.appendChild(loader);
+
+				window.dataLayer = window.dataLayer || [];
+				window.gtag = function () {
+					window.dataLayer.push(arguments);
+				};
+				window.gtag('js', new Date());
+				window.gtag('config', MEASUREMENT_ID);
+			})();
 		</script>
 		%sveltekit.head%
 	</head>
