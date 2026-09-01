@@ -5,6 +5,7 @@
   Uses the content type's listTemplate setting for layout selection.
 -->
 <script lang="ts">
+	import ThemeImage from '$lib/components/ThemeImage.svelte';
 	import SEO from '$lib/components/SEO.svelte';
 	import { formatDateWindow } from '$lib/predictions/format';
 	import type { PageData } from './$types';
@@ -122,7 +123,11 @@
 								tabindex="-1"
 								aria-hidden="true"
 							>
-								<img src={String(item.fields.featured_image)} alt={item.title} loading="lazy" />
+								<ThemeImage
+									src={String(item.fields.featured_image)}
+									alt={item.title}
+									loading="lazy"
+								/>
 							</a>
 						{/if}
 						<div class="cms-blog-card-content">
@@ -243,7 +248,9 @@
 		overflow: hidden;
 	}
 
-	.cms-blog-card-image img {
+	/* :global — the image is rendered by <ThemeImage>, so component scoping
+	   would not reach it. */
+	.cms-blog-card-image :global(img) {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;

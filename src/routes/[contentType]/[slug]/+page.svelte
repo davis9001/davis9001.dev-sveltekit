@@ -8,6 +8,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import CmsContent from '$lib/components/CmsContent.svelte';
+	import ThemeImage from '$lib/components/ThemeImage.svelte';
 	import PredictionProof from '$lib/components/PredictionProof.svelte';
 	import PostOutro from '$lib/components/PostOutro.svelte';
 	import RiverColumns from '$lib/components/RiverColumns.svelte';
@@ -157,7 +158,7 @@
 
 				{#if item.fields.featured_image}
 					<div class="cms-blog-article-hero">
-						<img src={String(item.fields.featured_image)} alt={item.title} />
+						<ThemeImage src={String(item.fields.featured_image)} alt={item.title} />
 					</div>
 				{/if}
 
@@ -374,7 +375,9 @@
 		overflow: hidden;
 	}
 
-	.cms-blog-article-hero img {
+	/* :global — the image is rendered by <ThemeImage>, so component scoping
+	   would not reach it. */
+	.cms-blog-article-hero :global(img) {
 		width: 100%;
 		height: auto;
 		display: block;

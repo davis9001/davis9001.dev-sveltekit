@@ -1,57 +1,83 @@
 import { describe, expect, it } from 'vitest';
-import { safeFilename, parseFrontmatter, buildProject } from '../../src/lib/utils/portfolio';
+import {
+  screenshotStem,
+  screenshotPath,
+  screenshotOgUrl,
+  SCREENSHOT_THEMES,
+  parseFrontmatter,
+  buildProject
+} from '../../src/lib/utils/portfolio';
 
-describe('safeFilename', () => {
+describe('screenshotStem', () => {
   it('should strip https protocol and replace non-word chars', () => {
-    expect(safeFilename('https://game.starspace.group')).toBe(
-      '/portfolio-screenshot/game_starspace_group.webp'
-    );
+    expect(screenshotStem('https://game.starspace.group')).toBe('game_starspace_group');
   });
 
   it('should strip http protocol', () => {
-    expect(safeFilename('http://example.com')).toBe(
-      '/portfolio-screenshot/example_com.webp'
-    );
+    expect(screenshotStem('http://example.com')).toBe('example_com');
   });
 
   it('should handle URLs with paths', () => {
-    expect(safeFilename('https://docs.deno.com')).toBe(
-      '/portfolio-screenshot/docs_deno_com.webp'
-    );
+    expect(screenshotStem('https://fresh.deno.dev/docs')).toBe('fresh_deno_dev_docs');
   });
 
   it('should handle URLs with trailing slash', () => {
-    expect(safeFilename('https://example.com/')).toBe(
-      '/portfolio-screenshot/example_com_.webp'
-    );
-  });
-
-  it('should handle URLs with subdomains', () => {
-    expect(safeFilename('https://fresh.deno.dev/docs')).toBe(
-      '/portfolio-screenshot/fresh_deno_dev_docs.webp'
-    );
+    expect(screenshotStem('https://example.com/')).toBe('example_com_');
   });
 
   it('should handle URLs with hyphens', () => {
-    expect(safeFilename('https://el-toreo-main-website.vercel.app')).toBe(
-      '/portfolio-screenshot/el_toreo_main_website_vercel_app.webp'
+    expect(screenshotStem('https://el-toreo-main-website.vercel.app')).toBe(
+      'el_toreo_main_website_vercel_app'
     );
   });
 
   it('should collapse consecutive non-word chars', () => {
-    expect(safeFilename('https://psychologist.svelte.pages.dev/')).toBe(
-      '/portfolio-screenshot/psychologist_svelte_pages_dev_.webp'
+    expect(screenshotStem('https://psychologist.svelte.pages.dev/')).toBe(
+      'psychologist_svelte_pages_dev_'
+    );
+  });
+});
+
+describe('screenshotPath', () => {
+  it('should build a themed path under /portfolio-screenshot/', () => {
+    expect(screenshotPath('https://game.starspace.group', 'dark')).toBe(
+      '/portfolio-screenshot/game_starspace_group-dark.webp'
+    );
+    expect(screenshotPath('https://game.starspace.group', 'light')).toBe(
+      '/portfolio-screenshot/game_starspace_group-light.webp'
     );
   });
 
-  it('should return .webp extension', () => {
-    const result = safeFilename('https://example.com');
-    expect(result).toMatch(/\.webp$/);
+  it('should give the two themes different paths', () => {
+    const url = 'https://docs.deno.com';
+    expect(screenshotPath(url, 'light')).not.toBe(screenshotPath(url, 'dark'));
   });
 
-  it('should always start with /portfolio-screenshot/', () => {
-    const result = safeFilename('https://any-url.example.org');
-    expect(result).toMatch(/^\/portfolio-screenshot\//);
+  it('should return a .webp under /portfolio-screenshot/ for every theme', () => {
+    for (const theme of SCREENSHOT_THEMES) {
+      const result = screenshotPath('https://any-url.example.org', theme);
+      expect(result).toMatch(/^\/portfolio-screenshot\//);
+      expect(result).toMatch(/\.webp$/);
+    }
+  });
+});
+
+describe('SCREENSHOT_THEMES', () => {
+  it('should list light before dark, so the default renders first', () => {
+    expect([...SCREENSHOT_THEMES]).toEqual(['light', 'dark']);
+  });
+});
+
+describe('screenshotOgUrl', () => {
+  it('should be absolute and resolve to the dark capture', () => {
+    expect(screenshotOgUrl('https://agapeverse.app')).toBe(
+      'https://davis9001.dev/portfolio-screenshot/agapeverse_app-dark.webp'
+    );
+  });
+
+  it('should not double up the screenshot directory', () => {
+    const result = screenshotOgUrl('https://example.com');
+    expect(result.match(/portfolio-screenshot/g)).toHaveLength(1);
   });
 });
 

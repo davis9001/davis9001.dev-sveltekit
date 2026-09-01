@@ -3,7 +3,7 @@
 	import type { PageData } from './$types';
 	import { page } from '$app/stores';
 	import { renderProjectMarkdown } from '$lib/utils/project-markdown';
-	import { safeFilename } from '$lib/utils/portfolio';
+	import { screenshotPath, screenshotOgUrl, SCREENSHOT_THEMES } from '$lib/utils/portfolio';
 	import { DEFAULT_OG_IMAGE } from '$lib/utils/seo';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import ShareButtons from '$lib/components/ShareButtons.svelte';
@@ -34,9 +34,7 @@
 	title={project.meta.title}
 	description={project.meta.summary || `${project.meta.title} — a project by David Monaghan.`}
 	path="/portfolio/project/{project.slug}"
-	imageUrl={project.meta.url
-		? `https://davis9001.dev/portfolio-screenshot/${safeFilename(project.meta.url)}`
-		: DEFAULT_OG_IMAGE}
+	imageUrl={project.meta.url ? screenshotOgUrl(project.meta.url) : DEFAULT_OG_IMAGE}
 />
 
 <div class="px-6 sm:px-8 py-2 bg-background text-foreground min-h-screen overflow-x-hidden">
@@ -65,7 +63,13 @@
 			{#if project.meta.url}
 				<div>
 					<a href={project.meta.url} target="_blank" rel="noopener noreferrer">
-						<img src={safeFilename(project.meta.url)} alt="Screenshot of {project.meta.title}" />
+						{#each SCREENSHOT_THEMES as theme (theme)}
+							<img
+								src={screenshotPath(project.meta.url, theme)}
+								alt="Screenshot of {project.meta.title}"
+								class="theme-img theme-img--{theme}"
+							/>
+						{/each}
 					</a>
 				</div>
 			{/if}
@@ -128,22 +132,6 @@
 
 	.markdown-body :global(li) {
 		margin-bottom: 0.25rem;
-	}
-
-	/* Theme-paired screenshots: both variants ship, CSS shows the one matching
-	   data-theme. Light is the default so the pair still resolves to exactly one
-	   image before the theme attribute is set. `display: none` also keeps the
-	   hidden variant out of the accessibility tree. */
-	.markdown-body :global(.theme-img--dark) {
-		display: none;
-	}
-
-	:global([data-theme='dark']) .markdown-body :global(.theme-img--dark) {
-		display: block;
-	}
-
-	:global([data-theme='dark']) .markdown-body :global(.theme-img--light) {
-		display: none;
 	}
 
 	.markdown-body :global(img) {

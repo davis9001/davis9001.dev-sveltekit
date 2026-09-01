@@ -59,8 +59,14 @@ function parseFrontmatter(markdown) {
 	return { meta, content: match[2] };
 }
 
-function safeFilename(url) {
-	return url.replace(/https?:\/\//, '').replace(/\W+/g, '_') + '.webp';
+// Mirrors screenshotStem()/screenshotPath() in src/lib/utils/portfolio.ts.
+// Every project gets a light and a dark capture; the pages render both and let
+// CSS show whichever matches the reader's theme.
+const THEMES = ['light', 'dark'];
+
+function safeFilename(url, theme) {
+	const stem = url.replace(/https?:\/\//, '').replace(/\W+/g, '_');
+	return `${stem}-${theme}.webp`;
 }
 
 // --- Chrome detection ---
@@ -145,34 +151,36 @@ async function main() {
 			continue;
 		}
 
-		const filename = safeFilename(url);
-		const outputPath = join(outputDir, filename);
+		for (const theme of THEMES) {
+			const filename = safeFilename(url, theme);
+			const outputPath = join(outputDir, filename);
 
-		// Skip if already exists
-		try {
-			await stat(outputPath);
-			console.log(`Skipping existing: ${filename}`);
-			skipped++;
-			continue;
-		} catch { /* file doesn't exist, proceed */ }
+			// Skip if already exists
+			try {
+				await stat(outputPath);
+				console.log(`Skipping existing: ${filename}`);
+				skipped++;
+				continue;
+			} catch { /* file doesn't exist, proceed */ }
 
-		try {
-			console.log(`Capturing ${url} -> ${filename}`);
-			await captureWebsite.file(url, outputPath, {
-				type: 'webp',
-				width: 1280,
-				height: 720,
-				quality: 0.7,
-				darkMode: true,
-				launchOptions: {
-					executablePath: chromePath,
-				},
-			});
-			console.log(`✓ Captured ${url}`);
-			captured++;
-		} catch (error) {
-			console.error(`✗ Failed to capture ${url}:`, error.message || error);
-			failed++;
+			try {
+				console.log(`Capturing ${url} (${theme}) -> ${filename}`);
+				await captureWebsite.file(url, outputPath, {
+					type: 'webp',
+					width: 1280,
+					height: 720,
+					quality: 0.7,
+					darkMode: theme === 'dark',
+					launchOptions: {
+						executablePath: chromePath,
+					},
+				});
+				console.log(`✓ Captured ${url} (${theme})`);
+				captured++;
+			} catch (error) {
+				console.error(`✗ Failed to capture ${url} (${theme}):`, error.message || error);
+				failed++;
+			}
 		}
 	}
 

@@ -4,6 +4,8 @@
  * Contains parsing logic used by both routes and the screenshot script.
  */
 
+import { THEME_VARIANTS, type ThemeVariant } from './theme-image';
+
 export interface ProjectMeta {
   url?: string;
   title: string;
@@ -18,15 +20,41 @@ export interface Project {
   content: string;
 }
 
+export type ScreenshotTheme = ThemeVariant;
+
+/** Re-exported so callers rendering a screenshot pair need only this module. */
+export const SCREENSHOT_THEMES = THEME_VARIANTS;
+
+/** Origin used for absolute social-card URLs. */
+const SITE_ORIGIN = 'https://davis9001.dev';
+
 /**
- * Convert a project URL into a safe screenshot filename path.
- * Matches the Deno Fresh version: strips protocol, replaces non-word chars with `_`, appends `.webp`.
+ * Filename stem for a project's screenshots, derived from its URL.
+ * Strips the protocol and replaces every run of non-word characters with `_`.
  *
- * @example safeFilename("https://game.starspace.group") => "/portfolio-screenshot/game_starspace_group.webp"
+ * @example screenshotStem("https://game.starspace.group") => "game_starspace_group"
  */
-export function safeFilename(url: string): string {
-  const name = url.replace(/https?:\/\//, '').replace(/\W+/g, '_') + '.webp';
-  return '/portfolio-screenshot/' + name;
+export function screenshotStem(url: string): string {
+  return url.replace(/https?:\/\//, '').replace(/\W+/g, '_');
+}
+
+/**
+ * Site-relative path to one theme's screenshot. Every project has both, so
+ * callers can render the pair and let CSS pick by `data-theme`.
+ *
+ * @example screenshotPath("https://game.starspace.group", "dark")
+ *   => "/portfolio-screenshot/game_starspace_group-dark.webp"
+ */
+export function screenshotPath(url: string, theme: ScreenshotTheme): string {
+  return `/portfolio-screenshot/${screenshotStem(url)}-${theme}.webp`;
+}
+
+/**
+ * Absolute screenshot URL for social cards. A crawler has no theme to follow,
+ * so this always resolves to the dark capture.
+ */
+export function screenshotOgUrl(url: string): string {
+  return SITE_ORIGIN + screenshotPath(url, 'dark');
 }
 
 /**

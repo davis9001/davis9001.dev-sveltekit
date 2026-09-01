@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import type { PageData } from './$types';
-	import { safeFilename } from '$lib/utils/portfolio';
+	import { screenshotPath, SCREENSHOT_THEMES } from '$lib/utils/portfolio';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import SocialLinks from '$lib/components/SocialLinks.svelte';
 	import Footer from '$lib/components/Footer.svelte';
@@ -69,12 +69,14 @@
 					<div class="rounded-2xl">
 						{#if project.meta.url}
 							<a class="text-accent block" href="/portfolio/project/{project.slug}">
-								<img
-									src={safeFilename(project.meta.url)}
-									alt="Screenshot of {project.meta.title}"
-									loading="lazy"
-									class="mb-4 aspect-[16/9] w-full rounded-2xl object-cover object-center"
-								/>
+								{#each SCREENSHOT_THEMES as theme (theme)}
+									<img
+										src={screenshotPath(project.meta.url, theme)}
+										alt="Screenshot of {project.meta.title}"
+										loading="lazy"
+										class="theme-img theme-img--{theme} mb-4 aspect-[16/9] w-full rounded-2xl object-cover object-center"
+									/>
+								{/each}
 								<h2 class="text-xl sm:text-2xl font-bold leading-tight">{project.meta.title}</h2>
 							</a>
 							<p class="text-foreground/60">

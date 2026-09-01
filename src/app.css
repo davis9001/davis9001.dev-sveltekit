@@ -1119,3 +1119,26 @@ html.river-scroll-lock,
 html.river-scroll-lock body {
 	overflow: hidden;
 }
+
+/* Theme-paired screenshots.
+
+   A screenshot ships as a light/dark pair and both tags are rendered; these
+   rules show whichever matches the reader's theme. CSS rather than <picture>
+   with prefers-color-scheme, because the theme toggle sets data-theme
+   explicitly and a media query would ignore it.
+
+   Light is the default so the pair resolves to exactly one image before
+   data-theme is set. display:none (not visibility/opacity) also keeps the
+   hidden variant out of the accessibility tree, so both can carry the same
+   alt text without a screen reader announcing the image twice. */
+.theme-img--dark {
+	display: none;
+}
+
+[data-theme='dark'] .theme-img--dark {
+	display: block;
+}
+
+[data-theme='dark'] .theme-img--light {
+	display: none;
+}

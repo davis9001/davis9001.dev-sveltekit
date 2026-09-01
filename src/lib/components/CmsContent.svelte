@@ -16,11 +16,14 @@
 <script lang="ts">
 	import { afterUpdate, onDestroy, onMount } from 'svelte';
 	import { parseContentSegments } from '$lib/cms/embed';
+	import { expandThemeImages } from '$lib/cms/theme-images';
 	import { getEmbedComponent } from '$lib/cms/embeds';
 
 	export let html = '';
 
-	$: segments = parseContentSegments(html || '');
+	// Theme-paired images are expanded before segmenting: the stored body holds
+	// one {theme} tag, the page gets both variants for CSS to choose between.
+	$: segments = parseContentSegments(expandThemeImages(html || ''));
 
 	let observer: IntersectionObserver | null = null;
 
