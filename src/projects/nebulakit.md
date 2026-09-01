@@ -31,11 +31,31 @@ command palette and a widget board where every pointer gesture has a keyboard
 equivalent. Agents get a dynamic sitemap, an API catalog, Agent Skills
 discovery and HTML-to-Markdown negotiation.
 
+## The admin stats page
+
+Analytics are first-party and cookie-free — aggregate counters only, no
+per-visitor data, no third-party tracker. Page views, platform usage against
+the Cloudflare free-tier allowance, referrers, countries, and coarse audience
+buckets derived from request headers at request time. The raw User-Agent is
+never stored.
+
+![NebulaKit admin stats page in dark mode](/nebulakit/admin-stats-dark.webp)
+
+The same page in light mode. Both themes are stepped independently against
+their own surface and validated for colorblind separation, not flipped from
+one another.
+
+![NebulaKit admin stats page in light mode](/nebulakit/admin-stats-light.webp)
+
+## Built on it
+
 The whole thing sits behind a TDD harness with a 95% coverage floor. Click "Use
 this template", run the customisation script once, and deploy.
 
-Several of my own projects are built on it — this site included — and features
-that prove themselves downstream get folded back into the kit.
+Several of my own projects run on it, and features that prove themselves
+downstream get folded back into the kit. This site is one of them —
+davis9001.dev was rebuilt on NebulaKit from the ground up.
 
 - Template: https://github.com/starspacegroup/NebulaKit
 - The site above is itself a NebulaKit app: https://github.com/starspacegroup/nebulakit-site
+- This site, rebuilt on NebulaKit: https://github.com/davis9001/davis9001.dev-sveltekit

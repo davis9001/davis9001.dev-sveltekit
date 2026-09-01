@@ -123,12 +123,36 @@
 		margin-bottom: 0.25rem;
 	}
 
+	.markdown-body :global(img) {
+		display: block;
+		width: 100%;
+		height: auto;
+		margin: 1.5rem 0;
+		border: 1px solid var(--color-border);
+		border-radius: 0.5rem;
+	}
+
 	.markdown-body :global(h1),
 	.markdown-body :global(h2),
 	.markdown-body :global(h3) {
 		color: var(--color-text);
-		margin: 1.5rem 0 0.75rem;
+		margin: 2rem 0 0.75rem;
 		font-weight: 700;
+		line-height: 1.3;
+	}
+
+	/* Sized below the page's own <h1> title, so a heading inside the body never
+	   outranks the project name above it. */
+	.markdown-body :global(h1) {
+		font-size: 1.5rem;
+	}
+
+	.markdown-body :global(h2) {
+		font-size: 1.25rem;
+	}
+
+	.markdown-body :global(h3) {
+		font-size: 1.05rem;
 	}
 
 	.markdown-body :global(code) {
