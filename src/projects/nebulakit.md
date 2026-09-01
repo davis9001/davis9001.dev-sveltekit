@@ -53,9 +53,12 @@ The whole thing sits behind a TDD harness with a 95% coverage floor. Click "Use
 this template", run the customisation script once, and deploy.
 
 Several of my own projects run on it, and features that prove themselves
-downstream get folded back into the kit. This site is one of them —
-davis9001.dev was rebuilt on NebulaKit from the ground up.
+downstream get folded back into the kit. Two of them were rebuilt on it from
+the ground up: this site, davis9001.dev, and
+[AgapeVerse](https://agapeverse.app) — the AI poem generator that started on
+Deno Fresh and now runs the whole NebulaKit stack.
 
 - Template: https://github.com/starspacegroup/NebulaKit
 - The site above is itself a NebulaKit app: https://github.com/starspacegroup/nebulakit-site
 - This site, rebuilt on NebulaKit: https://github.com/davis9001/davis9001.dev-sveltekit
+- AgapeVerse, rebuilt on NebulaKit: https://agapeverse.app
