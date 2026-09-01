@@ -2,7 +2,7 @@
 	import { base } from '$app/paths';
 	import type { PageData } from './$types';
 	import { page } from '$app/stores';
-	import { marked } from 'marked';
+	import { renderProjectMarkdown } from '$lib/utils/project-markdown';
 	import { safeFilename } from '$lib/utils/portfolio';
 	import { DEFAULT_OG_IMAGE } from '$lib/utils/seo';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
@@ -90,7 +90,7 @@
 
 			{#if project.content}
 				<div class="markdown-body p-3 md:p-9">
-					{@html marked(project.content)}
+					{@html renderProjectMarkdown(project.content)}
 				</div>
 			{/if}
 
@@ -128,6 +128,22 @@
 
 	.markdown-body :global(li) {
 		margin-bottom: 0.25rem;
+	}
+
+	/* Theme-paired screenshots: both variants ship, CSS shows the one matching
+	   data-theme. Light is the default so the pair still resolves to exactly one
+	   image before the theme attribute is set. `display: none` also keeps the
+	   hidden variant out of the accessibility tree. */
+	.markdown-body :global(.theme-img--dark) {
+		display: none;
+	}
+
+	:global([data-theme='dark']) .markdown-body :global(.theme-img--dark) {
+		display: block;
+	}
+
+	:global([data-theme='dark']) .markdown-body :global(.theme-img--light) {
+		display: none;
 	}
 
 	.markdown-body :global(img) {

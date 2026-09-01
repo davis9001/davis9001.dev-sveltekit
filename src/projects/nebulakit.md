@@ -39,13 +39,11 @@ the Cloudflare free-tier allowance, referrers, countries, and coarse audience
 buckets derived from request headers at request time. The raw User-Agent is
 never stored.
 
-![NebulaKit admin stats page in dark mode](/nebulakit/admin-stats-dark.webp)
+![The NebulaKit admin stats page](/nebulakit/admin-stats-{theme}.webp)
 
-The same page in light mode. Both themes are stepped independently against
-their own surface and validated for colorblind separation, not flipped from
-one another.
-
-![NebulaKit admin stats page in light mode](/nebulakit/admin-stats-light.webp)
+That screenshot follows whichever theme you are reading in. The two are not a
+flip of each other — each mode is stepped independently against its own
+surface and validated for colorblind separation.
 
 ## Built on it
 

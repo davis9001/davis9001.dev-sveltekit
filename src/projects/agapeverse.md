@@ -25,7 +25,7 @@ is, the poem arrives seconds later, and then you can work on it — edit it,
 print it, or send it. It started as a small side project from a passion to
 share goodness with the world, and it kept growing.
 
-![The AgapeVerse home page](/agapeverse/home.webp)
+![The AgapeVerse home page](/agapeverse/home-{theme}.webp)
 
 ## What it makes
 
@@ -37,11 +37,11 @@ a note about what you want changed.
 Every poem gets a permalink, and the ones people choose to make public can be
 read by anyone.
 
-![A generated poem on its permalink page](/agapeverse/poem.webp)
+![A generated poem on its permalink page](/agapeverse/poem-{theme}.webp)
 
 Those public poems collect in a community gallery.
 
-![The community poem gallery](/agapeverse/poems.webp)
+![The community poem gallery](/agapeverse/poems-{theme}.webp)
 
 ## How it is built
 
@@ -59,4 +59,4 @@ Billing runs on Stripe. Capacity is metered in HeartPoints — a credit that
 different poem types spend at different rates, so the free tier is a real
 allowance rather than a trial, and unused credit carries over on paid plans.
 
-![The AgapeVerse pricing page](/agapeverse/pricing.webp)
+![The AgapeVerse pricing page](/agapeverse/pricing-{theme}.webp)
