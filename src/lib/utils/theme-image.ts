@@ -47,3 +47,62 @@ export function escapeAttribute(value: string): string {
 		.replace(/</g, '&lt;')
 		.replace(/>/g, '&gt;');
 }
+
+/** Classes that make one variant of a switchable pair visible. */
+export function themeSwapClass(theme: ThemeVariant): string {
+	return `theme-swap theme-swap--${theme}`;
+}
+
+/**
+ * What the switch offers next. The label sitting on the light variant offers
+ * dark, and vice versa, so the button always names where it will take you.
+ */
+const SWITCH_LABEL: Record<ThemeVariant, string> = {
+	light: 'See it in dark',
+	dark: 'See it in light'
+};
+
+/** The switch's wording for the variant currently on screen. */
+export function themeSwitchLabel(theme: ThemeVariant): string {
+	return SWITCH_LABEL[theme];
+}
+
+/**
+ * A screenshot pair with its own light/dark switch.
+ *
+ * Built from a hidden checkbox and CSS sibling state rather than a component,
+ * so it can be dropped into `{@html}` markdown output and needs no JavaScript.
+ * Only phrasing elements are used (span, input, label, img), which keeps it
+ * valid inside the `<p>` that a markdown renderer wraps an image in.
+ *
+ * `id` must be unique on the page — the label depends on it to reach the input.
+ */
+export function renderThemeSwitchFigure(options: {
+	id: string;
+	light: string;
+	dark: string;
+	alt: string;
+	titleAttr?: string;
+}): string {
+	const { id, light, dark, alt, titleAttr = '' } = options;
+	const altAttr = escapeAttribute(alt);
+	const idAttr = escapeAttribute(id);
+
+	const image = (theme: ThemeVariant, src: string) =>
+		`<img src="${escapeAttribute(src)}" alt="${altAttr}"${titleAttr} loading="lazy" class="${themeSwapClass(theme)}" />`;
+
+	const labelText = (theme: ThemeVariant) =>
+		`<span class="${themeSwapClass(theme)}">${SWITCH_LABEL[theme]}</span>`;
+
+	return (
+		`<span class="theme-figure">` +
+		`<input class="theme-figure-flip" type="checkbox" id="${idAttr}" />` +
+		image('light', light) +
+		image('dark', dark) +
+		`<label class="theme-figure-switch" for="${idAttr}">` +
+		labelText('light') +
+		labelText('dark') +
+		`</label>` +
+		`</span>`
+	);
+}

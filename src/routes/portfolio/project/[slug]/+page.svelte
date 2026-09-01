@@ -4,6 +4,10 @@
 	import { page } from '$app/stores';
 	import { renderProjectMarkdown } from '$lib/utils/project-markdown';
 	import { screenshotPath, screenshotOgUrl, SCREENSHOT_THEMES } from '$lib/utils/portfolio';
+	import { themeSwapClass, themeSwitchLabel } from '$lib/utils/theme-image';
+
+	// Distinct from the body figures, which are numbered from 1 by the renderer.
+	const HERO_FIGURE_ID = 'theme-figure-hero';
 	import { DEFAULT_OG_IMAGE } from '$lib/utils/seo';
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import ShareButtons from '$lib/components/ShareButtons.svelte';
@@ -61,16 +65,24 @@
 			</div>
 
 			{#if project.meta.url}
-				<div>
+				<!-- The switch sits outside the link on purpose: a label and a checkbox
+				     inside an anchor would be both invalid and un-clickable. -->
+				<div class="theme-figure">
+					<input class="theme-figure-flip" type="checkbox" id={HERO_FIGURE_ID} />
 					<a href={project.meta.url} target="_blank" rel="noopener noreferrer">
 						{#each SCREENSHOT_THEMES as theme (theme)}
 							<img
 								src={screenshotPath(project.meta.url, theme)}
 								alt="Screenshot of {project.meta.title}"
-								class="theme-img theme-img--{theme}"
+								class={themeSwapClass(theme)}
 							/>
 						{/each}
 					</a>
+					<label class="theme-figure-switch" for={HERO_FIGURE_ID}>
+						{#each SCREENSHOT_THEMES as theme (theme)}
+							<span class={themeSwapClass(theme)}>{themeSwitchLabel(theme)}</span>
+						{/each}
+					</label>
 				</div>
 			{/if}
 
@@ -132,6 +144,17 @@
 
 	.markdown-body :global(li) {
 		margin-bottom: 0.25rem;
+	}
+
+	/* The figure takes the image's spacing so its box is exactly the picture —
+	   otherwise the switch, positioned against the figure, floats in the margin
+	   below the screenshot instead of sitting on it. */
+	.markdown-body :global(.theme-figure) {
+		margin: 1.5rem 0;
+	}
+
+	.markdown-body :global(.theme-figure img) {
+		margin: 0;
 	}
 
 	.markdown-body :global(img) {

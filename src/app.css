@@ -1131,14 +1131,80 @@ html.river-scroll-lock body {
    data-theme is set. display:none (not visibility/opacity) also keeps the
    hidden variant out of the accessibility tree, so both can carry the same
    alt text without a screen reader announcing the image twice. */
-.theme-img--dark {
+:root:not([data-theme='dark']) .theme-img--dark {
 	display: none;
-}
-
-[data-theme='dark'] .theme-img--dark {
-	display: block;
 }
 
 [data-theme='dark'] .theme-img--light {
 	display: none;
+}
+
+/* Switchable figures.
+
+   A screenshot pair can also carry its own little switch, so a reader can look
+   at the other theme without changing the whole page. The state is a visually
+   hidden checkbox and the swap is pure CSS — no JS, so it survives in {@html}
+   content and works before hydration.
+
+   Only ever "hide the other one": the visible variant is never given a display
+   of its own, so it keeps whatever the surrounding stylesheet gave it (figures
+   in a project body are display:block, the switch labels are inline). */
+.theme-figure {
+	position: relative;
+	display: block;
+}
+
+:root:not([data-theme='dark']) .theme-figure:not(:has(.theme-figure-flip:checked)) .theme-swap--dark,
+[data-theme='dark'] .theme-figure:has(.theme-figure-flip:checked) .theme-swap--dark {
+	display: none;
+}
+
+:root:not([data-theme='dark']) .theme-figure:has(.theme-figure-flip:checked) .theme-swap--light,
+[data-theme='dark'] .theme-figure:not(:has(.theme-figure-flip:checked)) .theme-swap--light {
+	display: none;
+}
+
+/* Hidden from sight, not from the keyboard — clipped rather than display:none
+   so it stays focusable and the label keeps naming it. */
+.theme-figure-flip {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Bottom right, not top: a screenshot of a web page almost always has its own
+   header up there, and the pill was landing on someone else's nav. It sits over
+   arbitrary imagery either way, so it carries its own backing and blur. */
+.theme-figure-switch {
+	position: absolute;
+	right: 0.6rem;
+	bottom: 0.6rem;
+	z-index: 2;
+	padding: 0.25rem 0.6rem;
+	border: 1px solid var(--color-border);
+	border-radius: 999px;
+	background-color: color-mix(in srgb, var(--color-surface) 88%, transparent);
+	backdrop-filter: blur(6px);
+	color: var(--color-text-secondary);
+	font-size: 0.7rem;
+	line-height: 1.5;
+	cursor: pointer;
+	user-select: none;
+	box-shadow: 0 1px 4px rgb(0 0 0 / 0.22);
+}
+
+.theme-figure-switch:hover {
+	color: var(--color-text);
+	border-color: var(--color-text-secondary);
+}
+
+.theme-figure:has(.theme-figure-flip:focus-visible) .theme-figure-switch {
+	outline: 2px solid var(--color-primary);
+	outline-offset: 2px;
 }

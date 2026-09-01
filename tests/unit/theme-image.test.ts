@@ -5,6 +5,8 @@ import {
 	hasThemePlaceholder,
 	withTheme,
 	themeImgClass,
+	themeSwapClass,
+	themeSwitchLabel,
 	escapeAttribute
 } from '$lib/utils/theme-image';
 import { expandThemeImages } from '$lib/cms/theme-images';
@@ -26,6 +28,16 @@ describe('theme-image helpers', () => {
 	it('builds the swap classes', () => {
 		expect(themeImgClass('light')).toBe('theme-img theme-img--light');
 		expect(themeImgClass('dark')).toBe('theme-img theme-img--dark');
+	});
+
+	it('builds the switchable swap classes', () => {
+		expect(themeSwapClass('light')).toBe('theme-swap theme-swap--light');
+		expect(themeSwapClass('dark')).toBe('theme-swap theme-swap--dark');
+	});
+
+	it('labels the switch with the theme it will move to', () => {
+		expect(themeSwitchLabel('light')).toBe('See it in dark');
+		expect(themeSwitchLabel('dark')).toBe('See it in light');
 	});
 
 	it('escapes attribute-breaking characters', () => {
