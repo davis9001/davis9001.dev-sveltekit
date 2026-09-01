@@ -19,7 +19,14 @@
 	function formatDate(dateString: string | undefined): string {
 		if (!dateString) return '';
 		const date = new Date(dateString);
-		return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+		// UTC, not local: a date-only frontmatter value ("2026-08-26") parses as
+		// UTC midnight, which formats as the previous day west of Greenwich.
+		return date.toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric',
+			timeZone: 'UTC'
+		});
 	}
 </script>
 
