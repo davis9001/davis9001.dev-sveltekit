@@ -1,5 +1,5 @@
-<svg viewBox="0 0 520 330" class="cms-chart" width="100%" role="img" aria-label="Column chart of commits per day across every local git repository from 2026-08-24 to 2026-09-13: 1115 commits over 21 days, peaking at 218 in one day, with 19 active days. A second series for the fruit fly sits flat on the zero axis for all 21 days." xmlns="http://www.w3.org/2000/svg">
-  <text x="0" y="20" font-size="18" font-weight="700" fill="currentColor">1115 commits in 21 days. None of them the fly's.</text>
+<svg viewBox="0 0 520 330" class="cms-chart" width="100%" role="img" aria-label="Column chart of commits per day across every local git repository from 2026-08-24 to 2026-09-13: 1126 commits over 21 days, peaking at 218 in one day, with 19 active days. A second series for the fruit fly sits flat on the zero axis for all 21 days." xmlns="http://www.w3.org/2000/svg">
+  <text x="0" y="20" font-size="18" font-weight="700" fill="currentColor">1126 commits in 21 days. None of them the fly's.</text>
   <text x="0" y="44" font-size="13" fill="currentColor" fill-opacity="0.62">Every git repository under ~/_Projects — 67 of 123 saw a commit in the window</text>
   <rect class="cf s0" x="0" y="63" width="10" height="10" rx="2.5" fill="#ea580c" />
   <text class="cf s0" x="16" y="72" font-size="12.5" fill="currentColor" fill-opacity="0.72">Commits per day, all local repos</text>
@@ -25,7 +25,7 @@
   <rect class="cf s3" x="425.0" y="249.2" width="20.0" height="4.8" rx="2.4" fill="#ea580c" />
   <rect class="cf s4" x="450.0" y="232.7" width="20.0" height="21.3" rx="2.5" fill="#ea580c" />
   <rect class="cf s5" x="475.0" y="205.1" width="20.0" height="48.9" rx="2.5" fill="#ea580c" />
-  <rect class="cf s6" x="500.0" y="214.1" width="20.0" height="39.9" rx="2.5" fill="#ea580c" />
+  <rect class="cf s6" x="500.0" y="206.5" width="20.0" height="47.5" rx="2.5" fill="#ea580c" />
   <line class="cf s0" x1="0" y1="254" x2="520" y2="254" stroke="currentColor" stroke-opacity="0.28" stroke-width="1" />
   <circle class="cf s0" cx="10.0" cy="254" r="3" fill="#0891b2" />
   <circle class="cf s1" cx="35.0" cy="254" r="3" fill="#0891b2" />

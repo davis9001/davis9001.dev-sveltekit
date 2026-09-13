@@ -1,12 +1,12 @@
-<svg viewBox="0 0 520 340" class="cms-chart" width="100%" role="img" aria-label="Stepped line chart of the word count of a CLAUDE.md instruction file across 39 revisions from 2026-06-21 to 2026-09-13. It climbs from 418 words to a peak of 3611, drops by 2461 words in one revision when the file was split into on-demand documents, then climbs again to 3544 words." xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 520 340" class="cms-chart" width="100%" role="img" aria-label="Stepped line chart of the word count of a CLAUDE.md instruction file across 41 revisions from 2026-06-21 to 2026-09-13. It climbs from 418 words to a peak of 3611, drops by 2461 words in one revision when the file was split into on-demand documents, then climbs again to 3568 words." xmlns="http://www.w3.org/2000/svg">
   <text x="0" y="20" font-size="18" font-weight="700" fill="currentColor">The only thing in the room with a learning curve</text>
-  <text x="0" y="44" font-size="13" fill="currentColor" fill-opacity="0.62">Words in one instruction file, at each of its 39 revisions — 21 Jun to 13 Sep 2026</text>
+  <text x="0" y="44" font-size="13" fill="currentColor" fill-opacity="0.62">Words in one instruction file, at each of its 41 revisions — 21 Jun to 13 Sep 2026</text>
   <rect class="cf s0" x="0" y="63" width="10" height="10" rx="2.5" fill="#0891b2" />
   <text class="cf s0" x="16" y="72" font-size="12.5" fill="currentColor" fill-opacity="0.72">CLAUDE.md, word count</text>
   <line class="cf s0" x1="0" y1="96.0" x2="520" y2="96.0" stroke="currentColor" stroke-opacity="0.14" stroke-width="1" stroke-dasharray="3 4" />
   <text class="cf s0" x="520" y="90.0" font-size="11" text-anchor="end" fill="currentColor" fill-opacity="0.5">3611 words</text>
   <line class="cf s0" x1="0" y1="264" x2="520" y2="264" stroke="currentColor" stroke-opacity="0.28" stroke-width="1" />
-  <path class="cf s1" d="M0.0 244.6L105.2 244.6L105.2 226.8L130.0 226.8L130.0 195.7L130.0 195.7L130.0 185.8L130.0 185.8L130.0 161.5L142.4 161.5L142.4 155.6L142.4 155.6L142.4 147.0L142.4 147.0L142.4 134.4L142.4 134.4L142.4 131.6L142.4 131.6L142.4 122.9L142.4 122.9L142.4 115.5L142.4 115.5L142.4 111.0L142.4 111.0L142.4 106.2L142.4 106.2L142.4 96.0L142.4 96.0L142.4 96.1L167.1 96.1L167.1 210.6L198.1 210.6L198.1 205.5L198.1 205.5L198.1 205.3L198.1 205.3L198.1 203.4L210.5 203.4L210.5 201.7L210.5 201.7L210.5 194.0L229.0 194.0L229.0 179.2L260.0 179.2L260.0 175.5L303.3 175.5L303.3 172.5L328.1 172.5L328.1 170.0L340.5 170.0L340.5 168.3L371.4 168.3L371.4 164.6L377.6 164.6L377.6 153.1L433.3 153.1L433.3 126.0L445.7 126.0L445.7 123.4L445.7 123.4L445.7 115.5L445.7 115.5L445.7 114.1L458.1 114.1L458.1 113.6L464.3 113.6L464.3 111.4L482.9 111.4L482.9 109.9L495.2 109.9L495.2 109.7L495.2 109.7L495.2 109.2L507.6 109.2L507.6 101.0L520.0 101.0L520.0 99.1" fill="none" stroke="#0891b2" stroke-width="2.25" stroke-opacity="0.95" />
+  <path class="cf s1" d="M0.0 244.6L105.2 244.6L105.2 226.8L130.0 226.8L130.0 195.7L130.0 195.7L130.0 185.8L130.0 185.8L130.0 161.5L142.4 161.5L142.4 155.6L142.4 155.6L142.4 147.0L142.4 147.0L142.4 134.4L142.4 134.4L142.4 131.6L142.4 131.6L142.4 122.9L142.4 122.9L142.4 115.5L142.4 115.5L142.4 111.0L142.4 111.0L142.4 106.2L142.4 106.2L142.4 96.0L142.4 96.0L142.4 96.1L167.1 96.1L167.1 210.6L198.1 210.6L198.1 205.5L198.1 205.5L198.1 205.3L198.1 205.3L198.1 203.4L210.5 203.4L210.5 201.7L210.5 201.7L210.5 194.0L229.0 194.0L229.0 179.2L260.0 179.2L260.0 175.5L303.3 175.5L303.3 172.5L328.1 172.5L328.1 170.0L340.5 170.0L340.5 168.3L371.4 168.3L371.4 164.6L377.6 164.6L377.6 153.1L433.3 153.1L433.3 126.0L445.7 126.0L445.7 123.4L445.7 123.4L445.7 115.5L445.7 115.5L445.7 114.1L458.1 114.1L458.1 113.6L464.3 113.6L464.3 111.4L482.9 111.4L482.9 109.9L495.2 109.9L495.2 109.7L495.2 109.7L495.2 109.2L507.6 109.2L507.6 101.0L520.0 101.0L520.0 99.1L520.0 99.1L520.0 98.6L520.0 98.6L520.0 98.0" fill="none" stroke="#0891b2" stroke-width="2.25" stroke-opacity="0.95" />
   <circle class="cf s2" cx="0.0" cy="244.6" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s2" cx="105.2" cy="226.8" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s2" cx="130.0" cy="195.7" r="2.4" fill="#0891b2" fill-opacity="0.85" />
@@ -15,7 +15,7 @@
   <circle class="cf s2" cx="142.4" cy="155.6" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s2" cx="142.4" cy="147.0" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s2" cx="142.4" cy="134.4" r="2.4" fill="#0891b2" fill-opacity="0.85" />
-  <circle class="cf s3" cx="142.4" cy="131.6" r="2.4" fill="#0891b2" fill-opacity="0.85" />
+  <circle class="cf s2" cx="142.4" cy="131.6" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s3" cx="142.4" cy="122.9" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s3" cx="142.4" cy="115.5" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s3" cx="142.4" cy="111.0" r="2.4" fill="#0891b2" fill-opacity="0.85" />
@@ -23,7 +23,7 @@
   <circle class="cf s3" cx="142.4" cy="96.0" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s3" cx="142.4" cy="96.1" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s3" cx="167.1" cy="210.6" r="2.4" fill="#0891b2" fill-opacity="0.85" />
-  <circle class="cf s4" cx="198.1" cy="205.5" r="2.4" fill="#0891b2" fill-opacity="0.85" />
+  <circle class="cf s3" cx="198.1" cy="205.5" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s4" cx="198.1" cy="205.3" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s4" cx="198.1" cy="203.4" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s4" cx="210.5" cy="201.7" r="2.4" fill="#0891b2" fill-opacity="0.85" />
@@ -31,7 +31,7 @@
   <circle class="cf s4" cx="229.0" cy="179.2" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s4" cx="260.0" cy="175.5" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s4" cx="303.3" cy="172.5" r="2.4" fill="#0891b2" fill-opacity="0.85" />
-  <circle class="cf s5" cx="328.1" cy="170.0" r="2.4" fill="#0891b2" fill-opacity="0.85" />
+  <circle class="cf s4" cx="328.1" cy="170.0" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s5" cx="340.5" cy="168.3" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s5" cx="371.4" cy="164.6" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s5" cx="377.6" cy="153.1" r="2.4" fill="#0891b2" fill-opacity="0.85" />
@@ -39,18 +39,20 @@
   <circle class="cf s5" cx="445.7" cy="123.4" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s5" cx="445.7" cy="115.5" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s5" cx="445.7" cy="114.1" r="2.4" fill="#0891b2" fill-opacity="0.85" />
-  <circle class="cf s6" cx="458.1" cy="113.6" r="2.4" fill="#0891b2" fill-opacity="0.85" />
+  <circle class="cf s5" cx="458.1" cy="113.6" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s6" cx="464.3" cy="111.4" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s6" cx="482.9" cy="109.9" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s6" cx="495.2" cy="109.7" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s6" cx="495.2" cy="109.2" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s6" cx="507.6" cy="101.0" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s6" cx="520.0" cy="99.1" r="2.4" fill="#0891b2" fill-opacity="0.85" />
+  <circle class="cf s6" cx="520.0" cy="98.6" r="2.4" fill="#0891b2" fill-opacity="0.85" />
+  <circle class="cf s6" cx="520.0" cy="98.0" r="2.4" fill="#0891b2" fill-opacity="0.85" />
   <circle class="cf s4" cx="167.1" cy="210.6" r="5" fill="none" stroke="#ea580c" stroke-width="2" />
   <line class="cf s4" x1="167.1" y1="220.6" x2="167.1" y2="258.0" stroke="#ea580c" stroke-opacity="0.45" stroke-width="1" stroke-dasharray="3 3" />
   <text class="cf s5" x="175.1" y="238.0" font-size="12" font-weight="700" text-anchor="start" fill="#ea580c">−2461 words</text>
   <text class="cf s5" x="175.1" y="253.0" font-size="11.5" text-anchor="start" fill="currentColor" fill-opacity="0.62">18 Jul — split into on-demand docs</text>
-  <text class="cf s6" x="520" y="208.0" font-size="12.5" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.8">3544 words today</text>
+  <text class="cf s6" x="520" y="208.0" font-size="12.5" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.8">3568 words today</text>
   <text class="cf s1" x="0" y="284" font-size="11.5" fill="currentColor" fill-opacity="0.55">21 Jun</text>
   <text class="cf s1" x="520" y="284" font-size="11.5" text-anchor="end" fill="currentColor" fill-opacity="0.55">13 Sep</text>
   <line x1="0" y1="306" x2="520" y2="306" stroke="currentColor" stroke-opacity="0.16" stroke-width="1" />
