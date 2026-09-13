@@ -1,7 +1,7 @@
 /*
  * Capture an animated WebP of the fly art-directing a page, from fly.ammoura.me.
  *
- * Scrubs the run back to generation 0, presses play, and records the bench —
+ * Scrubs the run back to generation 0, presses play, and records the scene —
  * the fly, the monitor showing the page it picked, and the Kenyon-cell raster —
  * while sixteen generations go past. Frames are grabbed one at a time rather
  * than through Playwright's video recorder, so the frame rate, the length and
@@ -13,7 +13,7 @@
  *
  * Env:
  *   FLY_URL        page to record (default: https://fly.ammoura.me/)
- *   FLY_SELECTOR   region to clip to (default: .bench)
+ *   FLY_SELECTOR   region to clip to (default: .scene — the fly, the monitor, the raster)
  *   FLY_SCALE      output width in px (default 640)
  *   FLY_QUALITY    libwebp quality 0-100 (default 34)
  *   FLY_FPS        frames per second (default 6)
@@ -27,7 +27,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const URL_ = process.env.FLY_URL || 'https://fly.ammoura.me/';
-const SELECTOR = process.env.FLY_SELECTOR || '.bench';
+const SELECTOR = process.env.FLY_SELECTOR || '.scene';
 const OUT_WIDTH = Number(process.env.FLY_SCALE || 640);
 const QUALITY = Number(process.env.FLY_QUALITY || 34);
 const FPS = Number(process.env.FLY_FPS || 6);

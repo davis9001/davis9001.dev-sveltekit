@@ -15,12 +15,14 @@
  *   node scripts/capture-fly-circuit-webp.cjs [outFile]
  *
  * Env:
- *   FLY_URL            page to record (default: https://fly.ammoura.me/)
- *   FLY_CIRCUIT_SEL    region to record (default: .stage)
+ *   FLY_URL            page to record (default: https://fly.ammoura.me/circuit)
+ *   FLY_CIRCUIT_SEL    region to record (default: #brain, the full-bleed canvas)
  *   FLY_CIRCUIT_SCALE  output width in px (default 640)
  *   FLY_CIRCUIT_Q      libwebp quality 0-100 (default 30)
  *   FLY_CIRCUIT_FPS    frames per second (default 8)
  *   FLY_CIRCUIT_TURNS  full left-right sweeps to record (default 1)
+ *   FLY_CIRCUIT_REACH  drag distance in px, i.e. how far it turns (default 150)
+ *   FLY_CIRCUIT_ZOOM   wheel notches in before recording (default 0 — see note below)
  */
 
 const { chromium } = require('@playwright/test');
@@ -29,8 +31,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const URL_ = process.env.FLY_URL || 'https://fly.ammoura.me/';
-const SELECTOR = process.env.FLY_CIRCUIT_SEL || '.stage';
+const URL_ = process.env.FLY_URL || 'https://fly.ammoura.me/circuit';
+const SELECTOR = process.env.FLY_CIRCUIT_SEL || '#brain';
 const OUT_WIDTH = Number(process.env.FLY_CIRCUIT_SCALE || 640);
 const QUALITY = Number(process.env.FLY_CIRCUIT_Q || 30);
 const FPS = Number(process.env.FLY_CIRCUIT_FPS || 8);
@@ -52,7 +54,10 @@ async function main() {
 		args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
 	});
 	const page = await browser.newPage({
-		viewport: { width: 1440, height: 900 },
+		viewport: {
+			width: Number(process.env.FLY_CIRCUIT_VW || 1280),
+			height: Number(process.env.FLY_CIRCUIT_VH || 680)
+		},
 		deviceScaleFactor: 1
 	});
 	await page.goto(URL_, { waitUntil: 'networkidle', timeout: 120000 });
@@ -68,7 +73,20 @@ async function main() {
 	if (!box) throw new Error('no #brain canvas');
 	const cx = box.x + box.width / 2;
 	const cy = box.y + box.height / 2;
-	const REACH = Math.min(360, box.width * 0.3);
+	// A short sweep keeps the circuit near the three-quarter view where its
+	// shape reads; a long one spends most of its frames edge-on.
+	const REACH = Number(process.env.FLY_CIRCUIT_REACH || 150);
+
+	// Optional wheel-zoom before the orbit. Off by default: synthetic wheel
+	// events produced no visible change in the recorded frames, so the capture
+	// uses the page's own default framing rather than pretending to zoom.
+	const ZOOM = Number(process.env.FLY_CIRCUIT_ZOOM || 0);
+	await page.mouse.move(cx, cy);
+	for (let i = 0; i < ZOOM; i += 1) {
+		await page.mouse.wheel(0, -240);
+		await page.waitForTimeout(220);
+	}
+	await page.waitForTimeout(1200);
 
 	await page.mouse.move(cx, cy);
 	await page.mouse.down();
