@@ -1,0 +1,29 @@
+<svg viewBox="0 0 520 400" class="cms-chart" width="100%" role="img" aria-label="Bar chart of shared Kenyon-cell code. example.com, .org and .net (one design, three domains): 1.00. Two pages from one site (27 pages across 9 sites): 0.36. Two synthetic odours (what a smell looks like to it): 0.15. Three CSS Zen Garden pages (one document, three designs): 0.14. Two pages from different sites (the baseline): 0.12. Pages that were designed alike share the most code; three copies of one document under different stylesheets share as little as two unrelated sites." xmlns="http://www.w3.org/2000/svg">
+  <text x="0" y="20" font-size="18" font-weight="700" fill="currentColor">The fly reads the design, not the words</text>
+  <text x="0" y="44" font-size="13" fill="currentColor" fill-opacity="0.62">Kenyon-cell code two inputs share — 172 detectors over a rendered page</text>
+  <rect class="cf s0" x="0" y="62" width="10" height="10" rx="2.5" fill="#ea580c" /><text class="cf s0" x="16" y="71" font-size="12.5" fill="currentColor" fill-opacity="0.72">Real pages</text>
+  <rect class="cf s0" x="112" y="62" width="10" height="10" rx="2.5" fill="#0891b2" /><text class="cf s0" x="128" y="71" font-size="12.5" fill="currentColor" fill-opacity="0.72">Synthetic odours, for scale</text>
+  <text class="cf s0" x="0" y="106" font-size="13.5" fill="currentColor" fill-opacity="0.92">example.com, .org and .net</text>
+  <path class="cg s0" d="M0 112h436.5a3.5 3.5 0 0 1 3.5 3.5v5a3.5 3.5 0 0 1 -3.5 3.5h-436.5z" fill="#ea580c" fill-opacity="0.55" />
+  <text class="cf s0" x="520" y="121.0" font-size="13" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.8">1.00</text>
+  <text class="cf s0" x="0" y="136" font-size="11.5" fill="currentColor" fill-opacity="0.55">one design, three domains</text>
+  <text class="cf s1" x="0" y="156" font-size="13.5" fill="currentColor" fill-opacity="0.92">Two pages from one site</text>
+  <path class="cg s1" d="M0 162h154.5a3.5 3.5 0 0 1 3.5 3.5v5a3.5 3.5 0 0 1 -3.5 3.5h-154.5z" fill="#ea580c" fill-opacity="1" />
+  <text class="cf s1" x="520" y="171.0" font-size="13" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.8">0.36</text>
+  <text class="cf s1" x="0" y="186" font-size="11.5" fill="currentColor" fill-opacity="0.55">27 pages across 9 sites</text>
+  <text class="cf s2" x="0" y="206" font-size="13.5" fill="currentColor" fill-opacity="0.92">Two synthetic odours</text>
+  <path class="cg s2" d="M0 212h62.6a3.5 3.5 0 0 1 3.5 3.5v5a3.5 3.5 0 0 1 -3.5 3.5h-62.6z" fill="#0891b2" fill-opacity="1" />
+  <text class="cf s2" x="520" y="221.0" font-size="13" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.8">0.15</text>
+  <text class="cf s2" x="0" y="236" font-size="11.5" fill="currentColor" fill-opacity="0.55">what a smell looks like to it</text>
+  <text class="cf s3" x="0" y="256" font-size="13.5" fill="currentColor" fill-opacity="0.92">Three CSS Zen Garden pages</text>
+  <path class="cg s3" d="M0 262h59.0a3.5 3.5 0 0 1 3.5 3.5v5a3.5 3.5 0 0 1 -3.5 3.5h-59.0z" fill="#ea580c" fill-opacity="0.55" />
+  <text class="cf s3" x="520" y="271.0" font-size="13" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.8">0.14</text>
+  <text class="cf s3" x="0" y="286" font-size="11.5" fill="currentColor" fill-opacity="0.55">one document, three designs</text>
+  <text class="cf s4" x="0" y="306" font-size="13.5" fill="currentColor" fill-opacity="0.92">Two pages from different sites</text>
+  <path class="cg s4" d="M0 312h48.8a3.5 3.5 0 0 1 3.5 3.5v5a3.5 3.5 0 0 1 -3.5 3.5h-48.8z" fill="#ea580c" fill-opacity="1" />
+  <text class="cf s4" x="520" y="321.0" font-size="13" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.8">0.12</text>
+  <text class="cf s4" x="0" y="336" font-size="11.5" fill="currentColor" fill-opacity="0.55">the baseline</text>
+  <line x1="0" y1="350" x2="520" y2="350" stroke="currentColor" stroke-opacity="0.16" stroke-width="1" />
+  <text x="0" y="368" font-size="11.5" fill="currentColor" fill-opacity="0.55">Zen Garden is one HTML file under three stylesheets: same words, same markup,</text>
+  <text x="0" y="384" font-size="11.5" fill="currentColor" fill-opacity="0.55">and the fly cannot tell the three are related.</text>
+</svg>

@@ -1,0 +1,38 @@
+<svg viewBox="0 0 520 422" class="cms-chart" width="100%" role="img" aria-label="Interval chart of the fly's preference after training, 100 runs per row, on both hemispheres. Paired with reward: 0.30 right, 0.36 left. Paired with punishment: -0.25 right, -0.29 left. MBON compartments shuffled: -0.10 right, -0.04 left. the dopamine mis-aimed: 0.00 right, 0.00 left. Kenyon-cell identity shuffled: -0.24 right, -0.27 left. Positive is approach, negative is avoidance." xmlns="http://www.w3.org/2000/svg">
+  <text x="0" y="20" font-size="18" font-weight="700" fill="currentColor">The wiring is what does the learning</text>
+  <text x="0" y="44" font-size="13" fill="currentColor" fill-opacity="0.62">Preference after training, 100 runs per row, median and 5–95%</text>
+  <rect class="cf s0" x="0" y="62" width="10" height="10" rx="2.5" fill="#ea580c" /><text class="cf s0" x="16" y="71" font-size="12.5" fill="currentColor" fill-opacity="0.72">Right hemisphere</text>
+  <circle class="cf s0" cx="164" cy="67" r="4" fill="none" stroke="#0891b2" stroke-width="2" /><text class="cf s0" x="175" y="71" font-size="12.5" fill="currentColor" fill-opacity="0.72">Left — no parameter was ever fitted to it</text>
+  <line class="cf s0" x1="260.0" y1="94" x2="260.0" y2="330" stroke="currentColor" stroke-opacity="0.3" stroke-width="1" />
+  <text class="cf s0" x="252.0" y="90" font-size="11" text-anchor="end" fill="currentColor" fill-opacity="0.5">avoid</text>
+  <text class="cf s0" x="268.0" y="90" font-size="11" fill="currentColor" fill-opacity="0.5">approach</text>
+  <text class="cf s0" x="0" y="118" font-size="13.5" fill="currentColor" fill-opacity="0.92">Paired with reward</text>
+  <text class="cf s0" x="520" y="118" font-size="13" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.78">+0.30</text>
+  <line class="cf s0" x1="387.5" y1="134" x2="466.4" y2="134" stroke="#ea580c" stroke-opacity="0.34" stroke-width="5" />
+  <circle class="cf s0" cx="433.1" cy="134" r="4.5" fill="#ea580c" />
+  <circle class="cf s0" cx="466.0" cy="134" r="4.5" fill="none" stroke="#0891b2" stroke-width="2" />
+  <text class="cf s1" x="0" y="164" font-size="13.5" fill="currentColor" fill-opacity="0.92">Paired with punishment</text>
+  <text class="cf s1" x="520" y="164" font-size="13" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.78">−0.25</text>
+  <line class="cf s1" x1="96.3" y1="180" x2="145.5" y2="180" stroke="#ea580c" stroke-opacity="0.34" stroke-width="5" />
+  <circle class="cf s1" cx="117.9" cy="180" r="4.5" fill="#ea580c" />
+  <circle class="cf s1" cx="91.2" cy="180" r="4.5" fill="none" stroke="#0891b2" stroke-width="2" />
+  <text class="cf s2" x="0" y="210" font-size="13.5" fill="currentColor" fill-opacity="0.72">…with MBON compartments shuffled</text>
+  <text class="cf s2" x="520" y="210" font-size="13" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.78">−0.10</text>
+  <line class="cf s2" x1="155.8" y1="226" x2="412.2" y2="226" stroke="#ea580c" stroke-opacity="0.34" stroke-width="5" />
+  <circle class="cf s2" cx="204.6" cy="226" r="4.5" fill="#ea580c" />
+  <circle class="cf s2" cx="235.0" cy="226" r="4.5" fill="none" stroke="#0891b2" stroke-width="2" />
+  <text class="cf s3" x="0" y="256" font-size="13.5" fill="currentColor" fill-opacity="0.72">…with the dopamine mis-aimed</text>
+  <text class="cf s3" x="520" y="256" font-size="13" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.78">+0.00</text>
+  <line class="cf s3" x1="215.1" y1="272" x2="311.3" y2="272" stroke="#ea580c" stroke-opacity="0.34" stroke-width="5" />
+  <circle class="cf s3" cx="262.8" cy="272" r="4.5" fill="#ea580c" />
+  <circle class="cf s3" cx="261.9" cy="272" r="4.5" fill="none" stroke="#0891b2" stroke-width="2" />
+  <text class="cf s4" x="0" y="302" font-size="13.5" fill="currentColor" fill-opacity="0.72">…with Kenyon-cell identity shuffled</text>
+  <text class="cf s4" x="520" y="302" font-size="13" font-weight="700" text-anchor="end" fill="currentColor" fill-opacity="0.78">−0.24</text>
+  <line class="cf s4" x1="105.8" y1="318" x2="161.2" y2="318" stroke="#ea580c" stroke-opacity="0.34" stroke-width="5" />
+  <circle class="cf s4" cx="122.6" cy="318" r="4.5" fill="#ea580c" />
+  <circle class="cf s4" cx="104.1" cy="318" r="4.5" fill="none" stroke="#0891b2" stroke-width="2" />
+  <line x1="0" y1="356" x2="520" y2="356" stroke="currentColor" stroke-opacity="0.16" stroke-width="1" />
+  <text x="0" y="374" font-size="11.5" fill="currentColor" fill-opacity="0.55">Rows 3–5 are the punishment case with one thing broken. Scrambling Kenyon-cell</text>
+  <text x="0" y="390" font-size="11.5" fill="currentColor" fill-opacity="0.55">identity is the control that should change nothing, and does not. Only 37% of</text>
+  <text x="0" y="406" font-size="11.5" fill="currentColor" fill-opacity="0.55">compartment shuffles agree on a direction at all.</text>
+</svg>
