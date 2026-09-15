@@ -1,12 +1,17 @@
 /*
  * Capture an animated WebP of the fly art-directing a page, from fly.ammoura.me.
  *
- * Scrubs the run back to generation 0, presses play, and records the scene —
- * the fly, the monitor showing the page it picked, and the Kenyon-cell raster —
- * while sixteen generations go past. Frames are grabbed one at a time rather
- * than through Playwright's video recorder, so the frame rate, the length and
- * the output size are all controllable — an animation that has to be uploaded
- * and then read on a phone wants all three.
+ * Steps the run from generation 0 to its last and records the scene — the fly,
+ * the monitor showing the page it picked, and the Kenyon-cell raster. Frames
+ * are grabbed one at a time rather than through Playwright's video recorder,
+ * so the frame rate, the length and the output size are all controllable — an
+ * animation that has to be uploaded and then read on a phone wants all three.
+ *
+ * The page advances itself on a one-second clock, but a screenshot of this
+ * scene takes longer than that on a headless box, so recording against its own
+ * clock drops generations (and a scrub mid-run pauses it). The playhead the
+ * page exposes is driven directly instead: every generation appears, for the
+ * same number of frames, however slow the machine is.
  *
  * Usage:
  *   node scripts/capture-fly-evolution-webp.cjs [outFile]
@@ -17,7 +22,8 @@
  *   FLY_SCALE      output width in px (default 640)
  *   FLY_QUALITY    libwebp quality 0-100 (default 34)
  *   FLY_FPS        frames per second (default 6)
- *   FLY_SECONDS    how long to record once playing (default 11)
+ *   FLY_PER_GEN    frames held on each generation (default 4)
+ *   FLY_SECONDS    fallback length, if the page exposes no playhead (default 11)
  */
 
 const { chromium } = require('@playwright/test');
@@ -32,6 +38,7 @@ const OUT_WIDTH = Number(process.env.FLY_SCALE || 640);
 const QUALITY = Number(process.env.FLY_QUALITY || 34);
 const FPS = Number(process.env.FLY_FPS || 6);
 const SECONDS = Number(process.env.FLY_SECONDS || 11);
+const PER_GEN = Number(process.env.FLY_PER_GEN || 4);
 const OUT = process.argv[2] || path.join(process.cwd(), 'test-outputs', 'fly-evolution.webp');
 
 const frameDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fly-evolution-'));
@@ -57,25 +64,41 @@ async function main() {
 	await bench.scrollIntoViewIfNeeded();
 	await page.waitForTimeout(500);
 
-	// Rewind to the first generation and start it running. The play button
-	// reports its own state, so press it only if it is currently paused.
-	await page.evaluate(() => {
+	// Take the clock off the page, so a slow screenshot cannot skip a
+	// generation. Generation count comes from the scrubber's own range.
+	const generations = await page.evaluate(() => {
 		const s = document.getElementById('scrub');
-		if (s) {
-			s.value = s.min;
-			s.dispatchEvent(new Event('input', { bubbles: true }));
-		}
+		if (!window.Playhead || !s) return 0;
+		window.Playhead.set({ playing: false, gen: 0 });
+		return Number(s.max) + 1;
 	});
-	await page.waitForTimeout(700);
-	const label = await page.locator('#play').innerText();
-	if (/play/i.test(label)) await page.locator('#play').click();
+	await page.waitForTimeout(900);
 
-	const total = Math.round(SECONDS * FPS);
-	for (let i = 0; i < total; i += 1) {
+	let total = 0;
+	const shoot = async () => {
 		await bench.screenshot({
-			path: path.join(frameDir, `f${String(i).padStart(4, '0')}.png`)
+			path: path.join(frameDir, `f${String(total).padStart(4, '0')}.png`)
 		});
-		await page.waitForTimeout(1000 / FPS);
+		total += 1;
+	};
+
+	if (generations > 0) {
+		for (let gen = 0; gen < generations; gen += 1) {
+			await page.evaluate((g) => window.Playhead.set({ gen: g }), gen);
+			// The monitor cross-fades between two layers; a beat here means the
+			// first frame of a generation is that generation, not the last one.
+			await page.waitForTimeout(650);
+			for (let f = 0; f < PER_GEN; f += 1) await shoot();
+		}
+	} else {
+		// No playhead on the page — record its own clock for a fixed stretch.
+		const label = await page.locator('#play').innerText();
+		if (/^\s*play/i.test(label)) await page.locator('#play').click();
+		const frames = Math.round(SECONDS * FPS);
+		for (let i = 0; i < frames; i += 1) {
+			await shoot();
+			await page.waitForTimeout(1000 / FPS);
+		}
 	}
 
 	await browser.close();
@@ -111,7 +134,9 @@ async function main() {
 
 	fs.rmSync(frameDir, { recursive: true, force: true });
 	const kb = (fs.statSync(OUT).size / 1024).toFixed(1);
-	console.log(`Wrote ${OUT} — ${total} frames, ${OUT_WIDTH}px wide, ${kb} KB`);
+	console.log(
+		`Wrote ${OUT} — ${total} frames, ${generations || '?'} generations, ${OUT_WIDTH}px wide, ${kb} KB`
+	);
 	if (Number(kb) > 250) {
 		console.log('Large for an inline animation. Lower FLY_QUALITY, FLY_SCALE or FLY_SECONDS.');
 	}
