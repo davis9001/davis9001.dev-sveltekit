@@ -49,6 +49,18 @@ describe('truncateExcerpt', () => {
 		expect(result.endsWith('…')).toBe(true);
 	});
 
+	it('cuts at a word boundary rather than mid-word', () => {
+		const long = `${'word '.repeat(70)}tail`;
+		const result = truncateExcerpt(long);
+		expect(result.length).toBeLessThanOrEqual(300);
+		expect(result.endsWith('word…')).toBe(true);
+	});
+
+	it('still hard-cuts a run with no boundary in it', () => {
+		const result = truncateExcerpt('x'.repeat(400));
+		expect(result).toBe(`${'x'.repeat(299)}…`);
+	});
+
 	it('handles empty input', () => {
 		expect(truncateExcerpt('')).toBe('');
 		expect(truncateExcerpt(undefined as unknown as string)).toBe('');

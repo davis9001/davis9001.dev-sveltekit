@@ -27,7 +27,14 @@ export function truncateExcerpt(summary: string, max = 300): string {
 	if (clean.length <= max) {
 		return clean;
 	}
-	return clean.slice(0, max - 1).trimEnd() + '…';
+	// Cut at the last word boundary that fits, so an over-long excerpt reads as
+	// a clipped phrase rather than a severed word ("it listens without b…").
+	// A run with no space in it — a URL, a hash — has no boundary to find, so
+	// it still gets the hard cut.
+	const cut = clean.slice(0, max - 1);
+	const lastSpace = cut.lastIndexOf(' ');
+	const body = lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut;
+	return body.replace(/[\s,;:—-]+$/, '') + '…';
 }
 
 /** Deterministic ids so re-running the generator never re-imports */
