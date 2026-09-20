@@ -24,12 +24,14 @@
 	$: tags = data.tags || [];
 
 	/**
-	 * Three-column reading is an experiment, so it stays a choice. The toggle
-	 * only appears on screens wide enough for the river to activate; the
-	 * preference is remembered per reader.
+	 * One column is the default: it is what the writing is set for, what every
+	 * narrow screen gets anyway, and what the typography below is tuned to.
+	 * Three-column reading is the experiment, so it is the thing you opt into.
+	 * The toggle only appears on screens wide enough for the river to activate;
+	 * the preference is remembered per reader.
 	 */
 	const READING_MODE_KEY = 'reading-mode';
-	let readingMode: 'river' | 'single' = 'river';
+	let readingMode: 'river' | 'single' = 'single';
 
 	onMount(() => {
 		try {
@@ -681,5 +683,84 @@
 		font-size: 1.125rem;
 		font-weight: 600;
 		margin-bottom: var(--spacing-sm);
+	}
+
+	/* ────────────────────────────────────────────────────────────────────
+	   One column, which is now the default.
+
+	   The type was never the problem — the root is already 18/20/23px by
+	   breakpoint, so body copy runs about 24px on a desktop. What made the
+	   page feel small was the 780px cap: at that size the text is right, but
+	   every picture and diagram is squeezed into the same narrow ribbon.
+
+	   So the page widens, the text keeps a measure meant for reading, and
+	   figures, code and the hero are allowed past it on both sides. Below,
+	   `:not(:has(.river-active))` means "the river is not running", which
+	   covers every narrow screen too, since the river only starts at 1100px.
+	   ──────────────────────────────────────────────────────────────────── */
+
+	.cms-item-page:not(:has(:global(.river-active))) .cms-content {
+		line-height: 1.75;
+	}
+
+	.cms-item-page:not(:has(:global(.river-active))) .cms-content :global(p) {
+		margin-bottom: 1.45em;
+	}
+
+	@media (min-width: 1000px) {
+		.cms-item-page:not(:has(:global(.river-active))) {
+			max-width: 1100px;
+		}
+
+		/* The reading measure. ~68 characters at this size — wider than the
+		   old 780px page allowed, because the page is no longer the column. */
+		.cms-item-page:not(:has(:global(.river-active))) .cms-topbar,
+		.cms-item-page:not(:has(:global(.river-active))) .cms-blog-article-header,
+		.cms-item-page:not(:has(:global(.river-active))) .cms-blog-article-excerpt,
+		.cms-item-page:not(:has(:global(.river-active))) .cms-content :global(> *) {
+			max-width: 820px;
+			margin-left: auto;
+			margin-right: auto;
+		}
+
+		.cms-item-page:not(:has(:global(.river-active))) .cms-blog-article-header h1 {
+			font-size: 2.875rem;
+			line-height: 1.1;
+			letter-spacing: -0.02em;
+		}
+
+		.cms-item-page:not(:has(:global(.river-active))) .cms-content :global(h2) {
+			font-size: 1.75rem;
+			line-height: 1.25;
+			margin-top: 2.2em;
+			letter-spacing: -0.01em;
+		}
+
+		.cms-item-page:not(:has(:global(.river-active))) .cms-content :global(h3) {
+			font-size: 1.3125rem;
+		}
+
+		/* Past the measure on both sides. This break is most of what makes a
+		   post feel large: the words stay comfortable, the pictures get room.
+
+		   Pictures only. An inline SVG figure is a chart drawn to a fixed
+		   viewBox, so widening it scales its type up with it — at 1020px the
+		   fly charts' titles came out larger than the page's own headings.
+		   Charts keep the reading measure they were drawn for. */
+		.cms-item-page:not(:has(:global(.river-active))) .cms-blog-article-hero,
+		.cms-item-page:not(:has(:global(.river-active))) .cms-content :global(> figure:has(img)),
+		.cms-item-page:not(:has(:global(.river-active))) .cms-content :global(> pre) {
+			max-width: 1020px;
+			margin-left: auto;
+			margin-right: auto;
+		}
+
+		/* A caption that broke the measure with its figure reads as a second
+		   column of body text. Bring it back to the words it belongs to. */
+		.cms-item-page:not(:has(:global(.river-active))) .cms-content :global(figure:has(img) figcaption) {
+			max-width: 820px;
+			margin-left: auto;
+			margin-right: auto;
+		}
 	}
 </style>
