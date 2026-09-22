@@ -4,6 +4,7 @@ import {
 	assertDatabaseIdentity,
 	shouldEnforceDatabaseIdentity
 } from '$lib/server/database-identity';
+import { applyDiscoveryLinks } from '$lib/server/discovery-links';
 import { getAuthSession } from '$lib/utils/db';
 
 const databaseIdentityHandler: Handle = async ({ event, resolve }) => {
@@ -66,5 +67,18 @@ const securityHeadersHandler: Handle = async ({ event, resolve }) => {
 	return response;
 };
 
+// Discovery Link headers hook — advertises llms.txt to agents that land on any
+// page. Kept separate from securityHeadersHandler because it applies to HTML
+// documents only, not to every non-API response. See $lib/server/discovery-links.
+const discoveryLinksHandler: Handle = async ({ event, resolve }) => {
+	const response = await resolve(event);
+	return applyDiscoveryLinks(event.url.pathname, response);
+};
+
 // Combine all hooks
-export const handle = sequence(databaseIdentityHandler, authHandler, securityHeadersHandler);
+export const handle = sequence(
+	databaseIdentityHandler,
+	authHandler,
+	securityHeadersHandler,
+	discoveryLinksHandler
+);
