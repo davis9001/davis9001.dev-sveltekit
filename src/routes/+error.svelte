@@ -55,6 +55,14 @@
 		icon: '❌'
 	};
 	$: homeHref = base || '/';
+	// Until 2026-09-22 davis9001.com 301'd every path here, and browsers keep
+	// a 301 for good — a visitor with that cached lands on this 404 when they
+	// wanted, say, davis9001.com/start. Offer the same path there. The query
+	// string is a URL their cache has never seen, so it gets through.
+	$: studioHref =
+		status === 404 && $page.url.pathname !== '/'
+			? `https://davis9001.com${$page.url.pathname}?via=dev`
+			: null;
 </script>
 
 <SEO
@@ -109,6 +117,9 @@
 				</svg>
 				Go Home
 			</a>
+			{#if studioHref}
+				<a href={studioHref} class="btn btn-secondary">Try it on davis9001.com</a>
+			{/if}
 			<button class="btn btn-secondary" on:click={() => history.back()}>
 				<svg
 					width="20"

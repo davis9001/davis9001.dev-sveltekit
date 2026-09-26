@@ -598,6 +598,16 @@
 				<a href="/send" class="hero-cta"> Send a Message </a>
 			</nav>
 
+			<!-- Until 2026-09-22 davis9001.com 301'd here, and browsers keep a
+			     301 for good — some visitors still land on this page when they
+			     typed the studio's address. The query string makes a URL their
+			     cache has never seen, so it gets through; the .com layout then
+			     repairs the cached entry and drops the marker. -->
+			<p class="hero-crosslink">
+				Looking for the studio? It is at
+				<a href="https://davis9001.com/?via=dev">davis9001.com</a> again.
+			</p>
+
 			<SocialLinks />
 
 			<button
@@ -749,6 +759,18 @@
 		line-height: 1.3;
 		margin-bottom: 2rem;
 		color: hsla(var(--foreground), 0.9);
+	}
+
+	.hero-crosslink {
+		font-size: 0.95rem;
+		margin: -0.75rem 0 1.5rem;
+		color: hsla(var(--foreground), 0.7);
+	}
+
+	.hero-crosslink a {
+		color: inherit;
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
 	}
 
 	/* ── CTA Buttons ── */
