@@ -599,6 +599,53 @@
 		font-weight: 600;
 	}
 
+	/* Call to action at the end of a post: <p class="cms-cta"><a href="…">…</a></p>.
+	   The sanitizer lets a <p> carry a class but not an <a>, so the paragraph
+	   names it and its links become buttons. The first link is the main one;
+	   any after it are quieter, outlined. */
+	.cms-content :global(.cms-cta) {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: var(--spacing-md);
+		margin: var(--spacing-xl) 0 var(--spacing-2xl);
+	}
+	.cms-content :global(.cms-cta a) {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		min-height: 3rem;
+		padding: 0.75rem 1.5rem;
+		border-radius: var(--radius-md);
+		border: 2px solid var(--color-primary);
+		background: var(--color-primary);
+		color: var(--color-background);
+		font-weight: 700;
+		text-decoration: none;
+		line-height: 1.2;
+		transition:
+			background var(--transition-fast),
+			border-color var(--transition-fast),
+			transform var(--transition-fast);
+	}
+	.cms-content :global(.cms-cta a:hover) {
+		background: var(--color-primary-hover);
+		border-color: var(--color-primary-hover);
+		transform: translateY(-1px);
+	}
+	.cms-content :global(.cms-cta a + a) {
+		background: transparent;
+		color: var(--color-primary);
+	}
+	.cms-content :global(.cms-cta a + a:hover) {
+		background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.cms-content :global(.cms-cta a:hover) {
+			transform: none;
+		}
+	}
+
 	/* Default article template */
 	.cms-default-article header {
 		margin-bottom: var(--spacing-xl);
