@@ -599,6 +599,15 @@
 		font-weight: 600;
 	}
 
+	/* A screenshot in both themes (publish-draft's ![alt](light)(dark)): each
+	   version sits in a div named for its theme, and only the one matching the
+	   page's theme shows. app.html always sets html[data-theme] before paint,
+	   so the light one is the fallback only for a page with scripting off. */
+	:global(html[data-theme='dark']) .cms-content :global(.cms-only-light),
+	:global(html:not([data-theme='dark'])) .cms-content :global(.cms-only-dark) {
+		display: none;
+	}
+
 	/* Call to action at the end of a post: <p class="cms-cta"><a href="…">…</a></p>.
 	   The sanitizer lets a <p> carry a class but not an <a>, so the paragraph
 	   names it and its links become buttons. The first link is the main one;

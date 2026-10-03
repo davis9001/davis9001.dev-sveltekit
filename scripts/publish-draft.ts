@@ -144,6 +144,30 @@ function renderBody(markdown: string): string {
 	for (let i = 0; i < lines.length; i += 1) {
 		const line = lines[i];
 
+		// ![alt](light-src)(dark-src): a screenshot in both themes. Two figures,
+		// each wrapped in a div the post page shows only in its theme
+		// (.cms-only-light / .cms-only-dark); the hidden one is display:none, so a
+		// screen reader meets the image and its caption once.
+		const themed = /^!\[([^\]]*)\]\(([^)\s]+)\)\(([^)\s]+)\)\s*$/.exec(line);
+		if (themed) {
+			const [, alt, light, dark] = themed;
+			const next = lines[i + 1] ?? '';
+			const caption = /^[*_](.+)[*_]\s*$/.exec(next.trim());
+			const inner = caption ? (marked.parseInline(caption[1]) as string).trim() : '';
+			if (caption) i += 1;
+			for (const [cls, src] of [
+				['cms-only-light', light],
+				['cms-only-dark', dark]
+			]) {
+				const size = imageSize(src);
+				const dims = size ? ` width="${size.width}" height="${size.height}"` : '';
+				const attrs = `src="${src}" alt="${escapeAttr(alt)}"${dims}`;
+				const cap = caption ? `\n    <figcaption>${inner}</figcaption>` : '';
+				out.push(`<div class="${cls}">\n<figure>\n    <img ${attrs} />${cap}\n</figure>\n</div>`);
+			}
+			continue;
+		}
+
 		// ![alt](src) on its own line, optionally captioned by the next line
 		const image = /^!\[([^\]]*)\]\(([^)\s]+)\)\s*$/.exec(line);
 		if (image) {
