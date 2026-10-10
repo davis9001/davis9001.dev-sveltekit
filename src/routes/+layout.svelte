@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import CommandPalette from '$lib/components/CommandPalette.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import GoogleAnalytics from '$lib/components/GoogleAnalytics.svelte';
 	import Navigation from '$lib/components/Navigation.svelte';
 	import {
 		closeCommandPalette,
@@ -65,6 +66,29 @@
 		window.addEventListener('keydown', handleKeydown);
 		return () => window.removeEventListener('keydown', handleKeydown);
 	});
+
+	// Viewport beacon (admin stats "Viewports" card; docs/ADMIN_STATS.md).
+	// Reports the bucketed window width once per session — viewport is the one
+	// audience dimension request headers can't supply. Cookieless: the server
+	// stores only a daily bucket counter. Admin/setup surfaces are excluded, the
+	// same way the page-view hook excludes them.
+	if (browser) {
+		try {
+			const path = window.location.pathname;
+			const excluded = path.startsWith('/admin') || path.startsWith('/setup');
+			if (!excluded && !sessionStorage.getItem('nk-vp-sent')) {
+				sessionStorage.setItem('nk-vp-sent', '1');
+				fetch('/api/stats/viewport', {
+					method: 'POST',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ width: window.innerWidth }),
+					keepalive: true
+				}).catch(() => {});
+			}
+		} catch {
+			// sessionStorage unavailable (private-mode edge cases) — skip silently.
+		}
+	}
 </script>
 
 {#if isStandalonePage}
@@ -82,6 +106,8 @@
 		{/if}
 	</div>
 {/if}
+
+<GoogleAnalytics measurementId={data.gaMeasurementId ?? null} />
 
 <CommandPalette bind:show={$showCommandPalette} hasAIProviders={data.hasAIProviders} portfolioItems={data.portfolioItems} cmsCommands={data.cmsPaletteItems} initialProjects={data.openProjects} />
 

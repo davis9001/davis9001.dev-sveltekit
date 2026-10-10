@@ -1,4 +1,5 @@
 import { getCachedCommandPaletteItems } from '$lib/cms/palette-cache';
+import { getActiveMeasurementId } from '$lib/server/analytics-config';
 import { getCachedPaletteProjects } from '$lib/projects/palette';
 import { hasAnyAuthProvider } from '$lib/utils/auth';
 import { buildProject } from '$lib/utils/portfolio';
@@ -57,6 +58,11 @@ export const load: LayoutServerLoad = async ({ locals, platform }) => {
 		hasAuthConfig,
 		portfolioItems,
 		cmsPaletteItems,
-		openProjects
+		openProjects,
+		// Optional Google Analytics tag (docs/ADMIN_STATS.md). Null unless an
+		// owner connected one at /admin/analytics and left it enabled, so the
+		// default build makes no third-party request. Per-page exclusion happens
+		// client-side, because this load does not re-run on client navigation.
+		gaMeasurementId: await getActiveMeasurementId(platform?.env?.KV)
 	};
 };

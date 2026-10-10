@@ -328,6 +328,7 @@ describe('[contentType]/[slug] page server load', () => {
 		try {
 			await load({
 				params: { contentType: 'blog', slug: 'hello' },
+				locals: {},
 				platform: { env: {} }
 			} as any);
 			expect.fail('Should have thrown');
@@ -347,6 +348,7 @@ describe('[contentType]/[slug] page server load', () => {
 		try {
 			await load({
 				params: { contentType: 'nonexistent', slug: 'hello' },
+				locals: {},
 				platform: { env: { DB: mockDB } }
 			} as any);
 			expect.fail('Should have thrown');
@@ -368,6 +370,7 @@ describe('[contentType]/[slug] page server load', () => {
 		try {
 			await load({
 				params: { contentType: 'blog', slug: 'hello' },
+				locals: {},
 				platform: { env: { DB: mockDB } }
 			} as any);
 			expect.fail('Should have thrown');
@@ -391,6 +394,7 @@ describe('[contentType]/[slug] page server load', () => {
 		try {
 			await load({
 				params: { contentType: 'blog', slug: 'nonexistent' },
+				locals: {},
 				platform: { env: { DB: mockDB } }
 			} as any);
 			expect.fail('Should have thrown');
@@ -414,6 +418,7 @@ describe('[contentType]/[slug] page server load', () => {
 		try {
 			await load({
 				params: { contentType: 'blog', slug: 'draft-post' },
+				locals: {},
 				platform: { env: { DB: mockDB } }
 			} as any);
 			expect.fail('Should have thrown');
@@ -438,6 +443,7 @@ describe('[contentType]/[slug] page server load', () => {
 
 		const result = (await load({
 			params: { contentType: 'blog', slug: 'hello-world' },
+			locals: {},
 			platform: { env: { DB: mockDB } }
 		} as any)) as any;
 
@@ -464,6 +470,7 @@ describe('[contentType]/[slug] page server load', () => {
 
 		const result = (await load({
 			params: { contentType: 'blog', slug: 'hello-world' },
+			locals: {},
 			platform: { env: { DB: mockDB } }
 		} as any)) as any;
 
@@ -481,6 +488,7 @@ describe('[contentType]/[slug] page server load', () => {
 		try {
 			await load({
 				params: { contentType: 'blog', slug: 'old-post' },
+				locals: {},
 				platform: { env: { DB: mockDB } }
 			} as any);
 			expect.fail('Should have thrown');
@@ -504,6 +512,7 @@ describe('[contentType]/[slug] page server load', () => {
 
 		const result = (await load({
 			params: { contentType: 'predictions', slug: 'old-prediction' },
+			locals: {},
 			platform: { env: { DB: mockDB } }
 		} as any)) as any;
 
@@ -526,6 +535,7 @@ describe('[contentType]/[slug] page server load', () => {
 		try {
 			await load({
 				params: { contentType: 'predictions', slug: 'draft-prediction' },
+				locals: {},
 				platform: { env: { DB: mockDB } }
 			} as any);
 			expect.fail('Should have thrown');
@@ -539,6 +549,7 @@ describe('[contentType]/[slug] page server load', () => {
 		try {
 			await load({
 				params: { contentType: 'blog', slug: 'test' },
+				locals: {},
 				platform: undefined
 			} as any);
 			expect.fail('Should have thrown');

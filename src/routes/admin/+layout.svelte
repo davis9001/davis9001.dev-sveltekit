@@ -1,16 +1,26 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import type { LayoutData } from './$types';
+
+	export let data: LayoutData;
 
 	// GitHub Sync is owner-only — its PAT's blast radius spans any repo/board
 	// it can reach, so it's hidden from non-owner admins here in addition to
 	// the page's own owner-only server guard.
+	// Stats needs the per-admin can_view_stats grant (the page degrades without
+	// it); Analytics is owner-only. The routes enforce both — hiding the links
+	// just avoids offering a 403.
 	$: navItems = [
 		{ path: '/admin', label: 'Dashboard', icon: 'home' },
+		...(data.canViewStats ? [{ path: '/admin/stats', label: 'Stats', icon: 'chart' }] : []),
+		...(data.canManageAnalytics
+			? [{ path: '/admin/analytics', label: 'Analytics', icon: 'activity' }]
+			: []),
 		{ path: '/admin/projects', label: 'Projects', icon: 'rocket' },
 		{ path: '/admin/users', label: 'Users', icon: 'users' },
 		{ path: '/admin/auth-keys', label: 'Auth Keys', icon: 'key' },
 		{ path: '/admin/ai-keys', label: 'AI Keys', icon: 'sparkles' },
-		...($page.data.user?.isOwner
+		...(data.user?.isOwner
 			? [{ path: '/admin/github-sync', label: 'GitHub Sync', icon: 'github' }]
 			: []),
 		{ path: '/admin/cms', label: 'CMS', icon: 'document' },
@@ -131,6 +141,33 @@
 							<line x1="16" y1="13" x2="8" y2="13" />
 							<line x1="16" y1="17" x2="8" y2="17" />
 							<polyline points="10 9 9 9 8 9" />
+						</svg>
+					{:else if item.icon === 'chart'}
+						<svg
+							class="nav-icon"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<line x1="3" y1="21" x2="21" y2="21" />
+							<rect x="5" y="12" width="3.5" height="6" />
+							<rect x="10.25" y="7" width="3.5" height="11" />
+							<rect x="15.5" y="14" width="3.5" height="4" />
+						</svg>
+					{:else if item.icon === 'activity'}
+						<svg
+							class="nav-icon"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
 						</svg>
 					{:else if item.icon === 'music'}
 						<svg

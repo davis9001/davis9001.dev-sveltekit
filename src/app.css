@@ -2,6 +2,13 @@
 :root {
 	/* Light theme colors - WCAG AA compliant */
 	--color-primary: #0066cc;
+	/* Chart series (admin stats). Fixed categorical order; stepped per surface
+	   and validated for colorblind separation and contrast in NebulaKit.
+	   Re-validate before changing a value. */
+	--chart-views: #1d6fd0;
+	--chart-users: #0f9488;
+	--chart-content: #9d174d;
+	--chart-usage: #b45309;
 	--color-primary-hover: #0052a3;
 	--color-secondary: #6366f1;
 	--color-secondary-hover: #4f46e5;
@@ -74,6 +81,10 @@
 /* Dark theme */
 [data-theme='dark'] {
 	--color-primary: #3b82f6;
+	--chart-views: #3b82f6;
+	--chart-users: #10a396;
+	--chart-content: #b01e5c;
+	--chart-usage: #d97706;
 	--color-primary-hover: #2563eb;
 	--color-secondary: #8b5cf6;
 	--color-secondary-hover: #7c3aed;

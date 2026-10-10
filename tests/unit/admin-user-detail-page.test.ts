@@ -38,7 +38,7 @@ describe('Admin User Detail Page', () => {
 					portfolioItems: [],
 					cmsPaletteItems: [],
 					openProjects: [],
-					hasAuthConfig: false,
+					hasAuthConfig: false, gaMeasurementId: null, canViewStats: true, canManageAnalytics: true,
 					user: {
 						id: 'u1',
 						name: 'Legacy User',

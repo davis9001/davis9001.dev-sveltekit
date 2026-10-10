@@ -14,7 +14,7 @@ import {
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ params, platform }) => {
+export const load: PageServerLoad = async ({ params, platform, locals }) => {
 	const typeSlug = params.contentType;
 	const itemSlug = params.slug;
 
@@ -49,6 +49,10 @@ export const load: PageServerLoad = async ({ params, platform }) => {
 	if (item.status !== 'published' && !archiveVisible) {
 		throw error(404, 'Content not found');
 	}
+
+	// Let the page-view hook attribute this view to the item (content_view_daily)
+	// without a second lookup — see pageViewsHandler in hooks.server.ts.
+	locals.viewedContentId = item.id;
 
 	// Get tags if the type supports them
 	let tags: any[] = [];

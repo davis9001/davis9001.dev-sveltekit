@@ -120,7 +120,7 @@ describe('Profile Page', () => {
 				portfolioItems: [],
 				cmsPaletteItems: [],
 				openProjects: [],
-				hasAuthConfig: false,
+				hasAuthConfig: false, gaMeasurementId: null,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};
@@ -154,7 +154,7 @@ describe('Profile Page', () => {
 				portfolioItems: [],
 				cmsPaletteItems: [],
 				openProjects: [],
-				hasAuthConfig: false,
+				hasAuthConfig: false, gaMeasurementId: null,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};
@@ -183,7 +183,7 @@ describe('Profile Page', () => {
 				portfolioItems: [],
 				cmsPaletteItems: [],
 				openProjects: [],
-				hasAuthConfig: false,
+				hasAuthConfig: false, gaMeasurementId: null,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};
@@ -214,7 +214,7 @@ describe('Profile Page', () => {
 				portfolioItems: [],
 				cmsPaletteItems: [],
 				openProjects: [],
-				hasAuthConfig: false,
+				hasAuthConfig: false, gaMeasurementId: null,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};
@@ -242,7 +242,7 @@ describe('Profile Page', () => {
 				portfolioItems: [],
 				cmsPaletteItems: [],
 				openProjects: [],
-				hasAuthConfig: false,
+				hasAuthConfig: false, gaMeasurementId: null,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};
@@ -269,7 +269,7 @@ describe('Profile Page', () => {
 				portfolioItems: [],
 				cmsPaletteItems: [],
 				openProjects: [],
-				hasAuthConfig: false,
+				hasAuthConfig: false, gaMeasurementId: null,
 				connectedAccounts: [],
 				configuredProviders: { github: false, discord: false }
 			};
