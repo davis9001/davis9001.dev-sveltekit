@@ -181,10 +181,10 @@ export const AGENT_LINKS: readonly AgentLink[] = [
 		note: 'RFC 9727 catalog of this deployment’s APIs.'
 	},
 	{
-		href: '/documentation',
-		rel: 'service-doc',
-		type: 'text/html',
-		note: 'Human-readable documentation for the app and its API surface.'
+		href: '/llms.txt',
+		rel: 'describedby',
+		type: 'text/plain',
+		note: 'Plain-text overview of the site for agents (llmstxt.org).'
 	},
 	{
 		href: '/sitemap.xml',

@@ -1,16 +1,19 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import CommandPalette from '$lib/components/CommandPalette.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import GoogleAnalytics from '$lib/components/GoogleAnalytics.svelte';
+	import { Toaster } from '$lib/ui';
 	import Navigation from '$lib/components/Navigation.svelte';
 	import {
 		closeCommandPalette,
 		showCommandPalette,
 		toggleCommandPalette
 	} from '$lib/stores/commandPalette';
-	import { resolvedTheme } from '$lib/stores/theme';
+	import { resolvedTheme, themePreference } from '$lib/stores/theme';
+	import { registerWebMcpTools } from '$lib/webmcp';
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import type { PageData } from './$types';
@@ -52,6 +55,17 @@
 	}
 
 	onMount(() => {
+		// WebMCP (docs/AGENT_READINESS.md): expose search, page listing,
+		// Markdown reads, navigation and the theme to an in-browser AI agent.
+		// No-ops on browsers without the API, which is currently almost all of them.
+		registerWebMcpTools({
+			origin: $page.url.origin,
+			// Read lazily so an agent calling the tool later sees current data.
+			items: () => data.cmsPaletteItems ?? [],
+			navigate: (path) => goto(path),
+			setTheme: (theme) => themePreference.set(theme)
+		});
+
 		// Listen for keyboard shortcut (Cmd/Ctrl + K)
 		const handleKeydown = (e: KeyboardEvent) => {
 			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -108,6 +122,9 @@
 {/if}
 
 <GoogleAnalytics measurementId={data.gaMeasurementId ?? null} />
+
+<!-- Toasts raised anywhere with toast.*() from $lib/ui. -->
+<Toaster />
 
 <CommandPalette bind:show={$showCommandPalette} hasAIProviders={data.hasAIProviders} portfolioItems={data.portfolioItems} cmsCommands={data.cmsPaletteItems} initialProjects={data.openProjects} />
 

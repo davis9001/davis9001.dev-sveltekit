@@ -4,7 +4,12 @@ import {
 	assertDatabaseIdentity,
 	shouldEnforceDatabaseIdentity
 } from '$lib/server/database-identity';
-import { applyDiscoveryLinks } from '$lib/server/discovery-links';
+import { buildLinkHeader } from '$lib/agent-discovery';
+import {
+	isConvertibleHtml,
+	prefersMarkdown,
+	toMarkdownResponse
+} from '$lib/server/markdown-negotiation';
 import { getAuthSession } from '$lib/utils/db';
 import {
 	browserBucket,
@@ -92,14 +97,6 @@ const securityHeadersHandler: Handle = async ({ event, resolve }) => {
 	response.headers.set('X-XSS-Protection', '1; mode=block');
 
 	return response;
-};
-
-// Discovery Link headers hook — advertises llms.txt to agents that land on any
-// page. Kept separate from securityHeadersHandler because it applies to HTML
-// documents only, not to every non-API response. See $lib/server/discovery-links.
-const discoveryLinksHandler: Handle = async ({ event, resolve }) => {
-	const response = await resolve(event);
-	return applyDiscoveryLinks(event.url.pathname, response);
 };
 
 const BOT_UA = /bot|crawler|spider|preview|facebookexternalhit|lighthouse|headless/i;
@@ -199,13 +196,49 @@ export const usageHandler: Handle = async ({ event, resolve }) => {
 	return response;
 };
 
+/**
+ * Agent discovery (docs/AGENT_READINESS.md): advertise the machine-readable
+ * entry points on every HTML response via RFC 8288 `Link` headers, and serve
+ * Markdown to agents that ask for it with `Accept: text/markdown`.
+ *
+ * Runs OUTSIDE the stats handlers in the sequence so `pageViewsHandler` still
+ * sees the original `text/html` response and keeps counting agent reads as page
+ * views — an agent fetching a page is a real view, and hiding it would quietly
+ * under-report traffic.
+ *
+ * `Vary: Accept` goes on the HTML branch too, not just the Markdown one:
+ * without it a shared cache can hand a stored HTML body to an agent that asked
+ * for Markdown, or the reverse.
+ *
+ * Exported for direct unit testing (sequence() needs Kit's request store).
+ */
+export const agentDiscoveryHandler: Handle = async ({ event, resolve }) => {
+	const response = await resolve(event);
+
+	if (!isConvertibleHtml(response)) return response;
+
+	response.headers.set('Link', buildLinkHeader());
+	response.headers.set('Vary', 'Accept');
+
+	if (!prefersMarkdown(event.request.headers.get('accept'))) return response;
+
+	try {
+		return await toMarkdownResponse(response);
+	} catch (error) {
+		// A conversion failure must never cost the caller the page — fall back to
+		// the HTML we already have.
+		console.error('markdown negotiation: conversion failed', error);
+		return response;
+	}
+};
+
 // Combine all hooks. usageHandler first so nothing that returns early goes
 // uncounted; pageViewsHandler last so locals.user is populated.
 export const handle = sequence(
 	usageHandler,
+	agentDiscoveryHandler,
 	databaseIdentityHandler,
 	authHandler,
 	securityHeadersHandler,
-	discoveryLinksHandler,
 	pageViewsHandler
 );
