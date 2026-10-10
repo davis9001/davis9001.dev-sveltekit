@@ -12,7 +12,7 @@ import {
 	observeCanvasResize,
 	setupCanvas,
 	startLoop
-} from '../../src/lib/cms/embeds/dirac/canvas-utils';
+} from '../../src/lib/components/dirac/canvas-utils';
 
 describe('SvelteEmbed extension spec', () => {
 	it('is a block atom named svelteEmbed', () => {
@@ -58,8 +58,9 @@ describe('SvelteEmbed extension spec', () => {
 });
 
 describe('embed manifest', () => {
-	it('lists the six Dirac embeds with valid names', () => {
-		expect(embedManifest).toHaveLength(6);
+	it('lists the six Dirac embeds and the Callout with valid names', () => {
+		expect(embedManifest).toHaveLength(7);
+		expect(embedManifest.filter((e) => e.name.startsWith('dirac-'))).toHaveLength(6);
 		for (const embed of embedManifest) {
 			expect(embed.name).toMatch(/^[a-z0-9-]+$/);
 			expect(embed.label.length).toBeGreaterThan(0);

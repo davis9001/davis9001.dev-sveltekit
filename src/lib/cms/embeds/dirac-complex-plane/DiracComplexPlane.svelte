@@ -6,8 +6,8 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getVar, observeCanvasResize, setupCanvas, startLoop } from './canvas-utils';
-	import VizCard from './VizCard.svelte';
+	import { getVar, observeCanvasResize, setupCanvas, startLoop } from '$lib/components/dirac/canvas-utils';
+	import VizCard from '$lib/components/dirac/VizCard.svelte';
 
 	export let title = 'Visualization 0 — i as a 90° Rotation (Complex Plane)';
 
