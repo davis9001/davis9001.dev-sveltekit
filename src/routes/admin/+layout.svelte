@@ -24,7 +24,8 @@
 			? [{ path: '/admin/github-sync', label: 'GitHub Sync', icon: 'github' }]
 			: []),
 		{ path: '/admin/cms', label: 'CMS', icon: 'document' },
-		{ path: '/admin/spotify', label: 'Spotify', icon: 'music' }
+		{ path: '/admin/spotify', label: 'Spotify', icon: 'music' },
+		{ path: '/admin/lighthouse', label: 'Lighthouse', icon: 'chart' }
 	];
 </script>
 
