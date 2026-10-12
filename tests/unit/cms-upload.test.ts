@@ -99,7 +99,8 @@ const plainUser = { id: 'u2', isOwner: false, isAdmin: false };
 function makeBucket() {
 	return {
 		put: vi.fn().mockResolvedValue({}),
-		get: vi.fn()
+		get: vi.fn(),
+		head: vi.fn()
 	};
 }
 
@@ -171,13 +172,23 @@ describe('POST /api/admin/upload', () => {
 });
 
 describe('GET /media/[...key]', () => {
-	function makeMediaEvent(options: { bucket?: unknown; key: string; ifNoneMatch?: string }) {
+	function makeMediaEvent(options: {
+		bucket?: unknown;
+		key: string;
+		ifNoneMatch?: string;
+		range?: string;
+	}) {
 		return {
 			platform: options.bucket === undefined ? undefined : { env: { BUCKET: options.bucket } },
 			params: { key: options.key },
 			request: {
 				headers: {
-					get: (name: string) => (name === 'If-None-Match' ? (options.ifNoneMatch ?? null) : null)
+					get: (name: string) =>
+						name === 'If-None-Match'
+							? (options.ifNoneMatch ?? null)
+							: name === 'Range'
+								? (options.range ?? null)
+								: null
 				}
 			}
 		} as never;
@@ -227,5 +238,80 @@ describe('GET /media/[...key]', () => {
 		);
 
 		expect(response.status).toBe(304);
+	});
+	describe('byte ranges', () => {
+		const head = { size: 1000, httpEtag: '"v"', httpMetadata: { contentType: 'video/mp4' } };
+
+		it('answers a range with 206 and the matching Content-Range', async () => {
+			const bucket = makeBucket();
+			bucket.head.mockResolvedValue(head);
+			bucket.get.mockResolvedValue({ body: 'part' });
+
+			const response = await mediaGET(
+				makeMediaEvent({ bucket, key: 'uploads/c.mp4', range: 'bytes=0-99' })
+			);
+
+			expect(bucket.get).toHaveBeenCalledWith('uploads/c.mp4', {
+				range: { offset: 0, length: 100 }
+			});
+			expect(response.status).toBe(206);
+			expect(response.headers.get('Content-Range')).toBe('bytes 0-99/1000');
+			expect(response.headers.get('Content-Length')).toBe('100');
+			expect(response.headers.get('Content-Type')).toBe('video/mp4');
+			expect(response.headers.get('ETag')).toBe('"v"');
+		});
+
+		it('defaults the type and omits the ETag when the object has neither', async () => {
+			const bucket = makeBucket();
+			bucket.head.mockResolvedValue({ size: 10 });
+			bucket.get.mockResolvedValue({ body: 'part' });
+
+			const response = await mediaGET(
+				makeMediaEvent({ bucket, key: 'uploads/c.bin', range: 'bytes=-4' })
+			);
+
+			expect(response.headers.get('Content-Range')).toBe('bytes 6-9/10');
+			expect(response.headers.get('Content-Type')).toBe('application/octet-stream');
+			expect(response.headers.get('ETag')).toBeNull();
+		});
+
+		it('416 for a range past the end', async () => {
+			const bucket = makeBucket();
+			bucket.head.mockResolvedValue(head);
+
+			const response = await mediaGET(
+				makeMediaEvent({ bucket, key: 'uploads/c.mp4', range: 'bytes=5000-' })
+			);
+
+			expect(response.status).toBe(416);
+			expect(response.headers.get('Content-Range')).toBe('bytes */1000');
+		});
+
+		it('404 when the object is missing at head or at get', async () => {
+			const bucket = makeBucket();
+			bucket.head.mockResolvedValue(null);
+			await expect(
+				mediaGET(makeMediaEvent({ bucket, key: 'uploads/c.mp4', range: 'bytes=0-1' }))
+			).rejects.toMatchObject({ status: 404 });
+
+			bucket.head.mockResolvedValue(head);
+			bucket.get.mockResolvedValue(null);
+			await expect(
+				mediaGET(makeMediaEvent({ bucket, key: 'uploads/c.mp4', range: 'bytes=0-1' }))
+			).rejects.toMatchObject({ status: 404 });
+		});
+
+		it('serves the whole object for a range it does not honour', async () => {
+			const bucket = makeBucket();
+			bucket.head.mockResolvedValue(head);
+			bucket.get.mockResolvedValue({ body: 'all', httpMetadata: { contentType: 'video/mp4' } });
+
+			const response = await mediaGET(
+				makeMediaEvent({ bucket, key: 'uploads/c.mp4', range: 'bytes=0-1,5-9' })
+			);
+
+			expect(response.status).toBe(200);
+			expect(response.headers.get('Accept-Ranges')).toBe('bytes');
+		});
 	});
 });
