@@ -58,8 +58,8 @@ describe('SvelteEmbed extension spec', () => {
 });
 
 describe('embed manifest', () => {
-	it('lists the six Dirac embeds and the Callout with valid names', () => {
-		expect(embedManifest).toHaveLength(7);
+	it('lists the six Dirac embeds, the Callout and the Video with valid names', () => {
+		expect(embedManifest).toHaveLength(8);
 		expect(embedManifest.filter((e) => e.name.startsWith('dirac-'))).toHaveLength(6);
 		for (const embed of embedManifest) {
 			expect(embed.name).toMatch(/^[a-z0-9-]+$/);
