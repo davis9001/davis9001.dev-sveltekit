@@ -23,11 +23,18 @@
  *   PUBLISHED_AT     ISO timestamp (default: now)
  *   MEDIA_DIR        where to find the uploaded files, to measure them
  *                    (default: test-outputs/fly — pass the dir the webps came from)
+ *
+ * A WebP featured image is also written as a JPEG beside it (<uuid>-og.jpg)
+ * and used as the share image: X's card crawler is unreliable with WebP. The
+ * script prints the `wrangler r2 object put` line to upload it; do that BEFORE
+ * the INSERT, and do not curl the new URL first — the edge caches a 404.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
+
+import sharp from 'sharp';
 
 import { marked } from 'marked';
 
@@ -97,6 +104,20 @@ function parseFrontmatter(block: string): DraftMeta {
 		}
 	}
 	return meta as unknown as DraftMeta;
+}
+
+/** A 1200px JPEG of the image, under the ~100KB single-PUT limit when it can be. */
+async function toShareJpeg(file: string): Promise<Buffer> {
+	let out = Buffer.alloc(0);
+	for (const quality of [85, 78, 70, 60]) {
+		out = await sharp(file)
+			.resize({ width: 1200, withoutEnlargement: true })
+			.flatten({ background: '#111111' })
+			.jpeg({ quality, mozjpeg: true })
+			.toBuffer();
+		if (out.length < 100_000) break;
+	}
+	return out;
 }
 
 /** The intrinsic size of an uploaded image, so the figure reserves its box. */
@@ -216,7 +237,7 @@ function prettify(html: string): string {
 		.trim();
 }
 
-function main() {
+async function main() {
 	const draftPath = process.argv[2];
 	if (!draftPath) throw new Error('usage: bun scripts/publish-draft.ts <draft.md>');
 
@@ -228,9 +249,24 @@ function main() {
 
 	// Crawlers need an absolute share image; a relative one is dropped by most
 	// of them. The body keeps site-relative paths.
-	const seoImage = meta.featured_image
-		? new URL(meta.featured_image, 'https://davis9001.dev').toString()
-		: '';
+	let shareImage = meta.featured_image ?? '';
+	if (shareImage.endsWith('.webp')) {
+		const jpgName = basename(shareImage).replace(/\.webp$/, '-og.jpg');
+		const source = join(process.env.MEDIA_DIR || join(root, 'test-outputs', 'fly'), basename(shareImage));
+		if (existsSync(source)) {
+			const jpg = await toShareJpeg(source);
+			const jpgFile = join(dirname(source), jpgName);
+			writeFileSync(jpgFile, jpg);
+			shareImage = join(dirname(shareImage), jpgName);
+			console.log(
+				`share image ${jpgName} (${(jpg.length / 1024).toFixed(0)} kB) — upload first:\n` +
+					`  bunx wrangler r2 object put davis9001-dev-files/${shareImage.replace(/^\/media\//, '')} --file=${jpgFile} --content-type=image/jpeg`
+			);
+		} else {
+			console.warn(`warning: ${source} not found — share image stays WebP`);
+		}
+	}
+	const seoImage = shareImage ? new URL(shareImage, 'https://davis9001.dev').toString() : '';
 
 	const fields = JSON.stringify({
 		excerpt,
