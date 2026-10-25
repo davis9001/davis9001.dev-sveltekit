@@ -597,9 +597,6 @@
 			<nav class="hero-ctas" aria-label="Quick links">
 				<a href="https://davis9001.com/?via=dev" class="hero-cta"> davis9001.com </a>
 				<a href="https://davis9001.com/shop" class="hero-cta"> Shop </a>
-				<a href="/projects" class="hero-cta hero-cta--special"> Open Projects </a>
-				<a href="/portfolio" class="hero-cta"> Portfolio of Projects </a>
-				<a href="/send" class="hero-cta"> Send a Message </a>
 			</nav>
 
 			<SocialLinks />
@@ -786,17 +783,6 @@
 		box-shadow: 0 8px 30px -8px hsla(var(--primary), 0.35);
 		color: hsla(var(--accent));
 		border-color: hsla(var(--accent), 0.2);
-	}
-
-	.hero-cta--special {
-		color: hsla(var(--special));
-		border-color: hsla(var(--special), 0.15);
-	}
-
-	.hero-cta--special:hover {
-		border-color: hsla(var(--special), 0.3);
-		box-shadow: 0 8px 30px -8px hsla(var(--special), 0.3);
-		color: hsla(var(--special));
 	}
 
 	/* ── Command Palette Hint ── */
