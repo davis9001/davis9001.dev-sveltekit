@@ -50,10 +50,7 @@
 		if (!browser || !(value instanceof Promise)) {
 			return Promise.resolve(value ?? null);
 		}
-		return Promise.race([
-			value,
-			new Promise((resolve) => setTimeout(() => resolve(null), ms))
-		]);
+		return Promise.race([value, new Promise((resolve) => setTimeout(() => resolve(null), ms))]);
 	}
 
 	$: githubActivityDataPromise = settleWithin(data.githubActivityData, STREAM_PATIENCE_MS);
@@ -592,21 +589,18 @@
 			<p class="hero-subtitle">David "davis9001" Monaghan</p>
 			<p class="hero-role">Software and Community Architect</p>
 
+			<!-- Until 2026-09-22 davis9001.com 301'd here, and browsers keep a
+			     301 for good, so some visitors still land on this page when they
+			     typed the studio's address. The query string makes a URL their
+			     cache has never seen, so it gets through; the .com layout then
+			     repairs the cached entry and drops the marker. -->
 			<nav class="hero-ctas" aria-label="Quick links">
+				<a href="https://davis9001.com/?via=dev" class="hero-cta"> davis9001.com </a>
+				<a href="https://davis9001.com/shop" class="hero-cta"> Shop </a>
 				<a href="/projects" class="hero-cta hero-cta--special"> Open Projects </a>
 				<a href="/portfolio" class="hero-cta"> Portfolio of Projects </a>
 				<a href="/send" class="hero-cta"> Send a Message </a>
 			</nav>
-
-			<!-- Until 2026-09-22 davis9001.com 301'd here, and browsers keep a
-			     301 for good — some visitors still land on this page when they
-			     typed the studio's address. The query string makes a URL their
-			     cache has never seen, so it gets through; the .com layout then
-			     repairs the cached entry and drops the marker. -->
-			<p class="hero-crosslink">
-				Looking for the studio? It is at
-				<a href="https://davis9001.com/?via=dev">davis9001.com</a> again.
-			</p>
 
 			<SocialLinks />
 
@@ -759,18 +753,6 @@
 		line-height: 1.3;
 		margin-bottom: 2rem;
 		color: hsla(var(--foreground), 0.9);
-	}
-
-	.hero-crosslink {
-		font-size: 0.95rem;
-		margin: -0.75rem 0 1.5rem;
-		color: hsla(var(--foreground), 0.7);
-	}
-
-	.hero-crosslink a {
-		color: inherit;
-		text-decoration: underline;
-		text-underline-offset: 0.2em;
 	}
 
 	/* ── CTA Buttons ── */
