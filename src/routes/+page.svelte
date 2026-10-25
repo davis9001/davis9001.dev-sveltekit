@@ -595,8 +595,10 @@
 			     cache has never seen, so it gets through; the .com layout then
 			     repairs the cached entry and drops the marker. -->
 			<nav class="hero-ctas" aria-label="Quick links">
-				<a href="https://davis9001.com/?via=dev" class="hero-cta"> Need a website? </a>
-				<a href="https://davis9001.com/shop" class="hero-cta"> Shop </a>
+				<a href="https://davis9001.com/?via=dev" class="hero-cta hero-cta--studio">
+					Need a website?
+				</a>
+				<a href="https://davis9001.com/shop" class="hero-cta hero-cta--shop"> Wear davis9001 </a>
 			</nav>
 
 			<SocialLinks />
@@ -783,6 +785,33 @@
 		box-shadow: 0 8px 30px -8px hsla(var(--primary), 0.35);
 		color: hsla(var(--accent));
 		border-color: hsla(var(--accent), 0.2);
+	}
+
+	/* The studio is the main ask: a solid button. The shop is the side door:
+	   glass with a coloured edge. */
+	.hero-cta--studio {
+		background: hsla(var(--accent));
+		color: hsl(0 0% 6%);
+		font-weight: 600;
+		border-color: hsla(var(--accent));
+	}
+
+	.hero-cta--studio:hover {
+		background: hsla(var(--accent), 0.85);
+		color: hsl(0 0% 6%);
+		border-color: hsla(var(--accent));
+		box-shadow: 0 8px 30px -8px hsla(var(--accent), 0.55);
+	}
+
+	.hero-cta--shop {
+		color: hsla(var(--special));
+		border-color: hsla(var(--special), 0.45);
+	}
+
+	.hero-cta--shop:hover {
+		color: hsla(var(--special));
+		border-color: hsla(var(--special), 0.8);
+		box-shadow: 0 8px 30px -8px hsla(var(--special), 0.4);
 	}
 
 	/* ── Command Palette Hint ── */
