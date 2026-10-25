@@ -595,7 +595,7 @@
 			     cache has never seen, so it gets through; the .com layout then
 			     repairs the cached entry and drops the marker. -->
 			<nav class="hero-ctas" aria-label="Quick links">
-				<a href="https://davis9001.com/?via=dev" class="hero-cta"> Want a website? </a>
+				<a href="https://davis9001.com/?via=dev" class="hero-cta"> Need a website? </a>
 				<a href="https://davis9001.com/shop" class="hero-cta"> Shop </a>
 			</nav>
 
