@@ -872,6 +872,17 @@ export class CrowStateMachine {
     this.state = 'flying';
   }
 
+  /** Start a flight to a specific target. False when it is unknown or already current. */
+  startFlightTo(targetId: string): boolean {
+    if (this.state === 'flying') return false;
+    const target = this.targets.find((t) => t.id === targetId);
+    if (!target || target.id === this.currentTarget.id) return false;
+    this.flightTarget = target;
+    this.flightStartTime = Date.now();
+    this.state = 'flying';
+    return true;
+  }
+
   /**
    * Start a panicked flight away from the mouse position.
    * Picks the target farthest from the mouse and uses a shorter flight duration.
@@ -1019,6 +1030,10 @@ export interface FlockCrow {
   targetY: number;
   state: 'waiting' | 'flying' | 'perched' | 'departing' | 'departed';
   perchEndTime?: number;
+  /** Index into the perch-spot list this crow holds or is flying to */
+  spotIndex?: number;
+  /** Which way the crow is facing: 1 right, -1 left (kept while perched) */
+  facing?: 1 | -1;
 }
 
 /**
@@ -1154,6 +1169,7 @@ export function startFlockCrowFlight(
   crow.vx = 0;
   crow.vy = 0;
   crow.perchEndTime = undefined;
+  crow.spotIndex = undefined;
 }
 
 /** Whether a perched crow's dwell time has elapsed. */
@@ -1382,6 +1398,164 @@ export function computeFlockingForces(
 
     return { dx, dy };
   });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Landing geometry, banking and spot picking
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Where the crow's soles sit inside its rendered box, in CSS pixels.
+ *
+ * The crow SVG (viewBox -55 -45 110 80) is drawn into a 90×70 box with
+ * `meet` scaling, so one viewBox unit is 0.818 px and the legs end on the
+ * y = 24 line, plus half a stroke. Both crow components pin their
+ * transform-origin here, so the point a crow lands on stays under its feet
+ * at every scale and zoom.
+ */
+export const CROW_FEET_X = 45;
+export const CROW_FEET_Y = 59;
+
+/** The box centre, used as the pivot for banking in flight. */
+export const CROW_BODY_PIVOT_Y = 35;
+
+/**
+ * Nose-up / nose-down angle in degrees for a crow moving at (vx, vy).
+ *
+ * The crow art faces right and is mirrored with scaleX(-1) when it heads
+ * left, so the angle is taken against the horizontal speed's magnitude and
+ * then mirrored: a crow flying left and down tips its nose down too.
+ * Limited to ±maxDeg so a near-vertical dive never turns the crow over.
+ */
+export function computeBankAngle(vx: number, vy: number, maxDeg: number = 28): number {
+  const speed = Math.hypot(vx, vy);
+  if (speed < 0.05) return 0;
+  const pitch = (Math.atan2(vy, Math.max(Math.abs(vx), 0.0001)) * 180) / Math.PI;
+  const clamped = Math.max(-maxDeg, Math.min(maxDeg, pitch));
+  return vx < 0 ? -clamped : clamped;
+}
+
+/**
+ * Velocity that carries a crow to a point and eases off on the way in.
+ *
+ * Full `maxSpeed` outside `slowRadius`, then proportional to the remaining
+ * distance, so a crow comes to rest on its perch instead of arriving at
+ * speed and being snapped into place.
+ */
+export function computeArriveVelocity(
+  from: { x: number; y: number; },
+  to: { x: number; y: number; },
+  maxSpeed: number,
+  slowRadius: number,
+): { vx: number; vy: number; } {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 0.0001) return { vx: 0, vy: 0 };
+  const speed = dist >= slowRadius ? maxSpeed : maxSpeed * (dist / slowRadius);
+  return { vx: (dx / dist) * speed, vy: (dy / dist) * speed };
+}
+
+/**
+ * Index of the nearest perch spot that is free, or -1 when none is.
+ *
+ * "Free" means no occupied point (a perched crow, or the spot another crow
+ * is already flying to) within `minDistance`. Spots flagged invisible are
+ * skipped so a crow never commits to something scrolled out of view.
+ */
+export function pickNearestFreeSpot(
+  from: { x: number; y: number; },
+  spots: Array<{ x: number; y: number; }>,
+  occupied: Array<{ x: number; y: number; }>,
+  minDistance: number,
+  isUsable: (spot: { x: number; y: number; }, index: number) => boolean = () => true,
+): number {
+  let best = -1;
+  let bestDist = Infinity;
+  for (let i = 0; i < spots.length; i++) {
+    const spot = spots[i];
+    if (!isUsable(spot, i)) continue;
+    if (isSpotOccupied(spot, occupied, minDistance)) continue;
+    const dist = Math.hypot(spot.x - from.x, spot.y - from.y);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/** Shift spots measured in document coordinates into the current viewport. */
+export function documentToViewport(
+  spot: { x: number; y: number; },
+  scroll: { x: number; y: number; },
+): { x: number; y: number; } {
+  return { x: spot.x - scroll.x, y: spot.y - scroll.y };
+}
+
+/** Whether a viewport point is on screen, with `margin` px of slack. */
+export function isInViewport(
+  point: { x: number; y: number; },
+  viewport: { width: number; height: number; },
+  margin: number = 0,
+): boolean {
+  return (
+    point.x >= margin &&
+    point.x <= viewport.width - margin &&
+    point.y >= margin &&
+    point.y <= viewport.height - margin
+  );
+}
+
+/**
+ * How many 60 Hz frames a time step is worth, so speeds written "per frame"
+ * stay the same on a 144 Hz screen. Capped so a backgrounded tab does not
+ * teleport the flock when it wakes up.
+ */
+export function frameScale(dtMs: number, cap: number = 3): number {
+  if (!(dtMs > 0)) return 0;
+  return Math.min(cap, dtMs / (1000 / 60));
+}
+
+/**
+ * Fraction (0–1) down an image at which its silhouette first becomes opaque
+ * in a column, averaged over a few neighbouring columns so one stray
+ * anti-aliased pixel does not move the perch. Returns null when the column
+ * band is entirely transparent.
+ *
+ * Lets a crow stand exactly on the top edge of a cut-out photo whatever size
+ * it is drawn at, instead of on a hand-measured guess.
+ *
+ * @param alpha     Flat alpha-or-RGBA array. Pass `stride` 4 for RGBA data.
+ * @param stride    Entries per pixel (1 for a bare alpha plane, 4 for RGBA)
+ * @param column    Column index of the centre of the band
+ * @param halfBand  Neighbouring columns to include either side
+ */
+export function findTopSurfaceFraction(
+  alpha: ArrayLike<number>,
+  width: number,
+  height: number,
+  column: number,
+  options: { stride?: number; halfBand?: number; threshold?: number; } = {},
+): number | null {
+  const stride = options.stride ?? 1;
+  const halfBand = options.halfBand ?? 1;
+  const threshold = options.threshold ?? 128;
+  const alphaOffset = stride === 4 ? 3 : 0;
+
+  const rows: number[] = [];
+  for (let c = column - halfBand; c <= column + halfBand; c++) {
+    if (c < 0 || c >= width) continue;
+    for (let y = 0; y < height; y++) {
+      if (alpha[(y * width + c) * stride + alphaOffset] >= threshold) {
+        rows.push(y);
+        break;
+      }
+    }
+  }
+  if (rows.length === 0) return null;
+  const mean = rows.reduce((sum, r) => sum + r, 0) / rows.length;
+  return mean / height;
 }
 
 // ═══════════════════════════════════════════════════════════════

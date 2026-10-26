@@ -17,6 +17,12 @@
 		isMouseTooClose,
 		pickRandomCharIndex,
 		findTextNodeOffset,
+		computeGlyphVisualTop,
+		computeBankAngle,
+		isInViewport,
+		CROW_FEET_X,
+		CROW_FEET_Y,
+		CROW_BODY_PIVOT_Y,
 		type CrowTarget,
 		type CrowPosition,
 		type CarriedItem,
@@ -65,6 +71,8 @@
 	let idleTimer: ReturnType<typeof setTimeout>;
 	let pos: CrowPosition = { x: 0, y: 0, scale: 1, rotation: 0, flipX: false };
 	let wingAngle = 0;
+	/** Nose-up / nose-down tilt in degrees while flying; 0 when perched */
+	let bank = 0;
 	let state: 'perched' | 'taking-off' | 'flying' | 'gliding' | 'soaring' | 'diving' | 'landing' = 'perched';
 	let mounted = false;
 	let animStartTime = 0;
@@ -127,8 +135,30 @@
 
 		return {
 			x: rect.left + rect.width / 2,
-			y: rect.top
+			// The range box is the line's content area; the letter's ink starts
+			// lower. Land on the ink, not on the empty box above it.
+			y: glyphVisualTop(textNode, rect.top, textNode.data.charAt(result.offset))
 		};
+	}
+
+	let measureCtx: CanvasRenderingContext2D | null = null;
+
+	/**
+	 * Viewport Y of the top of a character's visible ink, from the canvas
+	 * metrics of the font it is set in. Falls back to the box top.
+	 */
+	function glyphVisualTop(textNode: Text, rectTop: number, ch: string): number {
+		const parent = textNode.parentElement;
+		if (!parent || !ch.trim()) return rectTop;
+		measureCtx ??= document.createElement('canvas').getContext('2d');
+		if (!measureCtx) return rectTop;
+		const cs = getComputedStyle(parent);
+		measureCtx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+		const m = measureCtx.measureText(ch);
+		if (!m.fontBoundingBoxAscent || !(m.actualBoundingBoxAscent > 0)) {
+			return rectTop;
+		}
+		return computeGlyphVisualTop(rectTop, m.fontBoundingBoxAscent, m.actualBoundingBoxAscent);
 	}
 
 	/**
@@ -166,11 +196,19 @@
 	 */
 	function refreshTargetPositions(): void {
 		if (!machine) return;
+		const viewport = { width: window.innerWidth, height: window.innerHeight };
+		const currentId = machine.getCurrentTarget().id;
 		const fresh = targets.map((t) => {
 			const livePos = resolveTargetPosition(t);
 			return { ...t, x: livePos.x, y: livePos.y };
 		});
-		machine.updateTargets(fresh);
+		// Only fly to a spot that is on screen right now (the page scrolls; the
+		// scroll hint can sit below the fold). The perch it is on stays in the
+		// list so the crow never jumps.
+		const onScreen = fresh.filter(
+			(t) => t.id === currentId || isInViewport({ x: t.x, y: t.y }, viewport, 4)
+		);
+		machine.updateTargets(onScreen.length > 1 ? onScreen : fresh);
 	}
 
 	function onMouseMove(e: MouseEvent) {
@@ -247,10 +285,17 @@
 				pos = { ...pos, x: pos.x + diveOffset.dx, y: pos.y + diveOffset.dy };
 			}
 
+			// Tilt along the flight path, easing out over the last 15% so the
+			// crow levels off to land instead of snapping upright.
+			const rad = (pos.rotation * Math.PI) / 180;
+			const level = progress > 0.85 ? Math.max(0, (1 - progress) / 0.15) : 1;
+			bank = computeBankAngle(pos.flipX ? -Math.abs(Math.cos(rad)) : Math.abs(Math.cos(rad)), Math.sin(rad)) * level;
+
 			if (progress >= 1) {
 				machine.completeFlight();
 				state = 'perched';
 				wingAngle = 0;
+				bank = 0;
 				pos = machine.getCurrentPosition();
 				currentZIndex = machine.getCurrentZIndex();
 				// Restore normal flight duration after fleeing
@@ -258,6 +303,7 @@
 				scheduleNextFlight();
 			}
 		} else {
+			bank = 0;
 			// When perched, re-resolve anchor position from the DOM each frame
 			// so the crow follows its element on scroll.
 			const currentTarget = machine.getCurrentTarget();
@@ -323,6 +369,33 @@
 		animStartTime = Date.now();
 	}
 
+	/**
+	 * Fly to a specific target by id (used by dev tooling and screenshots).
+	 * Resolves once the crow is perched on it again.
+	 */
+	export function flyTo(id: string): Promise<void> {
+		return new Promise((resolve) => {
+			if (!machine || machine.getState() !== 'perched') return resolve();
+			if (idleTimer) clearTimeout(idleTimer);
+			refreshTargetPositions();
+			machine.setFlightDuration(flightDurationMs);
+			if (!machine.startFlightTo(id)) {
+				scheduleNextFlight();
+				return resolve();
+			}
+			const flightTarget = machine.getFlightTarget();
+			if (flightTarget?.textAware) selectTextChar(flightTarget);
+			state = 'flying';
+			animStartTime = Date.now();
+			const poll = setInterval(() => {
+				if (machine?.getState() === 'perched') {
+					clearInterval(poll);
+					resolve();
+				}
+			}, 50);
+		});
+	}
+
 	onMount(() => {
 		if (targets.length === 0) return;
 		mounted = true;
@@ -357,6 +430,9 @@
 <div
 	class="animated-crow"
 	style="
+		margin-left: -{CROW_FEET_X}px;
+		margin-top: -{CROW_FEET_Y}px;
+		transform-origin: {CROW_FEET_X}px {CROW_FEET_Y}px;
 		transform: translate({pos.x}px, {pos.y}px) scale({pos.scale * zoomCompensation}) {pos.flipX ? 'scaleX(-1)' : ''};
 		will-change: transform;
 		z-index: {currentZIndex};
@@ -364,6 +440,7 @@
 	aria-hidden="true"
 	role="img"
 >
+	<div class="crow-bank" style="transform-origin: {CROW_FEET_X}px {CROW_BODY_PIVOT_Y}px; transform: rotate({bank}deg);">
 	<svg
 		viewBox="-55 -45 110 80"
 		width="90"
@@ -696,6 +773,7 @@
 			</g>
 		{/if}
 	</svg>
+	</div>
 </div>
 
 <style>
@@ -704,9 +782,15 @@
 		/* z-index is set dynamically via inline style */
 		pointer-events: none;
 		transition: none;
-		/* Offset so the crow's feet align with landing point */
-		margin-left: -45px;
-		margin-top: -55px;
+		/* The box is placed (inline style) so the soles sit on the landing point,
+		   and scale pivots on the soles, so size never moves where it lands. */
+		top: 0;
+		left: 0;
+	}
+
+	.crow-bank {
+		width: 90px;
+		height: 70px;
 	}
 
 	.crow-svg {

@@ -23,6 +23,7 @@
 		derivePerchSpotsFromPretextLines,
 		samplePerchSpotsFromRect,
 		dedupePerchSpots,
+		findTopSurfaceFraction,
 		type TextCharAnchor,
 		type RectPerchSamplingOptions
 	} from '$lib/utils/crow';
@@ -68,8 +69,51 @@
 	// These are computed on mount and on resize to stay responsive
 	let crowTargets: CrowTarget[] = [];
 
-	/** Character perch spots for the murder of crows (positions on the title text) */
+	/**
+	 * Perch spots for the murder of crows, in DOCUMENT coordinates (viewport
+	 * position + scroll at measuring time). The flock subtracts the live scroll
+	 * every frame, so a spot stays glued to its letter or button as the page
+	 * scrolls without re-measuring.
+	 */
 	let murderPerchSpots: Array<{ x: number; y: number }> = [];
+
+	/** The hero photo's alpha plane, so body landings sit on the real silhouette */
+	let hoodieAlpha: { data: Uint8ClampedArray; width: number; height: number } | null = null;
+
+	let crow: AnimatedCrow | undefined;
+
+	async function loadHoodieAlpha() {
+		try {
+			const img = new Image();
+			img.src = '/davis9001-2-hoodie.webp';
+			await img.decode();
+			const canvas = document.createElement('canvas');
+			canvas.width = img.naturalWidth;
+			canvas.height = img.naturalHeight;
+			const ctx = canvas.getContext('2d');
+			if (!ctx) return;
+			ctx.drawImage(img, 0, 0);
+			const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+			hoodieAlpha = { data, width, height };
+		} catch {
+			hoodieAlpha = null;
+		}
+	}
+
+	/**
+	 * Image-fraction Y of the photo's top edge at an X fraction, so the crow's
+	 * feet land on the silhouette. Falls back to a measured guess when the
+	 * image's pixels are unavailable.
+	 */
+	function silhouetteY(xFraction: number, fallback: number): number {
+		if (!hoodieAlpha) return fallback;
+		const column = Math.round(xFraction * (hoodieAlpha.width - 1));
+		return (
+			findTopSurfaceFraction(hoodieAlpha.data, hoodieAlpha.width, hoodieAlpha.height, column, {
+				stride: 4
+			}) ?? fallback
+		);
+	}
 
 	// Natural dimensions of /davis9001-2-hoodie.webp (420 × 736)
 	const IMG_NAT_W = 420;
@@ -156,7 +200,7 @@
 		// Crow perches on the top of David's head/hair. (The white hat that
 		// used to sit above the head — landmark iy=-0.01 — was removed from the
 		// hero photo, so the landing spot moved down onto the head itself.)
-		const headTop = imageLandmarkToViewport(0.5, 0.045, imgBounds);
+		const headTop = imageLandmarkToViewport(0.5, silhouetteY(0.5, 0.045), imgBounds);
 		targets.push({
 			id: 'head',
 			x: headTop.x,
@@ -167,7 +211,7 @@
 
 		// ── Right arm ──
 		// Person's right arm (image left), raised to sunglasses.
-		const rArm = imageLandmarkToViewport(0.32, 0.22, imgBounds);
+		const rArm = imageLandmarkToViewport(0.32, silhouetteY(0.32, 0.22), imgBounds);
 		targets.push({
 			id: 'right-arm',
 			x: rArm.x,
@@ -178,7 +222,7 @@
 
 		// ── Left arm ──
 		// Person's left arm (image right), raised to sunglasses.
-		const lArm = imageLandmarkToViewport(0.89, 0.19, imgBounds);
+		const lArm = imageLandmarkToViewport(0.89, silhouetteY(0.89, 0.19), imgBounds);
 		targets.push({
 			id: 'left-arm',
 			x: lArm.x,
@@ -189,7 +233,7 @@
 		});
 
 		// ── Right forearm (raised to sunglasses) ──
-		const rForearm = imageLandmarkToViewport(0.12, 0.14, imgBounds);
+		const rForearm = imageLandmarkToViewport(0.12, silhouetteY(0.12, 0.14), imgBounds);
 		targets.push({
 			id: 'right-forearm',
 			x: rForearm.x,
@@ -199,7 +243,7 @@
 		});
 
 		// ── Left forearm (raised to sunglasses) ──
-		const lForearm = imageLandmarkToViewport(0.83, 0.12, imgBounds);
+		const lForearm = imageLandmarkToViewport(0.83, silhouetteY(0.83, 0.12), imgBounds);
 		targets.push({
 			id: 'left-forearm',
 			x: lForearm.x,
@@ -402,7 +446,11 @@
 			})
 		);
 
-		murderPerchSpots = dedupePerchSpots(spots, 16, 220);
+		// Store in document coordinates; the flock subtracts the live scroll.
+		murderPerchSpots = dedupePerchSpots(spots, 16, 220).map((p) => ({
+			x: p.x + window.scrollX,
+			y: p.y + window.scrollY
+		}));
 
 		// ── CTA — land on a character in the first CTA button ──
 		const cta = document.querySelector('.hero-cta');
@@ -437,12 +485,16 @@
 
 		// ── Theme switcher — top-right corner ──
 		// Theme switcher is z-50, crow sits just above it
+		const themeSwitcher = document.querySelector('.theme-switcher-perch');
+		const switcherRect = themeSwitcher?.getBoundingClientRect();
 		targets.push({
 			id: 'theme-switcher',
-			x: vw - 60,
-			y: 40,
+			x: switcherRect ? switcherRect.left + switcherRect.width * 0.5 : vw - 40,
+			y: switcherRect ? switcherRect.top : 16,
 			scale: 0.3,
-			zIndex: 51
+			zIndex: 51,
+			anchorSelector: themeSwitcher ? '.theme-switcher-perch' : undefined,
+			anchorAlign: { x: 0.5, y: 0 }
 		});
 
 		crowTargets = targets;
@@ -511,8 +563,31 @@
 		computeCrowTargets();
 		window.addEventListener('resize', computeCrowTargets);
 
+		// Glyph ledges, text boxes and the photo all move once the webfont and
+		// the image arrive, so measure again then, and whenever the layout moves.
+		void loadHoodieAlpha().then(computeCrowTargets);
+		void document.fonts?.ready.then(computeCrowTargets);
+		let relayout: ReturnType<typeof setTimeout> | undefined;
+		const observer =
+			typeof ResizeObserver !== 'undefined'
+				? new ResizeObserver(() => {
+						clearTimeout(relayout);
+						relayout = setTimeout(computeCrowTargets, 150);
+					})
+				: null;
+		observer?.observe(document.body);
+
+		// Dev only: let a screenshot script send the crow to a named perch.
+		if (import.meta.env.DEV) {
+			(window as unknown as { __crow?: unknown }).__crow = {
+				flyTo: (id: string) => crow?.flyTo(id)
+			};
+		}
+
 		return () => {
 			window.removeEventListener('resize', computeCrowTargets);
+			observer?.disconnect();
+			clearTimeout(relayout);
 		};
 	});
 </script>
@@ -526,20 +601,21 @@
 
 <main class="relative text-foreground text-center bg-primary/5 dark:bg-primary/100">
 	<!-- Theme Toggle (top-right) -->
-	<div class="fixed top-0 right-0 m-4 z-50">
+	<div class="theme-switcher-perch fixed top-0 right-0 m-4 z-50">
 		<ThemeSwitcher variant="inline" simpleToggle={true} />
 	</div>
 
 	<!-- Animated Crow -->
 	{#if crowTargets.length > 0}
 		<AnimatedCrow
+			bind:this={crow}
 			targets={crowTargets}
 			minIdleSeconds={6}
 			maxIdleSeconds={14}
 			flightDurationMs={2400}
 			startingTargetId="right-arm"
 		/>
-		<CrowMurder targets={crowTargets} perchSpots={murderPerchSpots} />
+		<CrowMurder perchSpots={murderPerchSpots} />
 	{/if}
 
 	<!-- Background Image -->
