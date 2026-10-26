@@ -79,8 +79,10 @@ describe('CommandPalette', () => {
 			el.textContent?.trim()
 		);
 
-		expect(labels.slice(-3)).toEqual(['Light Theme', 'Dark Theme', 'System Theme']);
-		expect(labels.indexOf('Sign Up')).toBeLessThan(labels.indexOf('Light Theme'));
+		// The active one carries a "✓ Active" badge inside its label
+		const last3 = labels.slice(-3).map((label) => label?.replace(/\s*✓ Active$/, ''));
+		expect(last3).toEqual(['Light Theme', 'Dark Theme', 'System Theme']);
+		expect(labels.indexOf('Sign Up')).toBeLessThan(labels.length - 3);
 	});
 
 	it('should filter commands based on search query', async () => {
