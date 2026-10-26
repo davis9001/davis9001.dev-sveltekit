@@ -2,58 +2,11 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import SEO from '$lib/components/SEO.svelte';
-
-	// Error messages and icons for different status codes
-	const errorInfo: Record<number, { title: string; message: string; icon: string }> = {
-		400: {
-			title: 'Bad Request',
-			message: 'Something went wrong with your request. Please check and try again.',
-			icon: '⚠️'
-		},
-		401: {
-			title: 'Unauthorized',
-			message: 'You need to be logged in to access this page.',
-			icon: '🔐'
-		},
-		403: {
-			title: 'Forbidden',
-			message: "You don't have permission to access this resource.",
-			icon: '🚫'
-		},
-		404: {
-			title: 'Lost in Space',
-			message: "The page you're looking for has drifted into the cosmic void.",
-			icon: '🌌'
-		},
-		500: {
-			title: 'Server Error',
-			message: "Our servers encountered an unexpected anomaly. We're on it!",
-			icon: '💥'
-		},
-		502: {
-			title: 'Bad Gateway',
-			message: "We're having trouble connecting to our services.",
-			icon: '🔌'
-		},
-		503: {
-			title: 'Service Unavailable',
-			message: "We're temporarily offline for maintenance. Please try again soon.",
-			icon: '🔧'
-		},
-		504: {
-			title: 'Gateway Timeout',
-			message: 'The request took too long to process. Please try again.',
-			icon: '⏱️'
-		}
-	};
+	import { errorCopy } from '$lib/utils/error-copy';
 
 	$: status = $page.status;
 	$: error = $page.error;
-	$: info = errorInfo[status] || {
-		title: 'Something Went Wrong',
-		message: error?.message || 'An unexpected error occurred.',
-		icon: '❌'
-	};
+	$: info = errorCopy(status, error?.message);
 	$: homeHref = base || '/';
 	// Until 2026-09-22 davis9001.com 301'd every path here, and browsers keep
 	// a 301 for good — a visitor with that cached lands on this 404 when they
@@ -63,83 +16,45 @@
 		status === 404 && $page.url.pathname !== '/'
 			? `https://davis9001.com${$page.url.pathname}?via=dev`
 			: null;
+	// Raw error text can leak internals; only show it while developing.
+	const showDetails = import.meta.env.DEV;
 </script>
 
-<SEO
-	title="{status} - {info.title}"
-	description={info.message}
-/>
+<SEO title="{status} - {info.title}" description={info.message} />
 
 <div class="error-page">
-	<!-- Animated cosmic background -->
-	<div class="cosmic-bg" aria-hidden="true">
-		<div class="stars"></div>
-		<div class="stars stars-2"></div>
-		<div class="stars stars-3"></div>
-		<div class="nebula"></div>
-	</div>
-
 	<main class="error-content">
-		<!-- Floating icon -->
-		<div class="error-icon" aria-hidden="true">
-			<span class="icon-main">{info.icon}</span>
-			<div class="icon-glow"></div>
+		<!-- The crow sits on the line under the code, like the ones on the home page. -->
+		<div class="crow-wrap" aria-hidden="true">
+			<svg class="crow" viewBox="-30 -30 80 60" width="96" height="72" xmlns="http://www.w3.org/2000/svg">
+				<g class="crow-head-group">
+					<ellipse cx="18" cy="-8" rx="9" ry="8.5" fill="#0f0f0f" stroke="#0d0d0d" stroke-width="0.8" />
+					<path d="M26,-9 L38,-5 L26,-3 Z" fill="#2a2a2a" stroke="#0d0d0d" stroke-width="0.5" />
+					<circle cx="21" cy="-10" r="1.6" fill="#e8e8e8" />
+					<circle class="pupil" cx="21.5" cy="-10" r="0.8" fill="#0d0d0d" />
+				</g>
+				<path d="M-8,6 C-16,14 -30,22 -36,20 C-28,14 -20,8 -14,4 Z" fill="#111" stroke="#0d0d0d" stroke-width="0.5" />
+				<ellipse cx="0" cy="2" rx="20" ry="11" fill="#111" stroke="#0d0d0d" stroke-width="0.8" />
+				<ellipse cx="-2" cy="-1" rx="14" ry="7" fill="none" stroke="#1a2030" stroke-width="1.5" opacity="0.3" />
+				<path d="M4,-2 C10,-4 16,-2 18,4 C16,8 10,10 4,6 Z" fill="#1a1a1a" stroke="#0d0d0d" stroke-width="0.5" />
+				<path d="M-2,12 L-2,22 M5,12 L5,22" stroke="#444" stroke-width="1.4" stroke-linecap="round" />
+			</svg>
 		</div>
-
-		<!-- Error code with glitch effect -->
-		<h1 class="error-code">
-			<span class="code-digit">{String(status).charAt(0)}</span>
-			<span class="code-digit code-digit-center">{String(status).charAt(1)}</span>
-			<span class="code-digit">{String(status).charAt(2)}</span>
-		</h1>
-
-		<!-- Error title -->
-		<h2 class="error-title">{info.title}</h2>
-
-		<!-- Error message -->
+		<h1 class="error-code" aria-label="Error {status}">{status}</h1>
+		<p class="error-title">{info.title}</p>
 		<p class="error-message">{info.message}</p>
 
-		<!-- Action buttons -->
 		<div class="error-actions">
-			<a href={homeHref} class="btn btn-primary">
-				<svg
-					width="20"
-					height="20"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					aria-hidden="true"
-				>
-					<path
-						d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10"
-					/>
-				</svg>
-				Go Home
-			</a>
+			<a href={homeHref} class="btn btn-primary">Back to the start</a>
 			{#if studioHref}
 				<a href={studioHref} class="btn btn-secondary">Try it on davis9001.com</a>
 			{/if}
-			<button class="btn btn-secondary" on:click={() => history.back()}>
-				<svg
-					width="20"
-					height="20"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					aria-hidden="true"
-				>
-					<path d="M19 12H5M12 19l-7-7 7-7" />
-				</svg>
-				Go Back
-			</button>
+			<button class="btn btn-secondary" on:click={() => history.back()}>Go back</button>
 		</div>
 
-		<!-- Debug info (only in dev) -->
-		{#if error?.message && error.message !== info.message}
+		{#if showDetails && error?.message && error.message !== info.message}
 			<details class="error-details">
-				<summary>Technical Details</summary>
+				<summary>Technical details</summary>
 				<pre>{error.message}</pre>
 			</details>
 		{/if}
@@ -152,194 +67,73 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		position: relative;
-		overflow: hidden;
 		padding: var(--spacing-xl) var(--spacing-lg);
 		margin-bottom: calc(-1 * var(--spacing-2xl));
 	}
 
-	/* Cosmic Background */
-	.cosmic-bg {
-		position: absolute;
-		inset: 0;
-		background: radial-gradient(
-			ellipse at bottom,
-			var(--color-surface) 0%,
-			var(--color-background) 100%
-		);
-		z-index: 0;
-	}
-
-	.stars {
-		position: absolute;
-		inset: 0;
-		background-image:
-			radial-gradient(2px 2px at 20px 30px, var(--color-text-secondary), transparent),
-			radial-gradient(2px 2px at 40px 70px, var(--color-text-secondary), transparent),
-			radial-gradient(1px 1px at 90px 40px, var(--color-text-secondary), transparent),
-			radial-gradient(2px 2px at 160px 120px, var(--color-text-secondary), transparent),
-			radial-gradient(1px 1px at 230px 80px, var(--color-text-secondary), transparent),
-			radial-gradient(2px 2px at 300px 150px, var(--color-text-secondary), transparent),
-			radial-gradient(1px 1px at 370px 200px, var(--color-text-secondary), transparent),
-			radial-gradient(2px 2px at 450px 50px, var(--color-text-secondary), transparent);
-		background-size: 500px 500px;
-		animation: twinkle 4s ease-in-out infinite;
-		opacity: 0.5;
-	}
-
-	.stars-2 {
-		background-position: 50px 50px;
-		animation-delay: -1s;
-		opacity: 0.3;
-	}
-
-	.stars-3 {
-		background-position: -50px 100px;
-		animation-delay: -2s;
-		opacity: 0.4;
-	}
-
-	.nebula {
-		position: absolute;
-		inset: 0;
-		background:
-			radial-gradient(circle at 20% 80%, var(--color-primary), transparent 40%),
-			radial-gradient(circle at 80% 20%, var(--color-secondary), transparent 40%);
-		opacity: 0.1;
-		animation: nebula-pulse 8s ease-in-out infinite alternate;
-	}
-
-	@keyframes twinkle {
-		0%,
-		100% {
-			opacity: 0.5;
-		}
-		50% {
-			opacity: 0.8;
-		}
-	}
-
-	@keyframes nebula-pulse {
-		0% {
-			opacity: 0.08;
-			transform: scale(1);
-		}
-		100% {
-			opacity: 0.15;
-			transform: scale(1.1);
-		}
-	}
-
-	/* Content */
 	.error-content {
-		position: relative;
-		z-index: 1;
 		text-align: center;
-		max-width: 600px;
+		max-width: 520px;
 	}
 
-	/* Icon */
-	.error-icon {
-		position: relative;
-		display: inline-block;
-		margin-bottom: var(--spacing-lg);
-		animation: float 3s ease-in-out infinite;
+	.crow-wrap {
+		/* The crow's feet land on the top edge of the code below. */
+		height: 72px;
+		margin-bottom: -20px;
 	}
 
-	.icon-main {
-		font-size: 4rem;
+	.crow {
+		overflow: visible;
 		display: block;
-		filter: drop-shadow(0 0 20px var(--color-primary));
+		margin: 0 auto;
+		/* Dark mode: a pale rim keeps the black bird readable on a dark page. */
+		filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.75));
 	}
 
-	.icon-glow {
-		position: absolute;
-		inset: -20px;
-		background: radial-gradient(circle, var(--color-primary), transparent 70%);
-		opacity: 0.3;
-		border-radius: 50%;
-		animation: glow-pulse 2s ease-in-out infinite alternate;
+	.crow-head-group {
+		transform-origin: 14px -5px;
+		animation: look 7s ease-in-out infinite;
 	}
 
-	@keyframes float {
+	@keyframes look {
 		0%,
+		40%,
 		100% {
-			transform: translateY(0);
+			transform: rotate(0deg);
 		}
-		50% {
-			transform: translateY(-10px);
+		48%,
+		62% {
+			transform: rotate(-14deg);
+		}
+		70%,
+		86% {
+			transform: rotate(8deg);
 		}
 	}
 
-	@keyframes glow-pulse {
-		0% {
-			opacity: 0.2;
-			transform: scale(0.9);
-		}
-		100% {
-			opacity: 0.4;
-			transform: scale(1.1);
-		}
-	}
-
-	/* Error Code */
 	.error-code {
-		font-size: 8rem;
-		font-weight: 900;
+		font-size: 7rem;
+		font-weight: 800;
 		line-height: 1;
-		margin-bottom: var(--spacing-md);
-		display: flex;
-		justify-content: center;
-		gap: var(--spacing-sm);
+		letter-spacing: -0.04em;
+		color: var(--color-text);
+		margin: 0 0 var(--spacing-md);
 	}
 
-	.code-digit {
-		display: inline-block;
-		background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-		background-clip: text;
-		-webkit-background-clip: text;
-		color: transparent;
-		animation: digit-float 2s ease-in-out infinite;
-	}
-
-	.code-digit:nth-child(1) {
-		animation-delay: 0s;
-	}
-	.code-digit-center {
-		animation-delay: 0.2s;
-	}
-	.code-digit:nth-child(3) {
-		animation-delay: 0.4s;
-	}
-
-	@keyframes digit-float {
-		0%,
-		100% {
-			transform: translateY(0);
-		}
-		50% {
-			transform: translateY(-5px);
-		}
-	}
-
-	/* Title & Message */
 	.error-title {
-		font-size: 2rem;
+		font-size: 1.6rem;
 		font-weight: 600;
 		color: var(--color-text);
-		margin-bottom: var(--spacing-sm);
+		margin: 0 0 var(--spacing-sm);
 	}
 
 	.error-message {
-		font-size: 1.1rem;
+		font-size: 1.05rem;
 		color: var(--color-text-secondary);
-		margin-bottom: var(--spacing-xl);
-		max-width: 400px;
-		margin-left: auto;
-		margin-right: auto;
+		margin: 0 auto var(--spacing-xl);
+		max-width: 380px;
 	}
 
-	/* Actions */
 	.error-actions {
 		display: flex;
 		gap: var(--spacing-md);
@@ -350,7 +144,6 @@
 	.btn {
 		display: inline-flex;
 		align-items: center;
-		gap: var(--spacing-sm);
 		padding: var(--spacing-sm) var(--spacing-lg);
 		font-size: 1rem;
 		font-weight: 500;
@@ -361,16 +154,19 @@
 	}
 
 	.btn-primary {
-		background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-		color: white;
-		border: none;
-		box-shadow: 0 4px 15px var(--color-primary);
+		background: var(--color-primary);
+		color: #fff;
+		border: 1px solid var(--color-primary);
 	}
 
 	.btn-primary:hover {
 		transform: translateY(-2px);
-		box-shadow: 0 6px 20px var(--color-primary);
-		color: white;
+		color: #fff;
+	}
+
+	:global([data-theme='dark']) .btn-primary,
+	:global([data-theme='dark']) .btn-primary:hover {
+		color: hsl(0 0% 6%);
 	}
 
 	.btn-secondary {
@@ -384,7 +180,6 @@
 		border-color: var(--color-primary);
 	}
 
-	/* Details */
 	.error-details {
 		margin-top: var(--spacing-xl);
 		text-align: left;
@@ -411,22 +206,18 @@
 		color: var(--color-error);
 	}
 
-	/* Responsive */
 	@media (max-width: 480px) {
 		.error-code {
 			font-size: 5rem;
 		}
-
 		.error-title {
-			font-size: 1.5rem;
+			font-size: 1.35rem;
 		}
+	}
 
-		.error-message {
-			font-size: 1rem;
-		}
-
-		.icon-main {
-			font-size: 3rem;
+	@media (prefers-reduced-motion: reduce) {
+		.crow-head-group {
+			animation: none;
 		}
 	}
 </style>
