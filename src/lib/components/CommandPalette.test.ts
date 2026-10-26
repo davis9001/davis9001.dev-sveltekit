@@ -73,6 +73,16 @@ describe('CommandPalette', () => {
 		expect(commandLabels.some((label) => label?.includes('Chat'))).toBe(false);
 	});
 
+	it('should list the theme commands last', () => {
+		const { container } = render(CommandPalette, { props: { show: true, hasAIProviders: true } });
+		const labels = Array.from(container.querySelectorAll('.command-label')).map((el) =>
+			el.textContent?.trim()
+		);
+
+		expect(labels.slice(-3)).toEqual(['Light Theme', 'Dark Theme', 'System Theme']);
+		expect(labels.indexOf('Sign Up')).toBeLessThan(labels.indexOf('Light Theme'));
+	});
+
 	it('should filter commands based on search query', async () => {
 		const { container } = render(CommandPalette, { props: { show: true, hasAIProviders: true } });
 		const input = container.querySelector('.search-input') as HTMLInputElement;

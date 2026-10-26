@@ -157,6 +157,38 @@
 			action: () => goto('/auth/signup'),
 			icon: '✨'
 		},
+		...portfolioItems.map((item) => ({
+			id: `portfolio-${item.slug}`,
+			label: item.title,
+			description: item.summary || 'Portfolio project',
+			action: () => goto(`/portfolio/project/${item.slug}`),
+			icon: '🖥️',
+			badge: 'Portfolio'
+		})),
+		...cmsCommands.map((item) => ({
+			id: item.id,
+			label: item.label,
+			description: item.description || item.contentTypeName,
+			action: () => goto(item.href),
+			icon: '📄',
+			badge: item.contentTypeName
+		})),
+		...openProjects.map((project) => ({
+			id: `project-${project.group}-${project.name}`,
+			label: project.name,
+			description: `${project.group} · ${projectStatusLabel(project.status)}${project.primaryLink ? ' · opens site' : ''}`,
+			action: () => {
+				if (project.primaryLink) {
+					window.open(project.primaryLink, '_blank', 'noopener,noreferrer');
+				} else {
+					goto('/projects');
+				}
+				show = false;
+			},
+			icon: '🚀',
+			badge: 'Project'
+		})),
+		// Theme switching goes last: it is a setting, not a place to go
 		{
 			id: 'theme-light',
 			label: 'Light Theme',
@@ -195,38 +227,7 @@
 			badge: currentPreference === 'system' ? '✓ Active' : undefined,
 			onPreview: () => previewThemeChange(currentSystemTheme),
 			onPreviewEnd: endPreview
-		},
-		...portfolioItems.map((item) => ({
-			id: `portfolio-${item.slug}`,
-			label: item.title,
-			description: item.summary || 'Portfolio project',
-			action: () => goto(`/portfolio/project/${item.slug}`),
-			icon: '🖥️',
-			badge: 'Portfolio'
-		})),
-		...cmsCommands.map((item) => ({
-			id: item.id,
-			label: item.label,
-			description: item.description || item.contentTypeName,
-			action: () => goto(item.href),
-			icon: '📄',
-			badge: item.contentTypeName
-		})),
-		...openProjects.map((project) => ({
-			id: `project-${project.group}-${project.name}`,
-			label: project.name,
-			description: `${project.group} · ${projectStatusLabel(project.status)}${project.primaryLink ? ' · opens site' : ''}`,
-			action: () => {
-				if (project.primaryLink) {
-					window.open(project.primaryLink, '_blank', 'noopener,noreferrer');
-				} else {
-					goto('/projects');
-				}
-				show = false;
-			},
-			icon: '🚀',
-			badge: 'Project'
-		}))
+		}
 	] as Command[];
 
 	$: filteredCommands = commands.filter(
