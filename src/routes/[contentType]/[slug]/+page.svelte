@@ -87,6 +87,28 @@
 	</a>
 		{#if contentType.settings.itemTemplate === 'blog-item'}
 			<button type="button" class="cms-reading-mode-btn" on:click={toggleReadingMode}>
+				<!-- The icon shows the layout the button switches to. -->
+				<svg
+					class="cms-reading-mode-icon"
+					width="18"
+					height="16"
+					viewBox="0 0 18 16"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.5"
+					aria-hidden="true"
+				>
+					<rect x="0.75" y="0.75" width="16.5" height="14.5" rx="2" />
+					{#if readingMode === 'river'}
+						<line x1="4.5" y1="4.5" x2="13.5" y2="4.5" />
+						<line x1="4.5" y1="8" x2="13.5" y2="8" />
+						<line x1="4.5" y1="11.5" x2="13.5" y2="11.5" />
+					{:else}
+						<line x1="5" y1="4" x2="5" y2="12" />
+						<line x1="9" y1="4" x2="9" y2="12" />
+						<line x1="13" y1="4" x2="13" y2="12" />
+					{/if}
+				</svg>
 				{readingMode === 'river' ? 'Read in one column' : 'Read in three columns'}
 			</button>
 		{/if}
@@ -285,7 +307,7 @@
 
 	@media (min-width: 1100px) {
 		.cms-reading-mode-btn {
-			display: inline-block;
+			display: inline-flex;
 		}
 	}
 
@@ -298,6 +320,8 @@
 		font: inherit;
 		font-size: 0.85rem;
 		padding: 0.35rem 0.75rem;
+		align-items: center;
+		gap: 0.5rem;
 		transition:
 			color 0.2s ease,
 			border-color 0.2s ease;
