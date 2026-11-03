@@ -5,6 +5,7 @@
  */
 
 import type { D1Database } from '@cloudflare/workers-types';
+import { liveSql } from './schedule';
 
 export interface BlogPostSummary {
 	slug: string;
@@ -44,6 +45,7 @@ export async function listPublishedBlogPosts(
 				FROM content_items ci
 				JOIN content_types ct ON ct.id = ci.content_type_id
 				WHERE ct.slug = 'blog' AND ci.status = 'published'
+				  AND ${liveSql('ci.published_at')}
 				ORDER BY ci.published_at DESC
 				LIMIT ?`
 			)

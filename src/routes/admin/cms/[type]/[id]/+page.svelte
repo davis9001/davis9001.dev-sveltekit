@@ -5,6 +5,7 @@
 	import RichTextEditor from '$lib/components/RichTextEditor.svelte';
 	import TaskListField from '$lib/components/TaskListField.svelte';
 	import { goto } from '$app/navigation';
+	import { dateHasArrived, fromLocalInputValue, toLocalInputValue } from '$lib/cms/schedule';
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -73,6 +74,9 @@
 	let formTitle: string = item.title || '';
 	let formSlug: string = item.slug || '';
 	let formStatus: 'draft' | 'published' | 'archived' = item.status || 'draft';
+	// Publish time: editable until the item has gone live, then fixed.
+	const hasGoneLive = Boolean(item.publishedAt) && dateHasArrived(item.publishedAt);
+	let formPublishAt: string = hasGoneLive ? '' : toLocalInputValue(item.publishedAt);
 	let formFields: Record<string, any> = buildInitialFields();
 	let formSeoTitle: string = item.seoTitle || '';
 	let formSeoDescription: string = item.seoDescription || '';
@@ -176,6 +180,10 @@
 				status: formStatus,
 				fields: formFields
 			};
+			if (formStatus === 'published' && !hasGoneLive) {
+				// Empty means publish now; a future time schedules it.
+				body.publishedAt = fromLocalInputValue(formPublishAt);
+			}
 			if (contentType.settings?.hasSEO) {
 				body.seoTitle = formSeoTitle || null;
 				body.seoDescription = formSeoDescription || null;
@@ -516,6 +524,25 @@
 							<option value="archived">Archived</option>
 						</select>
 					</div>
+					{#if formStatus === 'published'}
+						{#if hasGoneLive}
+							<span class="field-help"
+								>Live since {new Date(item.publishedAt).toLocaleString()}.</span
+							>
+						{:else}
+							<div class="form-group">
+								<label for="form-publish-at">Publish at</label>
+								<input id="form-publish-at" type="datetime-local" bind:value={formPublishAt} />
+								<span class="field-help">
+									{#if formPublishAt && !dateHasArrived(fromLocalInputValue(formPublishAt))}
+										Scheduled. Hidden from visitors until then.
+									{:else}
+										Leave empty to publish now. A future time schedules it.
+									{/if}
+								</span>
+							</div>
+						{/if}
+					{/if}
 				</div>
 			{/if}
 

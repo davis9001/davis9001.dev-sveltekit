@@ -11,6 +11,7 @@ import {
 	isContentTypeSlug,
 	syncContentTypes
 } from '$lib/services/cms';
+import { isLiveItem } from '$lib/cms/schedule';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -46,7 +47,8 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 	// types that opted into staying publicly visible (grouped as "Archive"
 	// on the list page) — drafts always 404.
 	const archiveVisible = item.status === 'archived' && contentType.settings.publicArchiveVisible;
-	if (item.status !== 'published' && !archiveVisible) {
+	// A published item whose date is still ahead is scheduled, not live.
+	if (!isLiveItem(item) && !archiveVisible) {
 		throw error(404, 'Content not found');
 	}
 

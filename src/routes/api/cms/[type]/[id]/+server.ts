@@ -8,6 +8,7 @@
 import { LockedContentError } from '$lib/cms/types';
 import { describeContentLoss, detectContentLoss } from '$lib/cms/content-loss';
 import { sanitizeRichtextFields } from '$lib/cms/sanitize';
+import { dateHasArrived, isLiveItem } from '$lib/cms/schedule';
 import { getContentTypeRoutePrefix, validateFields } from '$lib/cms/utils';
 import { runTimestampProofJob } from '$lib/predictions/proof-job';
 import {
@@ -102,6 +103,7 @@ export const PUT: RequestHandler = async ({ platform, locals, params, request, u
 				seoDescription: body.seoDescription,
 				seoImage: body.seoImage,
 				showInCommandPalette: body.showInCommandPalette,
+				publishedAt: body.publishedAt,
 				tagIds: body.tagIds
 			},
 			locals.user.id
@@ -111,7 +113,9 @@ export const PUT: RequestHandler = async ({ platform, locals, params, request, u
 			throw error(404, 'Content item not found');
 		}
 
-		if (!existing.publishedAt && item.publishedAt && contentType.settings.enableTimestampProof) {
+		// First time live: it had no date, or its date was still ahead before this save.
+		const wasLive = Boolean(existing.publishedAt) && dateHasArrived(existing.publishedAt);
+		if (!wasLive && isLiveItem(item) && contentType.settings.enableTimestampProof) {
 			const publicUrl = `${url.origin}${getContentTypeRoutePrefix(contentType)}/${item.slug}`;
 			platform?.context?.waitUntil(runTimestampProofJob(db, item, publicUrl));
 		}
@@ -119,6 +123,7 @@ export const PUT: RequestHandler = async ({ platform, locals, params, request, u
 		return json({ item });
 	} catch (err: any) {
 		if (err instanceof LockedContentError) throw error(400, err.message);
+		if (err?.name === 'CmsFieldValidationError') throw error(400, err.message);
 		if (err?.status) throw err;
 		console.error('Failed to update content item:', err);
 		throw error(500, 'Failed to update content item');

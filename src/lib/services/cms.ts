@@ -7,6 +7,7 @@
  */
 
 import { contentTypeRegistry } from '$lib/cms/registry';
+import { dateHasArrived, liveSql, parsePublishAt, resolvePublishedAt } from '$lib/cms/schedule';
 import type {
 	ContentFieldDefinition,
 	ContentItem,
@@ -167,7 +168,9 @@ export async function createContentItem(
 	const slug = input.slug || generateSlug(input.title);
 	const status = input.status || 'draft';
 	const fieldsJson = JSON.stringify(input.fields);
-	const publishedAt = status === 'published' ? new Date().toISOString() : null;
+	const requestedPublishAt = parsePublishAt(input.publishedAt);
+	const publishedAt =
+		status === 'published' ? (requestedPublishAt ?? new Date().toISOString()) : null;
 	const showInCommandPalette = input.showInCommandPalette !== false ? 1 : 0;
 
 	// Check slug uniqueness within this content type
@@ -287,6 +290,10 @@ export async function listContentItems(
 		params.push(filters.status);
 	}
 
+	if (filters.liveOnly) {
+		conditions.push(liveSql('published_at'));
+	}
+
 	if (filters.authorId) {
 		conditions.push('author_id = ?');
 		params.push(filters.authorId);
@@ -396,7 +403,7 @@ export async function updateContentItem(
 	// Locked fields are only enforced once the item has ever been published —
 	// keyed on published_at (has it EVER been published), not current status,
 	// since an unpublish→edit→republish cycle must not be able to launder them.
-	if (existing.published_at !== null) {
+	if (existing.published_at !== null && dateHasArrived(existing.published_at)) {
 		if (input.fields) {
 			const violations = getLockedFieldViolations(definitions, existingFieldsObj, input.fields);
 			if (violations.length > 0) {
@@ -433,10 +440,12 @@ export async function updateContentItem(
 	// Set published_at only the first time this item is ever published — keyed
 	// on published_at being null so far, not current status (same reasoning
 	// as the lock check above).
-	let publishedAt = existing.published_at;
-	if (status === 'published' && existing.published_at === null) {
-		publishedAt = new Date().toISOString();
-	}
+	// A future date schedules the item; one that has gone live never moves.
+	const publishedAt = resolvePublishedAt({
+		status,
+		existing: existing.published_at,
+		requested: parsePublishAt(input.publishedAt)
+	});
 
 	// Resolution-provenance stamping: any field flagged stampProvenanceOnChange
 	// that actually changed value bumps resolution_resolved_at/by, regardless
@@ -547,7 +556,7 @@ export async function deleteContentItem(db: D1Database, id: string): Promise<boo
 		.bind(id)
 		.first<{ published_at: string | null; settings: string }>();
 
-	if (existing && existing.published_at !== null) {
+	if (existing && existing.published_at !== null && dateHasArrived(existing.published_at)) {
 		const settings = JSON.parse(existing.settings) as ContentTypeSettings;
 		if (settings.enableTimestampProof) {
 			throw new LockedContentError(
@@ -586,6 +595,7 @@ export async function getCommandPaletteContentItems(
 			 FROM content_items ci
 			 INNER JOIN content_types ct ON ct.id = ci.content_type_id
 			 WHERE ci.status = 'published'
+			   AND ${liveSql('ci.published_at')}
 			   AND COALESCE(ci.show_in_command_palette, 1) = 1
 			   AND COALESCE(json_extract(ct.settings, '$.showInCommandPalette'), 1) = 1
 			 ORDER BY COALESCE(ci.published_at, ci.created_at) DESC, ci.updated_at DESC
