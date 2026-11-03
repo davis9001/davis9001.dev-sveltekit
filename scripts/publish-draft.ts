@@ -128,9 +128,16 @@ function imageSize(src: string): { width: number; height: number } | null {
 	return readSize(file);
 }
 
-/** Intrinsic size from the file header — WebP (VP8X/VP8 /VP8L) and PNG. */
+/** Intrinsic size from the file header — WebP (VP8X/VP8 /VP8L), PNG, and SVG. */
 function readSize(file: string): { width: number; height: number } | null {
 	const buf = readFileSync(file);
+	if (file.endsWith('.svg')) {
+		// svjeez writes width/height on the root element.
+		const root = /<svg\b[^>]*>/.exec(buf.toString('utf8', 0, 2000))?.[0] ?? '';
+		const w = /\swidth="(\d+(?:\.\d+)?)"/.exec(root)?.[1];
+		const h = /\sheight="(\d+(?:\.\d+)?)"/.exec(root)?.[1];
+		return w && h ? { width: Math.round(Number(w)), height: Math.round(Number(h)) } : null;
+	}
 	if (
 		buf.subarray(0, 4).toString('ascii') === 'RIFF' &&
 		buf.subarray(8, 12).toString('ascii') === 'WEBP'
