@@ -435,11 +435,18 @@
 			align-items: stretch;
 		}
 
+		/* The base 16:9 box would work out its width from the row height and
+		   push past its column into the words. Here the image fills a column
+		   the words size, so it takes no size of its own. */
 		.cms-blog-card-lead :global(.cms-blog-card-image) {
-			height: 100%;
+			aspect-ratio: auto;
+			position: relative;
+			min-width: 0;
 		}
 
 		.cms-blog-card-lead :global(.cms-blog-card-image img) {
+			position: absolute;
+			inset: 0;
 			height: 100%;
 			object-fit: cover;
 		}
