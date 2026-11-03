@@ -1269,6 +1269,7 @@ html.river-scroll-lock body {
 
 .hljs-number,
 .hljs-symbol,
+.hljs-operator,
 .hljs-bullet {
 	color: var(--hl-number);
 }

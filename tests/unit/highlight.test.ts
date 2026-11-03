@@ -36,6 +36,41 @@ describe('highlightCode', () => {
 	});
 });
 
+describe('lean grammar', () => {
+	const src = [
+		'/-- A doc comment. -/',
+		'theorem conflict_loop (n : Nat) : n ≤ n + 1 := by',
+		'  -- a line comment',
+		'  intro h; simp [List.replicate, "s", 0x1F]; exact .conflict',
+		'@[simp] def f : Bool := true'
+	].join('\n');
+
+	it('is found by name and alias', () => {
+		expect(resolveLanguage('lean')).toBe('lean');
+		expect(resolveLanguage('lean4')).not.toBeNull();
+	});
+
+	it('colours comments, declarations, tactics, types and symbols', () => {
+		const out = highlightCode(src, 'lean') ?? '';
+		expect(out).toContain('hljs-comment');
+		expect(out).toContain('hljs-keyword">theorem');
+		expect(out).toContain('hljs-title function_">conflict_loop');
+		expect(out).toContain('hljs-type">Nat');
+		expect(out).toContain('hljs-operator">≤');
+		expect(out).toContain('hljs-built_in">simp');
+		expect(out).toContain('hljs-string');
+		expect(out).toContain('hljs-number');
+		expect(out).toContain('hljs-meta');
+		expect(out).toContain('hljs-literal">true');
+		expect(out).toContain('hljs-symbol">.conflict');
+	});
+
+	it('handles nested block comments', () => {
+		const out = highlightCode('/- a /- b -/ c -/ def x := 1', 'lean') ?? '';
+		expect(out).toContain('hljs-keyword">def');
+	});
+});
+
 describe('highlightHtmlBlocks', () => {
 	const block = (lang: string, body: string) =>
 		`<pre><code class="language-${lang}">${body}</code></pre>`;
