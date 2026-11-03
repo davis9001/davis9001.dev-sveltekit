@@ -9,6 +9,7 @@
 -->
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import { highlightCode } from '$lib/utils/highlight';
 	import { codeLines, copyText } from './data-logic';
 
 	export let code: string;
@@ -22,6 +23,9 @@
 	let reset: ReturnType<typeof setTimeout> | undefined;
 
 	$: lines = codeLines(code);
+	// Null when there is no language, or none we have a grammar for: plain text then.
+	$: colored = language ? highlightCode(code, language) : null;
+	$: coloredLines = language ? lines.map((l) => highlightCode(l, language)) : [];
 	$: heading = filename || language;
 	// Focusable so a keyboard can scroll long lines (axe: scrollable-region-focusable).
 	$: frame = { role: 'region', 'aria-label': heading || 'Code', tabindex: 0 };
@@ -57,9 +61,10 @@
 		</div>
 	{/if}
 	<pre class="code__pre" class:code__pre--numbered={lineNumbers} {...frame}><code
-			class={language ? `language-${language}` : undefined}
-			>{#if lineNumbers}{#each lines as line, i (i)}<span class="code__line">{line}</span
-					>{#if i < lines.length - 1}{'\n'}{/if}{/each}{:else}{code}{/if}</code
+			class={language ? `language-${language}${colored !== null ? ' hljs' : ''}` : undefined}
+			>{#if lineNumbers}{#each lines as line, i (i)}<span class="code__line"
+						>{#if coloredLines[i] != null}<!-- eslint-disable-next-line svelte/no-at-html-tags -- escaped by highlight.js -->{@html coloredLines[i]}{:else}{line}{/if}</span
+					>{#if i < lines.length - 1}{'\n'}{/if}{/each}{:else if colored !== null}<!-- eslint-disable-next-line svelte/no-at-html-tags -- escaped by highlight.js -->{@html colored}{:else}{code}{/if}</code
 		></pre>
 	<span class="sr-only" aria-live="polite"
 		>{status === 'copied'

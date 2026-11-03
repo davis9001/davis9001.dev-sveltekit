@@ -13,6 +13,7 @@
  * See `$lib/utils/theme-image` for the convention and why the swap is CSS.
  */
 import { marked } from 'marked';
+import { highlightHtmlBlocks } from './highlight';
 import {
 	escapeAttribute,
 	hasThemePlaceholder,
@@ -70,5 +71,5 @@ export function renderProjectMarkdown(content: string): string {
 			hasThemePlaceholder(href) ? `theme-figure-${++figureCount}` : undefined
 		);
 
-	return marked(content, { renderer }) as string;
+	return highlightHtmlBlocks(marked(content, { renderer }) as string);
 }

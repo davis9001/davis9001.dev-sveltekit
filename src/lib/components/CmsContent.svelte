@@ -18,12 +18,13 @@
 	import { parseContentSegments } from '$lib/cms/embed';
 	import { expandThemeImages } from '$lib/cms/theme-images';
 	import { getEmbedComponent } from '$lib/cms/embeds';
+	import { highlightHtmlBlocks } from '$lib/utils/highlight';
 
 	export let html = '';
 
 	// Theme-paired images are expanded before segmenting: the stored body holds
 	// one {theme} tag, the page gets both variants for CSS to choose between.
-	$: segments = parseContentSegments(expandThemeImages(html || ''));
+	$: segments = parseContentSegments(highlightHtmlBlocks(expandThemeImages(html || '')));
 
 	let observer: IntersectionObserver | null = null;
 
