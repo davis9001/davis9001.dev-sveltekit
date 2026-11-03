@@ -1,4 +1,5 @@
 import { listPublishedBlogPosts } from '$lib/cms/blog-queries';
+import { maxAgeFor } from '$lib/cms/go-live';
 import { listOpenProjects } from '$lib/services/open-projects';
 import { buildProject } from '$lib/utils/portfolio';
 import type { RequestHandler } from './$types';
@@ -67,7 +68,7 @@ export const GET: RequestHandler = async ({ platform }) => {
 	return new Response(lines.join('\n') + '\n', {
 		headers: {
 			'Content-Type': 'text/plain; charset=utf-8',
-			'Cache-Control': 'public, max-age=3600'
+			'Cache-Control': `public, max-age=${await maxAgeFor(platform?.env?.DB, 3600)}`
 		}
 	});
 };

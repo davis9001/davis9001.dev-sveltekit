@@ -5,6 +5,7 @@
  */
 
 import type { D1Database } from '@cloudflare/workers-types';
+import { maxAgeFor } from './go-live';
 import { liveSql } from './schedule';
 
 export interface BlogPostSummary {
@@ -78,7 +79,10 @@ export async function getCachedBlogPosts(
 	const data = await listPublishedBlogPosts(db);
 	// Don't cache misses caused by a missing DB binding
 	if (db) {
-		cache = { data, expires: now() + BLOG_CACHE_TTL_MS };
+		// Expire no later than the next scheduled post going live, so a post
+		// scheduled for 09:00 is in the menu at 09:00 and not up to a minute after.
+		const ttlMs = (await maxAgeFor(db, BLOG_CACHE_TTL_MS / 1000)) * 1000;
+		cache = { data, expires: now() + ttlMs };
 	}
 	return data;
 }

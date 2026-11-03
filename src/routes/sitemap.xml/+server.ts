@@ -1,4 +1,5 @@
 import { listPublishedBlogPosts } from '$lib/cms/blog-queries';
+import { maxAgeFor } from '$lib/cms/go-live';
 import type { RequestHandler } from './$types';
 
 /**
@@ -36,6 +37,7 @@ function extractSlugs(modules: Record<string, string>): string[] {
 }
 
 export const GET: RequestHandler = async ({ platform }) => {
+	const maxAge = await maxAgeFor(platform?.env?.DB, 3600);
 	const blogPosts = await listPublishedBlogPosts(platform?.env?.DB, 500);
 	const projectSlugs = extractSlugs(projectModules);
 
@@ -53,7 +55,7 @@ ${urls.map((url) => `  <url>\n    <loc>${url}</loc>\n  </url>`).join('\n')}
 	return new Response(sitemap, {
 		headers: {
 			'Content-Type': 'application/xml',
-			'Cache-Control': 'max-age=3600'
+			'Cache-Control': `max-age=${maxAge}`
 		}
 	});
 };
