@@ -431,7 +431,10 @@
 		.cms-blog-card-lead {
 			grid-column: 1 / -1;
 			display: grid;
-			grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+			/* The picture column stops growing at 720px. On a very wide screen a
+			   proportional column turns the picture into a thin strip and the
+			   crop cuts the middle out of it. */
+			grid-template-columns: minmax(0, min(52%, 720px)) minmax(0, 1fr);
 			align-items: stretch;
 		}
 
@@ -442,6 +445,7 @@
 			aspect-ratio: auto;
 			position: relative;
 			min-width: 0;
+			min-height: 18rem;
 		}
 
 		.cms-blog-card-lead :global(.cms-blog-card-image img) {
