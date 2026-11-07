@@ -1,5 +1,11 @@
 # CLAUDE.md - Instructions for Claude Code and AI Assistants
 
+## Where this sits
+
+This repo is normally checked out at `davis9001.dev-sveltekit/` inside the private umbrella repo
+`davis9001/davis9001.dev-sveltekit-umbrella` (planning, design, docs). Workspace-only planning stays there;
+never copy it into this repo.
+
 ## Package Manager - MANDATORY RULE
 
 - This project uses Bun as the package manager and script runner.

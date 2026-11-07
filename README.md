@@ -119,3 +119,9 @@ migrations/               # Cloudflare D1 database migrations
 ## License
 
 MIT
+
+## Related repositories
+
+Internal planning, design and docs live in a separate private repository,
+`davis9001/davis9001.dev-sveltekit-umbrella`, which has this repository checked out at `davis9001.dev-sveltekit/`. Nothing in
+it is needed to build or run this one.
