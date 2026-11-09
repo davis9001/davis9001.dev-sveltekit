@@ -785,6 +785,10 @@
 	/* ── Hero Section ── */
 	.hero-section {
 		padding: 2rem 1rem 4rem;
+		/* No text highlighting on the hero: dragging across the title and links
+		   shouldn't paint selection boxes over the layout. */
+		-webkit-user-select: none;
+		user-select: none;
 	}
 
 	.hero-content {
