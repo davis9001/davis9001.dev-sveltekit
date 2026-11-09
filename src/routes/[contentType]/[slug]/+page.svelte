@@ -83,8 +83,8 @@
 	<!-- Back link -->
 	<div class="cms-topbar">
 		<a href={getRoutePrefix()} class="cms-back-link">
-		&larr; Back to {contentType.name}
-	</a>
+			&larr; Back to {contentType.name}
+		</a>
 		{#if contentType.settings.itemTemplate === 'blog-item'}
 			<button type="button" class="cms-reading-mode-btn" on:click={toggleReadingMode}>
 				<!-- The icon shows the layout the button switches to. -->
@@ -116,6 +116,14 @@
 
 	{#if item.status === 'archived'}
 		<p class="cms-archived-notice">This item has been archived.</p>
+	{/if}
+
+	<!-- A correction the author attached to the post. It sits above the title so a
+	     reader sees it before anything else on the page. -->
+	{#if item.fields.correction}
+		<aside class="cms-correction" role="note" aria-label="Correction">
+			<CmsContent html={String(item.fields.correction)} />
+		</aside>
 	{/if}
 
 	<!-- Predictions item template -->
@@ -711,6 +719,25 @@
 	}
 
 	/* Predictions item template */
+	.cms-correction {
+		margin-bottom: var(--spacing-xl);
+		padding: var(--spacing-md) var(--spacing-lg);
+		border: 2px solid var(--color-warning);
+		border-left-width: 8px;
+		border-radius: var(--radius-sm);
+		background: var(--color-surface);
+		color: var(--color-text);
+	}
+
+	.cms-correction :global(.cms-content) {
+		font-size: 1rem;
+		line-height: 1.6;
+	}
+
+	.cms-correction :global(p) {
+		margin: 0;
+	}
+
 	.cms-archived-notice {
 		display: inline-block;
 		font-size: 0.8125rem;
@@ -837,7 +864,9 @@
 
 		/* A caption that broke the measure with its figure reads as a second
 		   column of body text. Bring it back to the words it belongs to. */
-		.cms-item-page:not(:has(:global(.river-active))) .cms-content :global(figure:has(img) figcaption) {
+		.cms-item-page:not(:has(:global(.river-active)))
+			.cms-content
+			:global(figure:has(img) figcaption) {
 			max-width: 820px;
 			margin-left: auto;
 			margin-right: auto;
