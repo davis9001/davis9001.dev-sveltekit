@@ -135,7 +135,7 @@
 							<span class="r-dot">·</span>
 							<span class="r-role">Founder &amp; Community Architect</span>
 						</span>
-						<time class="r-dates">2024 – Present</time>
+						<time class="r-dates">2020 – Present</time>
 					</div>
 					<ul class="r-bullets">
 						<li>
