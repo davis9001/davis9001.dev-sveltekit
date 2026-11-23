@@ -85,7 +85,7 @@
 	async function loadHoodieAlpha() {
 		try {
 			const img = new Image();
-			img.src = '/davis9001-2-hoodie.webp';
+			img.src = '/davis9001-2-hoodie-hd.webp';
 			await img.decode();
 			const canvas = document.createElement('canvas');
 			canvas.width = img.naturalWidth;
@@ -115,9 +115,10 @@
 		);
 	}
 
-	// Natural dimensions of /davis9001-2-hoodie.webp (420 × 736)
-	const IMG_NAT_W = 420;
-	const IMG_NAT_H = 736;
+	// Natural dimensions of /davis9001-2-hoodie-hd.webp (1260 × 2208, three times the old 420 × 736).
+	// Only the aspect ratio (420:736) matters: the photo is drawn with background-size: contain.
+	const IMG_NAT_W = 1260;
+	const IMG_NAT_H = 2208;
 
 	type PretextLine = { text: string };
 	type PretextModule = {
@@ -622,7 +623,7 @@
 	<div
 		class="fixed inset-0 z-30 bg-cover bg-center bg-no-repeat"
 		style="
-			background-image: url('/davis9001-2-hoodie.webp');
+			background-image: url('/davis9001-2-hoodie-hd.webp');
 			background-size: contain;
 			background-position: -9ch 18em;
 		"

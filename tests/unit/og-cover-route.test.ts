@@ -20,7 +20,7 @@ describe('Hidden OG Cover Route Source', () => {
 	it('should use the current hoodie background photo and the davis9001 logo', () => {
 		const src = source();
 
-		expect(src).toContain('/davis9001-2-hoodie.webp');
+		expect(src).toContain('/davis9001-2-hoodie-hd.webp');
 		expect(src).toContain('/logo-green-Icon-250.webp');
 	});
 

@@ -208,7 +208,7 @@
 		width: 348px;
 		height: 610px;
 		z-index: 20;
-		background-image: url('/davis9001-2-hoodie.webp');
+		background-image: url('/davis9001-2-hoodie-hd.webp');
 		background-size: contain;
 		background-repeat: no-repeat;
 		background-position: bottom center;
